@@ -1,3 +1,23 @@
 @import url('https://fonts.googleapis.com/css?family=Muli:400,700');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
 @import 'tailwindcss';
+
+@theme {
+    --color-ms-primary: #0fd494;
+    --color-ms-secondary: #242424;
+    --color-ms-accent: #4e4e4e;
+
+    --color-ms-dark: #0f0f0f;
+    --color-ms-dark-light: #595959;
+    --color-ms-light: #dfdfdf;
+    --color-ms-light-dark: #999999;
+
+    --spacing: 0.125rem;
+}
+
+html {
+    font-family: Inter, 'JetBrains Mono';
+    color: var(--color-ms-light);
+
+    background-color: var(--color-ms-dark);
+}
