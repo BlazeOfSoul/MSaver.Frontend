@@ -1,13 +1,13 @@
 @reference '#msaver/styles.css';
 :host {
-    @apply block min-w-32 border-2 border-ms-secondary rounded-lg px-2 py-1 text-ms-light;
+    @apply flex items-center border-2 border-ms-secondary rounded-lg px-2 py-1 text-ms-light;
 
     &:focus-within {
         @apply border-ms-accent;
     }
 
     input {
-        @apply w-full placeholder:text-ms-secondary;
+        @apply grow placeholder:text-ms-secondary;
 
         &:focus-within {
             @apply border-ms-accent placeholder:text-ms-accent outline-0;
