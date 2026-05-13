@@ -1,12 +1,35 @@
-<input
-    type="text"
+<div class="ms-input-shell" [class.invalid]="invalid()">
+  @if (icon()) {
+    <span class="ms-input-icon" aria-hidden="true">
+      <img [src]="icon()!" [alt]="iconAlt()" />
+    </span>
+  }
+
+  <input
+    [type]="type()"
     [placeholder]="placeholder()"
-    [disabled]="disabled()"
+    [disabled]="isDisabled"
     [tabIndex]="tabIndex()"
     [readonly]="readonly()"
+    [hidden]="hidden()"
     [class.invalid]="invalid()"
     [attr.aria-invalid]="invalid()"
     [value]="value()"
-    (input)="value.set($event.target.value)"
-    (focus)="touched.set(true)"
-/>
+    [class.has-left-icon]="!!icon()"
+    [class.has-right-action]="!!actionIcon()"
+    (input)="onInput($event)"
+    (focus)="onFocus()"
+  />
+
+  @if (actionIcon()) {
+    <button
+      type="button"
+      class="ms-input-action"
+      [disabled]="actionDisabled() || isDisabled"
+      [attr.aria-label]="actionAriaLabel()"
+      (click)="action.emit()"
+    >
+      <img [src]="actionIcon()!" alt="" aria-hidden="true" />
+    </button>
+  }
+</div>

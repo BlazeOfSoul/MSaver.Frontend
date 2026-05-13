@@ -91,19 +91,12 @@
               <div class="form-field">
                 <label for="username">Имя пользователя</label>
 
-                <div class="input-wrap">
-                  <span class="input-icon" aria-hidden="true">
-                    <img src="/icons/user.svg" alt="" />
-                  </span>
-
-                  <input
-                    id="username"
-                    type="text"
-                    formControlName="username"
-                    placeholder="Введите имя пользователя"
-                    autocomplete="username"
-                  />
-                </div>
+                <ms-input
+                  formControlName="username"
+                  placeholder="Введите имя пользователя"
+                  icon="/icons/user.svg"
+                  [invalid]="!!getControlError(usernameCtrl)"
+                ></ms-input>
 
                 @if (getControlError(usernameCtrl); as error) {
                   <small class="field-error">{{ error }}</small>
@@ -114,19 +107,13 @@
             <div class="form-field">
               <label for="email">Электронная почта</label>
 
-              <div class="input-wrap">
-                <span class="input-icon" aria-hidden="true">
-                  <img src="/icons/mail.svg" alt="" />
-                </span>
-
-                <input
-                  id="email"
-                  type="email"
-                  formControlName="email"
-                  placeholder="Введите электронную почту"
-                  autocomplete="email"
-                />
-              </div>
+              <ms-input
+                formControlName="email"
+                type="email"
+                placeholder="Введите электронную почту"
+                icon="/icons/mail.svg"
+                [invalid]="!!getControlError(emailCtrl)"
+              ></ms-input>
 
               @if (getControlError(emailCtrl); as error) {
                 <small class="field-error">{{ error }}</small>
@@ -136,32 +123,16 @@
             <div class="form-field">
               <label for="password">Пароль</label>
 
-              <div class="input-wrap">
-                <span class="input-icon" aria-hidden="true">
-                  <img src="/icons/lock.svg" alt="" />
-                </span>
-
-                <input
-                  id="password"
-                  [type]="showPassword() ? 'text' : 'password'"
-                  formControlName="password"
-                  placeholder="Введите пароль"
-                  autocomplete="current-password"
-                />
-
-                <button
-                  type="button"
-                  class="input-action"
-                  (click)="togglePassword()"
-                  [attr.aria-label]="showPassword() ? 'Скрыть пароль' : 'Показать пароль'"
-                >
-                  <img
-                    [src]="showPassword() ? '/icons/eye-off.svg' : '/icons/eye.svg'"
-                    alt=""
-                    aria-hidden="true"
-                  />
-                </button>
-              </div>
+              <ms-input
+                formControlName="password"
+                [type]="showPassword() ? 'text' : 'password'"
+                placeholder="Введите пароль"
+                icon="/icons/lock.svg"
+                [actionIcon]="showPassword() ? '/icons/eye-off.svg' : '/icons/eye.svg'"
+                [actionAriaLabel]="showPassword() ? 'Скрыть пароль' : 'Показать пароль'"
+                [invalid]="!!getControlError(passwordCtrl)"
+                (action)="togglePassword()"
+              ></ms-input>
 
               @if (getControlError(passwordCtrl); as error) {
                 <small class="field-error">{{ error }}</small>
@@ -172,32 +143,16 @@
               <div class="form-field">
                 <label for="confirmPassword">Повторите пароль</label>
 
-                <div class="input-wrap">
-                  <span class="input-icon" aria-hidden="true">
-                    <img src="/icons/lock.svg" alt="" />
-                  </span>
-
-                  <input
-                    id="confirmPassword"
-                    [type]="showPassword() ? 'text' : 'password'"
-                    formControlName="confirmPassword"
-                    placeholder="Повторите пароль"
-                    autocomplete="new-password"
-                  />
-
-                  <button
-                    type="button"
-                    class="input-action"
-                    (click)="togglePassword()"
-                    [attr.aria-label]="showPassword() ? 'Скрыть пароль' : 'Показать пароль'"
-                  >
-                    <img
-                      [src]="showPassword() ? '/icons/eye-off.svg' : '/icons/eye.svg'"
-                      alt=""
-                      aria-hidden="true"
-                    />
-                  </button>
-                </div>
+                <ms-input
+                  formControlName="confirmPassword"
+                  [type]="showPassword() ? 'text' : 'password'"
+                  placeholder="Повторите пароль"
+                  icon="/icons/lock.svg"
+                  [actionIcon]="showPassword() ? '/icons/eye-off.svg' : '/icons/eye.svg'"
+                  [actionAriaLabel]="showPassword() ? 'Скрыть пароль' : 'Показать пароль'"
+                  [invalid]="!!getControlError(confirmPasswordCtrl)"
+                  (action)="togglePassword()"
+                ></ms-input>
 
                 @if (getControlError(confirmPasswordCtrl); as error) {
                   <small class="field-error">{{ error }}</small>
@@ -217,14 +172,16 @@
               </div>
             }
 
-            <button class="submit-btn" type="submit" [disabled]="loading()">
-              @if (loading()) {
-                <span class="loader"></span>
-              } @else {
-                <span>{{ isLogin() ? 'Войти' : 'Зарегистрироваться' }}</span>
-                <span class="submit-arrow">→</span>
-              }
-            </button>
+            <ms-button
+              type="submit"
+              [disabled]="loading()"
+              [loading]="loading()"
+              [fullWidth]="true"
+              variant="primary"
+              class="auth-submit"
+            >
+              {{ isLogin() ? 'Войти' : 'Зарегистрироваться' }}
+            </ms-button>
           </form>
 
           <div class="separator">

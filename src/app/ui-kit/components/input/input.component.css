@@ -1,16 +1,133 @@
 @reference '#msaver/styles.css';
+
 :host {
-    @apply flex items-center border-2 border-ms-secondary rounded-lg px-2 py-1 text-ms-light;
+  display: block;
+}
 
-    &:focus-within {
-        @apply border-ms-accent;
-    }
+.ms-input-shell {
+  @apply relative flex items-center rounded-lg text-ms-light transition-all;
+  min-height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 0 0 1px rgba(255, 255, 255, 0.015);
+}
 
-    input {
-        @apply grow placeholder:text-ms-secondary;
+.ms-input-shell:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.055);
+}
 
-        &:focus-within {
-            @apply border-ms-accent placeholder:text-ms-accent outline-0;
-        }
-    }
+.ms-input-shell:focus-within {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 0 0 4px rgba(16, 185, 129, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.ms-input-shell.invalid {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(127, 29, 29, 0.12);
+  box-shadow:
+    0 0 0 3px rgba(248, 113, 113, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.ms-input-icon {
+  @apply absolute left-3 flex items-center justify-center pointer-events-none;
+  width: 18px;
+  height: 18px;
+  opacity: 0.72;
+}
+
+.ms-input-icon img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}
+
+.ms-input-shell:focus-within .ms-input-icon {
+  opacity: 0.95;
+}
+
+.ms-input-action {
+  @apply absolute right-3 flex items-center justify-center bg-transparent border-0 p-0 cursor-pointer;
+  width: 18px;
+  height: 18px;
+  opacity: 0.72;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.ms-input-action:hover:not(:disabled) {
+  opacity: 1;
+  transform: scale(1.04);
+}
+
+.ms-input-action:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.ms-input-action img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}
+
+input {
+  @apply w-full grow bg-transparent outline-0;
+  min-height: 48px;
+  border: 0;
+  padding: 0 14px;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+input.has-left-icon {
+  padding-left: 42px;
+}
+
+input.has-right-action {
+  padding-right: 42px;
+}
+
+input.has-left-icon.has-right-action {
+  padding-left: 42px;
+  padding-right: 42px;
+}
+
+input:focus {
+  outline: 0;
+}
+
+input:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
+input.invalid::placeholder {
+  color: rgba(254, 202, 202, 0.75);
+}
+
+@media (max-width: 420px) {
+  .ms-input-shell {
+    min-height: 48px;
+  }
+
+  input {
+    min-height: 46px;
+    font-size: 15px;
+  }
 }

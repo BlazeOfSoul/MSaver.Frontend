@@ -5,17 +5,18 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../data-access/auth.service';
 import { AuthStore } from '../data-access/auth.store';
+import { ButtonComponent } from '../../../ui-kit/components/button/button.component';
+import { InputComponent } from '../../../ui-kit/components/input/input.component';
 
 type AuthMode = 'login' | 'register';
-
 type ApiErrorDetails = Record<string, string[]>;
 
 @Component({
   selector: 'app-auth-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, InputComponent, ButtonComponent],
   templateUrl: './auth-page.component.html',
-  styleUrl: './auth-page.component.css',
+  styleUrls: ['./auth-page.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AuthPageComponent {
@@ -71,6 +72,7 @@ export class AuthPageComponent {
     this.mode.set(nextMode);
     this.errorMessage.set('');
     this.successMessage.set('');
+    this.showPassword.set(false);
     this.clearServerErrors();
 
     this.form.reset({
@@ -152,6 +154,7 @@ export class AuthPageComponent {
         next: () => {
           this.successMessage.set('Аккаунт создан. Теперь войдите.');
           this.mode.set('login');
+          this.showPassword.set(false);
           this.usernameCtrl.clearValidators();
           this.confirmPasswordCtrl.clearValidators();
           this.clearServerErrors();
@@ -182,7 +185,7 @@ export class AuthPageComponent {
 
     if (control.errors['minlength']) {
       const requiredLength = control.errors['minlength'].requiredLength;
-      return `Минимум ${requiredLength} символа.`;
+      return `Минимум ${requiredLength} символов.`;
     }
 
     if (control.errors['mismatch']) {
@@ -270,7 +273,6 @@ export class AuthPageComponent {
     }
 
     const { server, mismatch, ...rest } = control.errors;
-
     const nextErrors = Object.keys(rest).length ? rest : null;
     control.setErrors(nextErrors);
   }
