@@ -1,0 +1,71 @@
+@reference '#msaver/styles.css';
+
+:host.ms-btn {
+    transition:
+        background-color 0.3s,
+        border-color 0.3s,
+        color 0.3s;
+
+    @apply inline-flex py-2 px-4 outline-0 bg-(--bg-color)
+        text-(--text-color) rounded cursor-pointer text-lg select-none;
+
+    &.ms-btn-outline {
+        --bg-color: transparent !important;
+        @apply border-2 border-(--border-color);
+    }
+
+    @media (hover: hover) {
+        &:hover {
+            color: color-mix(in oklab, var(--text-color), var(--accent-color) 15%);
+            border-color: color-mix(in oklab, var(--border-color), var(--accent-color) 15%);
+
+            &:not(.ms-btn-outline) {
+                background-color: color-mix(in oklab, var(--bg-color), var(--accent-color) 15%);
+            }
+        }
+    }
+
+    &:active {
+        color: color-mix(in oklab, var(--text-color), var(--accent-color) 30%);
+        border-color: color-mix(in oklab, var(--border-color), var(--accent-color) 30%);
+
+        &:not(.ms-btn-outline) {
+            background-color: color-mix(in oklab, var(--bg-color), var(--accent-color) 30%);
+        }
+    }
+
+    &.ms-btn-disabled {
+        pointer-events: none;
+
+        background-color: color-mix(in oklab, var(--bg-color), var(--accent-color) 30%);
+        color: color-mix(in oklab, var(--text-color), var(--accent-color) 30%);
+        border-color: color-mix(in oklab, var(--border-color), var(--accent-color) 30%);
+    }
+
+    &.ms-btn-primary {
+        --bg-color: var(--color-ms-primary);
+        --text-color: var(--color-ms-secondary);
+        --accent-color: #000000;
+
+        &.ms-btn-outline {
+            --border-color: var(--color-ms-primary);
+            --text-color: var(--color-ms-primary);
+        }
+    }
+
+    &.ms-btn-secondary {
+        --bg-color: var(--color-ms-accent-dark);
+        --text-color: var(--color-ms-light);
+        --accent-color: #bfbfbf;
+
+        &.ms-btn-outline {
+            --border-color: var(--color-ms-accent-dark);
+            --text-color: var(--color-ms-accent-dark);
+        }
+    }
+
+    &.ms-btn-full-width {
+        width: 100%;
+        justify-content: center;
+    }
+}

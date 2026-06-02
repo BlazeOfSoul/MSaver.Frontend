@@ -5,8 +5,8 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../data-access/auth.service';
 import { AuthStore } from '../data-access/auth.store';
-import { ButtonComponent } from '../../../ui-kit/components/button/button.component';
-import { InputComponent } from '../../../ui-kit/components/input/input.component';
+import { Button } from '../../../shared/ui/button/button';
+import { InputComponent } from '../../../shared/ui/input/input';
 
 type AuthMode = 'login' | 'register';
 type ApiErrorDetails = Record<string, string[]>;
@@ -14,7 +14,7 @@ type ApiErrorDetails = Record<string, string[]>;
 @Component({
     selector: 'app-auth-page',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, InputComponent, ButtonComponent],
+    imports: [CommonModule, ReactiveFormsModule, InputComponent, Button],
     templateUrl: './auth-page.component.html',
     styleUrls: ['./auth-page.component.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
