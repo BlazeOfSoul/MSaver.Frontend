@@ -3,22 +3,381 @@
 @import 'tailwindcss';
 
 @theme {
-    --color-ms-primary: #0fd494;
-    --color-ms-secondary: #242424;
-    --color-ms-accent: #4e4e4e;
-    --color-ms-accent-dark: #383838;
+    --color-ms-primary: #23c78b;
+    --color-ms-primary-soft: #79e0b5;
+    --color-ms-primary-deep: #169768;
+    --color-ms-secondary: #07110d;
+    --color-ms-accent: #18241f;
+    --color-ms-accent-dark: #121b17;
 
-    --color-ms-dark: #0f0f0f;
-    --color-ms-dark-light: #595959;
-    --color-ms-light: #dfdfdf;
-    --color-ms-light-dark: #999999;
+    --color-ms-dark: #050816;
+    --color-ms-dark-light: #0d1512;
+    --color-ms-light: #f4fbff;
+    --color-ms-light-dark: #8fa39a;
+
+    --color-ms-surface: #0f1513;
+    --color-ms-surface-raised: #161f1b;
+    --color-ms-surface-elevated: #1c2822;
+    --color-ms-border: rgba(132, 152, 140, 0.18);
+    --color-ms-border-strong: rgba(132, 152, 140, 0.32);
+
+    --color-ms-info: #67a6c1;
+    --color-ms-success: #23c78b;
+    --color-ms-warning: #e8b45d;
+    --color-ms-danger: #ff6f91;
 
     --spacing: 0.125rem;
+}
+
+:root {
+    color-scheme: dark;
 }
 
 html {
     font-family: Inter, 'JetBrains Mono';
     color: var(--color-ms-light);
-
+    min-height: 100%;
+    background:
+        radial-gradient(circle at top, rgba(35, 199, 139, 0.16), transparent 34%),
+        radial-gradient(circle at right top, rgba(121, 224, 181, 0.08), transparent 24%),
+        linear-gradient(180deg, #050816 0%, #090d0c 45%, #050816 100%);
     background-color: var(--color-ms-dark);
+}
+
+body {
+    min-height: 100vh;
+    background: transparent;
+}
+
+::selection {
+    color: var(--color-ms-light);
+    background: rgba(35, 199, 139, 0.28);
+}
+
+ms-button.ms-btn {
+    --bg-color: var(--color-ms-primary);
+    --text-color: #ffffff;
+    --border-color: color-mix(in oklab, var(--bg-color), white 12%);
+    --accent-color: var(--color-ms-primary-soft);
+    --glow-color: rgba(35, 199, 139, 0.22);
+
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    min-height: 3.35rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    overflow: hidden;
+    padding: 0.8125rem 1.375rem;
+    border: 1px solid var(--border-color);
+    border-radius: 1.15rem;
+    font-family: Inter, Arial, sans-serif;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-color);
+    letter-spacing: -0.015em;
+    text-shadow: 0 0 10px color-mix(in oklab, var(--glow-color), transparent 84%);
+    background:
+        linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--bg-color), white 8%),
+            color-mix(in oklab, var(--bg-color), black 14%)
+        );
+    box-shadow:
+        0 12px 24px color-mix(in oklab, var(--glow-color), transparent 62%),
+        0 0 0 1px color-mix(in oklab, var(--border-color), white 4%),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    user-select: none;
+    backdrop-filter: blur(14px);
+    transition:
+        transform 0.22s ease,
+        box-shadow 0.28s ease,
+        background-color 0.3s,
+        border-color 0.3s,
+        color 0.3s;
+}
+
+ms-button.ms-btn::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 42%);
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+ms-button.ms-btn .ms-btn__content {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    width: 100%;
+    min-height: 100%;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1;
+    transform: translateY(2px);
+}
+
+ms-button.ms-btn.ms-btn-outline {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 24%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 0 1px color-mix(in oklab, var(--border-color), white 5%);
+}
+
+@media (hover: hover) {
+    ms-button.ms-btn:hover {
+        transform: translateY(-1px);
+        color: color-mix(in oklab, var(--text-color), white 8%);
+        border-color: color-mix(in oklab, var(--border-color), white 14%);
+        box-shadow:
+            0 16px 30px color-mix(in oklab, var(--glow-color), transparent 52%),
+            0 0 18px color-mix(in oklab, var(--glow-color), transparent 66%),
+            0 0 0 1px color-mix(in oklab, var(--border-color), white 6%),
+            inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+}
+
+ms-button.ms-btn:active {
+    transform: translateY(0);
+    color: color-mix(in oklab, var(--text-color), var(--accent-color) 18%);
+    border-color: color-mix(in oklab, var(--border-color), var(--accent-color) 18%);
+    box-shadow:
+        0 8px 18px color-mix(in oklab, var(--glow-color), transparent 62%),
+        0 0 12px color-mix(in oklab, var(--glow-color), transparent 74%),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+ms-button.ms-btn:focus-visible {
+    outline: none;
+    border-color: color-mix(in oklab, var(--accent-color), white 10%);
+    box-shadow:
+        0 0 0 3px rgba(35, 199, 139, 0.16),
+        0 0 18px color-mix(in oklab, var(--glow-color), transparent 58%),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+ms-button.ms-btn.ms-btn-disabled {
+    pointer-events: none;
+    transform: none;
+    opacity: 0.56;
+    box-shadow:
+        0 10px 18px rgba(0, 0, 0, 0.18),
+        0 0 0 1px color-mix(in oklab, var(--border-color), transparent 22%),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+ms-button.ms-btn.ms-btn-loading {
+    cursor: progress;
+}
+
+ms-button.ms-btn.ms-btn-primary {
+    --bg-color: #18ad76;
+    --text-color: #ffffff;
+    --border-color: color-mix(in oklab, #18ad76, white 7%);
+    --accent-color: var(--color-ms-primary-soft);
+    --glow-color: rgba(24, 173, 118, 0.2);
+}
+
+ms-button.ms-btn.ms-btn-primary.ms-btn-outline {
+    --text-color: var(--color-ms-primary);
+    --border-color: color-mix(in oklab, var(--color-ms-primary), white 12%);
+}
+
+ms-button.ms-btn.ms-btn-secondary {
+    --bg-color: var(--color-ms-surface-raised);
+    --text-color: var(--color-ms-light);
+    --border-color: var(--color-ms-border);
+    --accent-color: var(--color-ms-info);
+    --glow-color: rgba(99, 184, 255, 0.18);
+}
+
+ms-button.ms-btn.ms-btn-secondary.ms-btn-outline {
+    --text-color: var(--color-ms-light);
+    --border-color: color-mix(in oklab, var(--color-ms-info), var(--color-ms-border) 65%);
+}
+
+ms-button.ms-btn.ms-btn-full-width {
+    width: 100%;
+}
+
+ms-input {
+    display: block;
+}
+
+ms-input .ms-input-shell {
+    position: relative;
+    display: flex;
+    min-height: 54px;
+    align-items: center;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 1.25rem;
+    color: var(--color-ms-light);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+        color-mix(in oklab, var(--color-ms-surface), transparent 18%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 14px 34px rgba(5, 8, 22, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.015);
+    backdrop-filter: blur(16px);
+    transition: all 0.2s ease;
+}
+
+ms-input .ms-input-shell:hover {
+    border-color: var(--color-ms-border-strong);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 16%);
+}
+
+ms-input .ms-input-shell:focus-within {
+    border-color: color-mix(in oklab, var(--color-ms-primary), white 14%);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)),
+        color-mix(in oklab, var(--color-ms-surface-elevated), transparent 14%);
+    box-shadow:
+        0 0 0 4px rgba(35, 199, 139, 0.11),
+        0 0 18px rgba(35, 199, 139, 0.11),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+ms-input .ms-input-shell.invalid {
+    border-color: color-mix(in oklab, var(--color-ms-danger), white 6%);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+        rgba(127, 29, 29, 0.14);
+    box-shadow:
+        0 0 0 3px rgba(255, 111, 145, 0.09),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+ms-input .ms-input-icon {
+    position: absolute;
+    left: 0.75rem;
+    display: flex;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.68;
+    pointer-events: none;
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+ms-input .ms-input-icon img {
+    display: block;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+ms-input .ms-input-shell:focus-within .ms-input-icon {
+    opacity: 0.95;
+    transform: scale(1.03);
+}
+
+ms-input .ms-input-action {
+    position: absolute;
+    right: 0.625rem;
+    display: flex;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    opacity: 0.76;
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        background-color 0.18s ease;
+}
+
+ms-input .ms-input-action:hover:not(:disabled) {
+    opacity: 1;
+    transform: scale(1.04);
+    background: rgba(35, 199, 139, 0.08);
+}
+
+ms-input .ms-input-action:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+ms-input .ms-input-action img {
+    display: block;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+ms-input input {
+    min-height: 52px;
+    width: 100%;
+    flex-grow: 1;
+    padding: 0 16px;
+    border: 0;
+    color: var(--color-ms-light);
+    background: transparent;
+    outline: 0;
+    caret-color: var(--color-ms-primary);
+    font-size: 15px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+}
+
+ms-input input::placeholder {
+    color: var(--color-ms-light-dark);
+}
+
+ms-input input.has-left-icon {
+    padding-left: 44px;
+}
+
+ms-input input.has-right-action {
+    padding-right: 46px;
+}
+
+ms-input input.has-left-icon.has-right-action {
+    padding-left: 44px;
+    padding-right: 46px;
+}
+
+ms-input input:focus {
+    outline: 0;
+}
+
+ms-input input:disabled {
+    opacity: 0.56;
+    cursor: not-allowed;
+}
+
+ms-input input.invalid::placeholder {
+    color: color-mix(in oklab, var(--color-ms-danger), white 38%);
+}
+
+@media (max-width: 420px) {
+    ms-input .ms-input-shell {
+        min-height: 50px;
+    }
+
+    ms-input input {
+        min-height: 48px;
+        font-size: 15px;
+    }
 }

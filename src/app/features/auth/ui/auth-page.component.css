@@ -205,9 +205,23 @@ svg {
 }
 
 .field-error {
+    display: block;
+    min-height: 17px;
+    padding-left: 2px;
     font-size: 12px;
     line-height: 1.4;
-    color: #fda4af;
+    color: rgba(255, 111, 145, 0.88);
+    opacity: 0;
+    transform: translateY(-2px);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        color 0.18s ease;
+}
+
+.field-error--visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .message {
