@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -204,7 +205,7 @@ export class AuthPageComponent {
         const message = error?.error?.message as string | undefined;
 
         if (this.isLogin()) {
-            this.errorMessage.set(message || 'Неверный email или пароль.');
+            this.errorMessage.set(this.resolveLoginErrorMessage(error, message));
             return;
         }
 
@@ -218,6 +219,67 @@ export class AuthPageComponent {
         }
 
         this.errorMessage.set(message || 'Не удалось выполнить запрос. Попробуйте снова.');
+    }
+
+    private resolveLoginErrorMessage(error: unknown, message?: string): string {
+        if (this.isNetworkError(error, message)) {
+            return 'Не удалось связаться с сервером. Проверьте подключение и попробуйте снова.';
+        }
+
+        if (error instanceof HttpErrorResponse && error.status === 401) {
+            return 'Неверный email или пароль.';
+        }
+
+        if (message && !this.isTechnicalErrorMessage(message)) {
+            return message;
+        }
+
+        return 'Не удалось войти в аккаунт. Попробуйте снова.';
+    }
+
+    private isNetworkError(error: unknown, message?: string): boolean {
+        if (error instanceof HttpErrorResponse && error.status === 0) {
+            return true;
+        }
+
+        if (this.isTechnicalErrorMessage(message)) {
+            return true;
+        }
+
+        if (
+            error instanceof HttpErrorResponse &&
+            typeof error.message === 'string' &&
+            this.isTechnicalErrorMessage(error.message)
+        ) {
+            return true;
+        }
+
+        const nestedMessage =
+            error &&
+            typeof error === 'object' &&
+            'error' in error &&
+            error.error &&
+            typeof error.error === 'object' &&
+            'message' in error.error &&
+            typeof error.error.message === 'string'
+                ? error.error.message
+                : undefined;
+
+        return this.isTechnicalErrorMessage(nestedMessage);
+    }
+
+    private isTechnicalErrorMessage(message?: string): boolean {
+        if (!message) {
+            return false;
+        }
+
+        const normalizedMessage = message.trim().toLowerCase();
+
+        return (
+            normalizedMessage.includes('failed to fetch') ||
+            normalizedMessage.includes('fetch failed') ||
+            normalizedMessage.includes('http failure response')
+        );
     }
 
     private applyServerErrors(details: ApiErrorDetails): void {

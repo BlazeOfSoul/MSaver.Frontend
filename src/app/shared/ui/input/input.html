@@ -8,7 +8,10 @@
     }
 
     <input
+        [id]="id()"
+        [name]="name()"
         [type]="type()"
+        [attr.autocomplete]="autocomplete() || null"
         [placeholder]="placeholder()"
         [disabled]="isDisabled"
         [tabIndex]="tabIndex()"

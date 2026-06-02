@@ -93,6 +93,9 @@
 
                                 <ms-input
                                     formControlName="username"
+                                    id="username"
+                                    name="username"
+                                    autocomplete="username"
                                     placeholder="Введите имя пользователя"
                                     icon="/icons/user.svg"
                                     [invalid]="!!getControlError(usernameCtrl)"
@@ -112,7 +115,10 @@
 
                             <ms-input
                                 formControlName="email"
+                                id="email"
+                                name="email"
                                 type="email"
+                                [autocomplete]="isLogin() ? 'username' : 'email'"
                                 placeholder="Введите электронную почту"
                                 icon="/icons/mail.svg"
                                 [invalid]="!!getControlError(emailCtrl)"
@@ -131,7 +137,10 @@
 
                             <ms-input
                                 formControlName="password"
+                                id="password"
+                                name="password"
                                 [type]="showPassword() ? 'text' : 'password'"
+                                [autocomplete]="isLogin() ? 'current-password' : 'new-password'"
                                 placeholder="Введите пароль"
                                 icon="/icons/lock.svg"
                                 [actionIcon]="
@@ -158,7 +167,10 @@
 
                                 <ms-input
                                     formControlName="confirmPassword"
+                                    id="confirmPassword"
+                                    name="confirmPassword"
                                     [type]="showPassword() ? 'text' : 'password'"
+                                    autocomplete="new-password"
                                     placeholder="Повторите пароль"
                                     icon="/icons/lock.svg"
                                     [actionIcon]="

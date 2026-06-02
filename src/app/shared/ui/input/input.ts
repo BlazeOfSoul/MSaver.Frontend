@@ -30,6 +30,9 @@ export class InputComponent implements ControlValueAccessor {
     beforeInputTemplate = contentChild<TemplateRef<any>>('beforeInput');
     afterInputTemplate = contentChild<TemplateRef<any>>('afterInput');
 
+    id = input<string>('');
+    name = input<string>('');
+    autocomplete = input<string>('');
     placeholder = input<string>('');
     type = input<'text' | 'email' | 'password'>('text');
     disabled = input<boolean>(false);

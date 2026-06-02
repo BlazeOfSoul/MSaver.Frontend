@@ -218,6 +218,7 @@ ms-input .ms-input-shell {
     display: flex;
     min-height: 54px;
     align-items: center;
+    overflow: hidden;
     border: 1px solid var(--color-ms-border);
     border-radius: 1.25rem;
     color: var(--color-ms-light);
@@ -332,6 +333,7 @@ ms-input input {
     flex-grow: 1;
     padding: 0 16px;
     border: 0;
+    border-radius: inherit;
     color: var(--color-ms-light);
     background: transparent;
     outline: 0;
@@ -360,6 +362,24 @@ ms-input input.has-left-icon.has-right-action {
 
 ms-input input:focus {
     outline: 0;
+}
+
+ms-input input:-webkit-autofill,
+ms-input input:-webkit-autofill:hover,
+ms-input input:-webkit-autofill:focus,
+ms-input input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--color-ms-light);
+    caret-color: var(--color-ms-primary);
+    border-radius: inherit;
+    -webkit-box-shadow: inset 0 0 0 1000px rgba(71, 86, 99, 0.92);
+    box-shadow: inset 0 0 0 1000px rgba(71, 86, 99, 0.92);
+    transition: background-color 9999s ease-out 0s;
+}
+
+ms-input .ms-input-shell:focus-within input:-webkit-autofill,
+ms-input .ms-input-shell:hover input:-webkit-autofill {
+    -webkit-box-shadow: inset 0 0 0 1000px rgba(63, 78, 90, 0.94);
+    box-shadow: inset 0 0 0 1000px rgba(63, 78, 90, 0.94);
 }
 
 ms-input input:disabled {
