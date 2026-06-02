@@ -1,20 +1,41 @@
-@if (beforeInputTemplate()) {
+<div class="ms-input-shell" [class.invalid]="invalid()">
     <ng-container *ngTemplateOutlet="beforeInputTemplate()" />
-}
 
-<input
-    type="text"
-    [placeholder]="placeholder()"
-    [disabled]="disabled()"
-    [tabIndex]="tabIndex()"
-    [readonly]="readonly()"
-    [class.invalid]="invalid()"
-    [attr.aria-invalid]="invalid()"
-    [value]="value()"
-    (input)="value.set($event.target.value)"
-    (focus)="touched.set(true)"
-/>
+    @if (icon()) {
+        <span class="ms-input-icon" aria-hidden="true">
+            <img [src]="icon()!" [alt]="iconAlt()" />
+        </span>
+    }
 
-@if (afterInputTemplate()) {
-    <ng-container *ngTemplateOutlet="afterInputTemplate()" />
-}
+    <input
+        [type]="type()"
+        [placeholder]="placeholder()"
+        [disabled]="isDisabled"
+        [tabIndex]="tabIndex()"
+        [readonly]="readonly()"
+        [hidden]="hidden()"
+        [class.invalid]="invalid()"
+        [attr.aria-invalid]="invalid()"
+        [value]="value()"
+        [class.has-left-icon]="!!icon()"
+        [class.has-right-action]="!!actionIcon()"
+        (input)="onInput($event)"
+        (focus)="onFocus()"
+    />
+
+    @if (actionIcon()) {
+        <button
+            type="button"
+            class="ms-input-action"
+            [disabled]="actionDisabled() || isDisabled"
+            [attr.aria-label]="actionAriaLabel()"
+            (click)="action.emit()"
+        >
+            <img [src]="actionIcon()!" alt="" aria-hidden="true" />
+        </button>
+    }
+
+    @if (afterInputTemplate()) {
+        <ng-container *ngTemplateOutlet="afterInputTemplate()" />
+    }
+</div>

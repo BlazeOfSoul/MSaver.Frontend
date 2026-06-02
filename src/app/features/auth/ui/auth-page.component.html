@@ -1,0 +1,225 @@
+<div class="auth-shell">
+    <section class="auth-visual" style="background-image: url('/images/auth-bg.jpg')">
+        <div class="auth-visual__overlay"></div>
+
+        <div class="brand brand--desktop">
+            <div class="brand__mark">
+                <img
+                    src="/images/msaver-logo.png"
+                    alt="MSaver"
+                    class="brand__logo"
+                    width="46"
+                    height="46"
+                />
+            </div>
+
+            <div class="brand__text">
+                <span class="brand__name">MSaver</span>
+                <span class="brand__caption">Панель управления личными финансами</span>
+            </div>
+        </div>
+
+        <div class="visual-copy">
+            <h1>
+                Финансы
+                <br />
+                <span>под контролем</span>
+            </h1>
+
+            <p>Отслеживайте доходы, расходы и бюджет в одном спокойном и понятном интерфейсе.</p>
+        </div>
+
+        <div class="visual-stats">
+            <div class="stat">
+                <strong>24/7</strong>
+                <span>Доступ к данным</span>
+            </div>
+
+            <div class="stat-divider"></div>
+
+            <div class="stat">
+                <strong>Все операции</strong>
+                <span>В одном месте</span>
+            </div>
+
+            <div class="stat-divider"></div>
+
+            <div class="stat">
+                <strong>100%</strong>
+                <span>Фокус на бюджете</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="auth-panel">
+        <div class="auth-panel__inner">
+            <header class="auth-header">
+                <div class="brand brand--mobile">
+                    <div class="brand__mark">
+                        <img
+                            src="/images/msaver-logo.png"
+                            alt="MSaver"
+                            class="brand__logo"
+                            width="38"
+                            height="38"
+                        />
+                    </div>
+
+                    <div class="brand__text">
+                        <span class="brand__name">MSaver</span>
+                        <span class="brand__caption">Панель управления личными финансами</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="auth-body">
+                <div class="auth-copy">
+                    <h2>{{ isLogin() ? 'Вход' : 'Регистрация' }}</h2>
+
+                    <p>
+                        {{
+                            isLogin()
+                                ? 'Продолжите работу с финансами.'
+                                : 'Создайте аккаунт и начните вести бюджет.'
+                        }}
+                    </p>
+                </div>
+
+                <div class="auth-card">
+                    <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+                        @if (!isLogin()) {
+                            <div class="form-field">
+                                <label for="username">Имя пользователя</label>
+
+                                <ms-input
+                                    formControlName="username"
+                                    placeholder="Введите имя пользователя"
+                                    icon="/icons/user.svg"
+                                    [invalid]="!!getControlError(usernameCtrl)"
+                                ></ms-input>
+
+                                <small
+                                    class="field-error"
+                                    [class.field-error--visible]="!!getControlError(usernameCtrl)"
+                                >
+                                    {{ getControlError(usernameCtrl) || ' ' }}
+                                </small>
+                            </div>
+                        }
+
+                        <div class="form-field">
+                            <label for="email">Электронная почта</label>
+
+                            <ms-input
+                                formControlName="email"
+                                type="email"
+                                placeholder="Введите электронную почту"
+                                icon="/icons/mail.svg"
+                                [invalid]="!!getControlError(emailCtrl)"
+                            ></ms-input>
+
+                            <small
+                                class="field-error"
+                                [class.field-error--visible]="!!getControlError(emailCtrl)"
+                            >
+                                {{ getControlError(emailCtrl) || ' ' }}
+                            </small>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="password">Пароль</label>
+
+                            <ms-input
+                                formControlName="password"
+                                [type]="showPassword() ? 'text' : 'password'"
+                                placeholder="Введите пароль"
+                                icon="/icons/lock.svg"
+                                [actionIcon]="
+                                    showPassword() ? '/icons/eye-off.svg' : '/icons/eye.svg'
+                                "
+                                [actionAriaLabel]="
+                                    showPassword() ? 'Скрыть пароль' : 'Показать пароль'
+                                "
+                                [invalid]="!!getControlError(passwordCtrl)"
+                                (action)="togglePassword()"
+                            ></ms-input>
+
+                            <small
+                                class="field-error"
+                                [class.field-error--visible]="!!getControlError(passwordCtrl)"
+                            >
+                                {{ getControlError(passwordCtrl) || ' ' }}
+                            </small>
+                        </div>
+
+                        @if (!isLogin()) {
+                            <div class="form-field">
+                                <label for="confirmPassword">Повторите пароль</label>
+
+                                <ms-input
+                                    formControlName="confirmPassword"
+                                    [type]="showPassword() ? 'text' : 'password'"
+                                    placeholder="Повторите пароль"
+                                    icon="/icons/lock.svg"
+                                    [actionIcon]="
+                                        showPassword() ? '/icons/eye-off.svg' : '/icons/eye.svg'
+                                    "
+                                    [actionAriaLabel]="
+                                        showPassword() ? 'Скрыть пароль' : 'Показать пароль'
+                                    "
+                                    [invalid]="!!getControlError(confirmPasswordCtrl)"
+                                    (action)="togglePassword()"
+                                ></ms-input>
+
+                                <small
+                                    class="field-error"
+                                    [class.field-error--visible]="!!getControlError(confirmPasswordCtrl)"
+                                >
+                                    {{ getControlError(confirmPasswordCtrl) || ' ' }}
+                                </small>
+                            </div>
+                        }
+
+                        @if (errorMessage()) {
+                            <div class="message message--error">
+                                {{ errorMessage() }}
+                            </div>
+                        }
+
+                        @if (successMessage()) {
+                            <div class="message message--success">
+                                {{ successMessage() }}
+                            </div>
+                        }
+
+                        <ms-button
+                            type="submit"
+                            [disabled]="loading()"
+                            [loading]="loading()"
+                            [fullWidth]="true"
+                            variant="primary"
+                            class="auth-submit"
+                        >
+                            {{ isLogin() ? 'Войти' : 'Зарегистрироваться' }}
+                        </ms-button>
+                    </form>
+
+                    <div class="separator">
+                        <span>или</span>
+                    </div>
+
+                    <div class="switch-block">
+                        <p>
+                            {{ isLogin() ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
+                            <button type="button" class="switch-btn" (click)="toggleMode()">
+                                {{ isLogin() ? 'Создать' : 'Войти' }}
+                            </button>
+                        </p>
+                    </div>
+                </div>
+
+                <p class="security-note">Данные защищены. Доступ к аккаунту только у вас.</p>
+            </div>
+        </div>
+    </section>
+</div>
