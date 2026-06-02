@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const authResponseSchema = z.object({
+    id: z.guid(),
     accessToken: z.jwt(),
     refreshToken: z.jwt(),
     clientId: z.guid(),

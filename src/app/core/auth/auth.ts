@@ -1,6 +1,6 @@
-import { PLATFORM_ID, computed, inject, Injectable, signal, OnInit } from '@angular/core';
+import { PLATFORM_ID, computed, inject, Injectable, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { AuthRequest, AuthResponse } from './models';
+import { authRequestSchema, authResponseSchema, AuthRequest, AuthResponse } from './models';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ZodError } from 'zod';
@@ -11,7 +11,7 @@ const API_LOGOUT_PATH = 'auth/logout';
 @Injectable({
     providedIn: 'root',
 })
-export class Auth implements OnInit {
+export class Auth {
     private readonly http = inject(HttpClient);
     private readonly platformId = inject(PLATFORM_ID);
 
@@ -25,24 +25,29 @@ export class Auth implements OnInit {
     readonly refreshToken = computed(() => this.refreshTokenSignal());
     readonly isAuthenticated = computed(() => !!this.accessTokenSignal());
 
-    ngOnInit(): void {
-        this.accessTokenSignal.set(this.readStorage('access_token'));
-        this.refreshTokenSignal.set(this.readStorage('refresh_token'));
-    }
-
     async login(payload: AuthRequest): Promise<ZodError<AuthRequest> | undefined> {
-        return await firstValueFrom(this.http.post<AuthResponse>(API_LOGIN_PATH, payload))
-            .then((data) => {
-                this.setSession(data);
-                return undefined;
-            })
-            .catch<ZodError<AuthRequest>>((error: ZodError<AuthRequest>) => error);
+        const validationResult = authRequestSchema.safeParse(payload);
+
+        if (!validationResult.success) {
+            return validationResult.error;
+        }
+
+        const response = await firstValueFrom(this.http.post(API_LOGIN_PATH, validationResult.data));
+        const parsedResponse = authResponseSchema.parse(response);
+
+        this.setSession(parsedResponse);
+
+        return undefined;
     }
 
     async logout() {
-        return await firstValueFrom(
-            this.http.post(API_LOGOUT_PATH, { clientId: this.clientId() }),
-        ).then(() => this.clearSession());
+        try {
+            return await firstValueFrom(
+                this.http.post(API_LOGOUT_PATH, { clientId: this.clientId() }),
+            );
+        } finally {
+            this.clearSession();
+        }
     }
 
     private clearSession(): void {
@@ -58,7 +63,7 @@ export class Auth implements OnInit {
     private setSession(response: AuthResponse): void {
         this.writeStorage('access_token', response.accessToken);
         this.writeStorage('refresh_token', response.refreshToken);
-        this.writeStorage('client_id', response.refreshToken);
+        this.writeStorage('client_id', response.clientId);
 
         this.accessTokenSignal.set(response.accessToken);
         this.refreshTokenSignal.set(response.refreshToken);
