@@ -1,0 +1,105 @@
+<section class="accounts-layout">
+    <article class="panel">
+        <div class="panel__header">
+            <div>
+                <h2>Счета</h2>
+                <p>Разделяйте деньги по кошелькам, картам и резервам.</p>
+            </div>
+        </div>
+
+        @if (accounts().length) {
+            <div class="accounts-grid">
+                @for (account of accounts(); track account.id) {
+                    <article class="account-card">
+                        <div class="account-card__top">
+                            <span class="account-card__icon" [style.color]="account.color">
+                                <span class="material-symbols-outlined">account_balance_wallet</span>
+                            </span>
+                            <strong>{{ account.name }}</strong>
+                        </div>
+
+                        <span class="account-card__currency">{{ account.currencyLabel }}</span>
+                        <strong class="account-card__balance" [style.color]="account.color">
+                            {{ account.balanceLabel }}
+                        </strong>
+                    </article>
+                }
+            </div>
+        } @else {
+            <div class="accounts-empty">
+                <span class="material-symbols-outlined">account_balance_wallet</span>
+                <strong>Счетов пока нет</strong>
+                <p>Добавьте первый счет. Позже данные здесь будут приходить с бэкенда.</p>
+            </div>
+        }
+
+        <div class="account-create">
+            <div class="account-create__fields">
+                <ms-input
+                    [ngModel]="newAccountName()"
+                    (ngModelChange)="newAccountNameChange.emit($event)"
+                    placeholder="Название счёта..."
+                ></ms-input>
+
+                <ms-select
+                    [options]="currencyOptions()"
+                    [value]="newAccountCurrency()"
+                    (valueChange)="newAccountCurrencyChange.emit($event)"
+                ></ms-select>
+            </div>
+
+            <button type="button" class="round-action" (click)="createAccount.emit()" aria-label="Добавить счет">
+                <span class="material-symbols-outlined">add</span>
+            </button>
+        </div>
+    </article>
+
+    <article class="panel">
+        <div class="panel__header">
+            <div>
+                <h2>Перевод между счетами</h2>
+                <p>Быстрое перемещение средств без выхода из основной панели.</p>
+            </div>
+        </div>
+
+        @if (accountOptions().length > 1) {
+            <div class="transfer-grid">
+                <ms-select
+                    label="Откуда"
+                    [options]="accountOptions()"
+                    [value]="transferDraft().fromAccountId"
+                    (valueChange)="transferDraftChange.emit({ ...transferDraft(), fromAccountId: $event })"
+                ></ms-select>
+
+                <ms-select
+                    label="Куда"
+                    [options]="accountOptions()"
+                    [value]="transferDraft().toAccountId"
+                    (valueChange)="transferDraftChange.emit({ ...transferDraft(), toAccountId: $event })"
+                ></ms-select>
+
+                <ms-input
+                    [ngModel]="transferDraft().amount"
+                    (ngModelChange)="transferDraftChange.emit({ ...transferDraft(), amount: +($event || 0) })"
+                    placeholder="Сумма"
+                    type="text"
+                ></ms-input>
+            </div>
+        } @else {
+            <div class="accounts-empty accounts-empty--compact">
+                <span class="material-symbols-outlined">swap_horiz</span>
+                <strong>Нужно минимум два счета</strong>
+                <p>Создайте хотя бы два счета, чтобы переводы между ними стали доступны.</p>
+            </div>
+        }
+
+        <ms-button
+            variant="primary"
+            [fullWidth]="true"
+            [disabled]="accountOptions().length < 2"
+            (onClick)="submitTransfer.emit()"
+        >
+            Перевести
+        </ms-button>
+    </article>
+</section>

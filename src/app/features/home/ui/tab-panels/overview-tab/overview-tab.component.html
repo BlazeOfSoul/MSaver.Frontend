@@ -1,0 +1,39 @@
+<section class="panel">
+    <div class="panel__header">
+        <div>
+            <h2>Транзакции</h2>
+            <p>Все движения по счетам в одном аккуратном списке.</p>
+        </div>
+    </div>
+
+    <div class="transaction-list">
+        @for (item of transactions(); track item.id) {
+            <article class="transaction-row">
+                <div class="transaction-row__leading" [attr.data-tone]="item.tone">
+                    <span class="material-symbols-outlined">
+                        {{ item.tone === 'income' ? 'south_west' : 'north_east' }}
+                    </span>
+                </div>
+
+                <div class="transaction-row__copy">
+                    <div class="transaction-row__title-line">
+                        <strong>{{ item.title }}</strong>
+                        <span class="transaction-row__category">{{ item.category }}</span>
+                    </div>
+
+                    <div class="transaction-row__meta">
+                        <span>{{ item.accountName }}</span>
+                        <span>{{ item.date }}</span>
+                        @if (item.description) {
+                            <span>{{ item.description }}</span>
+                        }
+                    </div>
+                </div>
+
+                <strong class="transaction-row__amount" [attr.data-tone]="item.tone">
+                    {{ item.amountLabel }}
+                </strong>
+            </article>
+        }
+    </div>
+</section>

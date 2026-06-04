@@ -1,0 +1,156 @@
+:host {
+    display: block;
+}
+
+.accounts-layout {
+    display: grid;
+    gap: 1rem;
+}
+
+.panel {
+    display: grid;
+    gap: 1rem;
+    padding: 1.2rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 1.25rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
+    box-shadow:
+        0 22px 48px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.panel__header h2,
+.account-card__top strong,
+.account-card__balance {
+    margin: 0;
+    color: var(--color-ms-light);
+}
+
+.panel__header p,
+.account-card__currency {
+    margin: 0.25rem 0 0;
+    color: var(--color-ms-light-dark);
+}
+
+.accounts-grid {
+    display: grid;
+    gap: 0.875rem;
+}
+
+.accounts-empty {
+    display: grid;
+    gap: 0.45rem;
+    justify-items: center;
+    padding: 1.4rem 1rem;
+    border-radius: 1rem;
+    text-align: center;
+    color: var(--color-ms-light-dark);
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.accounts-empty strong {
+    color: var(--color-ms-light);
+}
+
+.accounts-empty p {
+    max-width: 24rem;
+    margin: 0;
+}
+
+.accounts-empty--compact {
+    padding: 1rem;
+}
+
+.account-card {
+    display: grid;
+    gap: 0.55rem;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.account-card__top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.account-card__icon {
+    display: inline-flex;
+    width: 2.25rem;
+    height: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.85rem;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.account-card__balance {
+    font-size: 1.35rem;
+    letter-spacing: -0.03em;
+}
+
+.account-create {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: end;
+}
+
+.account-create__fields,
+.transfer-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.round-action {
+    display: inline-flex;
+    width: 3rem;
+    height: 3rem;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 0.9rem;
+    color: #04120d;
+    background: var(--color-ms-primary);
+    box-shadow: 0 16px 30px rgba(35, 199, 139, 0.2);
+    cursor: pointer;
+}
+
+@media (min-width: 720px) {
+    .accounts-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .account-create__fields,
+    .transfer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1200px) {
+    .accounts-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .transfer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .transfer-grid ms-input {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 640px) {
+    .account-create {
+        grid-template-columns: 1fr;
+    }
+
+    .round-action {
+        width: 100%;
+    }
+}

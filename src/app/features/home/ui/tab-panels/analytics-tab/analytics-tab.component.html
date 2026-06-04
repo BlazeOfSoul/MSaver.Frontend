@@ -1,0 +1,94 @@
+<section class="analytics-layout">
+    <article class="panel">
+        <div class="panel__header">
+            <div>
+                <h2>Аналитика</h2>
+                <p>Графики и разрезы по тратам, доходам и балансу.</p>
+            </div>
+        </div>
+
+        <div class="metric-grid">
+            @for (metric of metrics(); track metric.id) {
+                <article class="metric-card">
+                    <span class="metric-card__label">{{ metric.label }}</span>
+                    <strong class="metric-card__value">{{ metric.value }}</strong>
+                    <span class="metric-card__caption">{{ metric.caption }}</span>
+                </article>
+            }
+        </div>
+    </article>
+
+    <ms-chart-card
+        class="panel--wide"
+        title="Доходы vs Расходы"
+        subtitle="Сравнение потоков по месяцам."
+        type="bar"
+        [labels]="incomeVsExpenseLabels()"
+        [datasets]="incomeVsExpenseDatasets()"
+    ></ms-chart-card>
+
+    <ms-chart-card
+        title="Расходы по категориям"
+        subtitle="Структура расходов по основным категориям."
+        type="doughnut"
+        [labels]="expenseCategoryLabels()"
+        [datasets]="expenseCategoryDatasets()"
+    ></ms-chart-card>
+
+    <ms-chart-card
+        title="Доходы по категориям"
+        subtitle="Структура поступлений."
+        type="doughnut"
+        [labels]="incomeCategoryLabels()"
+        [datasets]="incomeCategoryDatasets()"
+    ></ms-chart-card>
+
+    <ms-chart-card
+        title="Расходы за месяц"
+        subtitle="Детализация расходов в течение месяца."
+        type="bar"
+        [labels]="monthlyExpenseLabels()"
+        [datasets]="monthlyExpenseDatasets()"
+    ></ms-chart-card>
+
+    <ms-chart-card
+        title="Динамика баланса"
+        subtitle="Изменение остатка во времени."
+        type="line"
+        [labels]="balanceDynamicsLabels()"
+        [datasets]="balanceDynamicsDatasets()"
+    ></ms-chart-card>
+
+    <ms-chart-card
+        title="Расходы по месяцам"
+        subtitle="Сравнение месячной нагрузки."
+        type="line"
+        [labels]="monthlyExpenseLabels()"
+        [datasets]="monthlyExpenseDatasets()"
+    ></ms-chart-card>
+
+    <ms-chart-card
+        title="Расходы по тегам"
+        subtitle="Теги, которые собирают основные траты."
+        type="bar"
+        [labels]="tagExpenseLabels()"
+        [datasets]="tagExpenseDatasets()"
+    ></ms-chart-card>
+
+    <ms-chart-card
+        title="Топ расходов"
+        subtitle="Самые затратные позиции."
+        type="bar"
+        [labels]="topExpenseLabels()"
+        [datasets]="topExpenseDatasets()"
+    ></ms-chart-card>
+
+    <ms-chart-card
+        class="panel--wide"
+        title="Статистика по годам"
+        subtitle="Годовая история финансовых результатов."
+        type="line"
+        [labels]="yearStatLabels()"
+        [datasets]="yearStatDatasets()"
+    ></ms-chart-card>
+</section>

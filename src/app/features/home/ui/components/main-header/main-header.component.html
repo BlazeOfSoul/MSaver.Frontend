@@ -1,0 +1,51 @@
+<header class="main-header">
+    <div class="main-header__top">
+        <div class="main-header__brand">
+            <div class="brand-mark">
+                <img src="/images/msaver-logo.png" alt="MSaver" width="42" height="42" />
+            </div>
+
+            <div class="brand-copy">
+                <span class="brand-name">MSaver</span>
+                <span class="brand-caption">Личный кабинет финансов</span>
+            </div>
+        </div>
+
+        <div class="main-header__actions">
+            <button type="button" class="icon-button" (click)="logout.emit()" aria-label="Выйти">
+                <span class="material-symbols-outlined">logout</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="main-header__bottom">
+        <div class="period-switcher">
+            <button
+                type="button"
+                class="icon-button"
+                (click)="previousMonth.emit()"
+                aria-label="Предыдущий месяц"
+            >
+                <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+
+            <div class="period-copy">
+                <span class="period-label">{{ monthLabel() }}</span>
+                <span class="period-meta">Записей: {{ recordsCount() }}</span>
+            </div>
+
+            <button
+                type="button"
+                class="icon-button"
+                (click)="nextMonth.emit()"
+                aria-label="Следующий месяц"
+            >
+                <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+        </div>
+
+        <ms-button variant="primary" (onClick)="addTransaction.emit()">
+            Добавить транзакцию
+        </ms-button>
+    </div>
+</header>

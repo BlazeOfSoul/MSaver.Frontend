@@ -1,0 +1,148 @@
+:host {
+    display: block;
+}
+
+.ms-select {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.ms-select__label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.ms-select__shell {
+    position: relative;
+    display: block;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 1.1rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+        color-mix(in oklab, var(--color-ms-surface), transparent 18%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 14px 34px rgba(5, 8, 22, 0.22),
+        0 0 0 1px rgba(255, 255, 255, 0.015);
+    backdrop-filter: blur(16px);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.ms-select__shell--open,
+.ms-select__shell:hover {
+    border-color: var(--color-ms-border-strong);
+}
+
+.ms-select__shell--open {
+    border-color: color-mix(in oklab, var(--color-ms-primary), white 14%);
+    box-shadow:
+        0 0 0 4px rgba(35, 199, 139, 0.11),
+        0 0 18px rgba(35, 199, 139, 0.11),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.ms-select__trigger {
+    display: flex;
+    width: 100%;
+    width: 100%;
+    min-height: 52px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 3rem 0 1rem;
+    border: 0;
+    color: var(--color-ms-light);
+    background: transparent;
+    outline: 0;
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ms-select__trigger:disabled {
+    opacity: 0.56;
+    cursor: not-allowed;
+}
+
+.ms-select__value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ms-select__value--placeholder {
+    color: var(--color-ms-light-dark);
+}
+
+.ms-select__icon {
+    position: absolute;
+    right: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.55);
+    pointer-events: none;
+    transition: transform 0.2s ease;
+}
+
+.ms-select__shell--open .ms-select__icon {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.ms-select__dropdown {
+    position: absolute;
+    top: calc(100% + 0.55rem);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.45rem;
+    border: 1px solid var(--color-ms-border-strong);
+    border-radius: 1rem;
+    background:
+        linear-gradient(180deg, rgba(12, 18, 16, 0.98), rgba(12, 18, 16, 0.96)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 4%);
+    box-shadow:
+        0 24px 48px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    max-height: 16rem;
+    overflow: auto;
+}
+
+.ms-select__option {
+    display: flex;
+    min-height: 2.8rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.8rem;
+    border: 0;
+    border-radius: 0.85rem;
+    color: var(--color-ms-light);
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+}
+
+.ms-select__option:hover,
+.ms-select__option--selected {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.ms-select__option--selected {
+    color: var(--color-ms-primary-soft);
+}
+
+@media (max-width: 480px) {
+    .ms-select__trigger {
+        min-height: 50px;
+        font-size: 0.92rem;
+    }
+
+    .ms-select__dropdown {
+        max-height: 13rem;
+    }
+}

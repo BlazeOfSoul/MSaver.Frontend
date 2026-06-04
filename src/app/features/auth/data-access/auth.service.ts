@@ -2,8 +2,9 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
+    AuthSessionResponse,
     LoginRequest,
-    LoginResponse,
+    LogoutClientRequest,
     RefreshTokenRequest,
     RegisterRequest,
     RegisterResponse,
@@ -21,12 +22,17 @@ export class AuthService {
         return this.http.post<RegisterResponse>(`${this.baseUrl}/register`, payload);
     }
 
-    login(payload: LoginRequest): Observable<LoginResponse> {
-        return this.http.post<LoginResponse>(`${this.baseUrl}/login`, payload);
+    login(payload: LoginRequest): Observable<AuthSessionResponse> {
+        return this.http.post<AuthSessionResponse>(`${this.baseUrl}/login`, payload);
     }
 
-    refresh(refreshToken: string): Observable<LoginResponse> {
+    refresh(refreshToken: string): Observable<AuthSessionResponse> {
         const payload: RefreshTokenRequest = { refreshToken };
-        return this.http.post<LoginResponse>(`${this.baseUrl}/refresh`, payload);
+        return this.http.post<AuthSessionResponse>(`${this.baseUrl}/refresh`, payload);
+    }
+
+    logout(clientId: string): Observable<void> {
+        const payload: LogoutClientRequest = { clientId };
+        return this.http.post<void>(`${this.baseUrl}/logout`, payload);
     }
 }

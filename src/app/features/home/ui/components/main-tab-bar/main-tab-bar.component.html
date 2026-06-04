@@ -1,0 +1,13 @@
+<nav class="tab-bar" aria-label="Основные разделы">
+    @for (tab of tabs(); track tab.id) {
+        <button
+            type="button"
+            class="tab-bar__item"
+            [class.tab-bar__item--active]="tab.id === activeTab()"
+            (click)="tabChange.emit(tab.id)"
+        >
+            <span class="material-symbols-outlined">{{ tab.icon }}</span>
+            <span>{{ tab.label }}</span>
+        </button>
+    }
+</nav>

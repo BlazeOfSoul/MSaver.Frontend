@@ -1,0 +1,78 @@
+:host {
+    display: block;
+}
+
+.analytics-layout {
+    display: grid;
+    gap: 1rem;
+}
+
+.panel {
+    display: grid;
+    gap: 1rem;
+    padding: 1.125rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 1.25rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
+    box-shadow:
+        0 22px 48px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.panel__header h2,
+.panel__header h3,
+.metric-card__value {
+    margin: 0;
+    color: var(--color-ms-light);
+}
+
+.panel__header p,
+.metric-card__label,
+.metric-card__caption {
+    margin: 0.25rem 0 0;
+    color: var(--color-ms-light-dark);
+}
+
+.metric-grid {
+    display: grid;
+    gap: 0.875rem;
+}
+
+.metric-grid--years {
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.metric-card {
+    display: grid;
+    gap: 0.25rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.metric-card__value {
+    font-size: 1.4rem;
+    letter-spacing: -0.03em;
+}
+
+@media (min-width: 720px) {
+    .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1200px) {
+    .analytics-layout {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .panel--wide {
+        grid-column: 1 / -1;
+    }
+
+    .metric-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}

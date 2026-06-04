@@ -1,0 +1,115 @@
+:host {
+    display: block;
+}
+
+.panel {
+    display: grid;
+    gap: 1rem;
+    padding: 1.125rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 1.25rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 12%);
+    box-shadow:
+        0 22px 48px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.panel__header h2,
+.transaction-row__copy strong {
+    margin: 0;
+    color: var(--color-ms-light);
+}
+
+.panel__header p,
+.transaction-row__meta,
+.transaction-row__category {
+    color: var(--color-ms-light-dark);
+}
+
+.panel__header p {
+    margin: 0.25rem 0 0;
+}
+
+.transaction-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.transaction-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.transaction-row__leading {
+    display: inline-flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.95rem;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.transaction-row__leading[data-tone='income'] {
+    color: var(--color-ms-success);
+}
+
+.transaction-row__leading[data-tone='expense'] {
+    color: var(--color-ms-danger);
+}
+
+.transaction-row__copy {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.transaction-row__title-line,
+.transaction-row__meta {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.transaction-row__category {
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.78rem;
+}
+
+.transaction-row__meta {
+    font-size: 0.84rem;
+}
+
+.transaction-row__amount {
+    white-space: nowrap;
+    font-size: 1rem;
+    letter-spacing: -0.03em;
+}
+
+.transaction-row__amount[data-tone='income'] {
+    color: var(--color-ms-success);
+}
+
+.transaction-row__amount[data-tone='expense'] {
+    color: var(--color-ms-danger);
+}
+
+@media (max-width: 640px) {
+    .transaction-row {
+        grid-template-columns: auto 1fr;
+    }
+
+    .transaction-row__amount {
+        grid-column: 2;
+    }
+}

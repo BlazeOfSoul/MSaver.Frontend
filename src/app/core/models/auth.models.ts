@@ -13,12 +13,17 @@ export interface RefreshTokenRequest {
     refreshToken: string;
 }
 
-export interface RegisterResponse {
-    id: string;
+export interface LogoutClientRequest {
+    clientId: string;
 }
 
-export interface LoginResponse {
+export type RegisterResponse = string;
+
+export interface AuthSessionResponse {
     id: string;
+    name: string;
+    email: string;
+    clientId: string;
     accessToken: string;
     refreshToken: string;
 }

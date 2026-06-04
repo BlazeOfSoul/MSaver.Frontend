@@ -1,0 +1,15 @@
+<section class="summary-grid" aria-label="Ключевые показатели">
+    @for (card of cards(); track card.id) {
+        <article class="summary-card" [attr.data-tone]="card.tone">
+            <div class="summary-card__icon">
+                <span class="material-symbols-outlined">{{ card.icon }}</span>
+            </div>
+
+            <div class="summary-card__copy">
+                <span class="summary-card__label">{{ card.label }}</span>
+                <strong class="summary-card__value">{{ card.value }}</strong>
+                <span class="summary-card__helper">{{ card.helper }}</span>
+            </div>
+        </article>
+    }
+</section>

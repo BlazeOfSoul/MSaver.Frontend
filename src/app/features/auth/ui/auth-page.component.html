@@ -185,7 +185,9 @@
 
                                 <small
                                     class="field-error"
-                                    [class.field-error--visible]="!!getControlError(confirmPasswordCtrl)"
+                                    [class.field-error--visible]="
+                                        !!getControlError(confirmPasswordCtrl)
+                                    "
                                 >
                                     {{ getControlError(confirmPasswordCtrl) || ' ' }}
                                 </small>

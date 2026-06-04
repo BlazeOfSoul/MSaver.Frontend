@@ -1,0 +1,42 @@
+<label class="ms-select">
+    @if (label()) {
+        <span class="ms-select__label">{{ label() }}</span>
+    }
+
+    <div class="ms-select__shell" [class.ms-select__shell--open]="isOpen()">
+        <button
+            type="button"
+            class="ms-select__trigger"
+            [disabled]="disabled()"
+            [attr.aria-expanded]="isOpen()"
+            (click)="toggle()"
+        >
+            <span class="ms-select__value" [class.ms-select__value--placeholder]="!value()">
+                {{ selectedOption()?.label || placeholder() }}
+            </span>
+
+            <span class="material-symbols-outlined ms-select__icon" aria-hidden="true">
+                {{ icon() }}
+            </span>
+        </button>
+
+        @if (isOpen()) {
+            <div class="ms-select__dropdown">
+                @for (option of options(); track option.value) {
+                    <button
+                        type="button"
+                        class="ms-select__option"
+                        [class.ms-select__option--selected]="option.value === value()"
+                        (click)="selectOption(option)"
+                    >
+                        <span>{{ option.label }}</span>
+
+                        @if (option.value === value()) {
+                            <span class="material-symbols-outlined">check</span>
+                        }
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</label>

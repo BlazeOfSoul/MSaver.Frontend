@@ -1,0 +1,20 @@
+<article class="chart-card">
+    <header class="chart-card__header">
+        <div>
+            <h3>{{ title() }}</h3>
+            <p>{{ subtitle() }}</p>
+        </div>
+    </header>
+
+    <div class="chart-card__body" [style.height.px]="height()">
+        <canvas #canvas></canvas>
+
+        @if (!hasData) {
+            <div class="chart-card__empty">
+                <span class="material-symbols-outlined">monitoring</span>
+                <strong>Нет данных</strong>
+                <p>График подключен через Chart.js и заполнится после интеграции с бэкендом.</p>
+            </div>
+        }
+    </div>
+</article>

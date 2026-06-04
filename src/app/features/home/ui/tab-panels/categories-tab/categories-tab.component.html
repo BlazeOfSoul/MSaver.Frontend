@@ -1,0 +1,110 @@
+<section class="categories-layout">
+    <article class="panel">
+        <div class="panel__header">
+            <div>
+                <h2>Категории доходов</h2>
+                <p>Соберите понятную структуру поступлений.</p>
+            </div>
+        </div>
+
+        <div class="create-row">
+            <ms-input
+                [ngModel]="newIncomeCategory()"
+                (ngModelChange)="newIncomeCategoryChange.emit($event)"
+                placeholder="Новая категория..."
+            ></ms-input>
+
+            <button type="button" class="round-action" (click)="addIncomeCategory.emit()" aria-label="Добавить категорию доходов">
+                <span class="material-symbols-outlined">add</span>
+            </button>
+        </div>
+
+        @if (incomeCategories().length) {
+            <div class="chip-list">
+                @for (category of incomeCategories(); track category.id) {
+                    <span class="chip chip--income">{{ category.name }}</span>
+                }
+            </div>
+        } @else {
+            <div class="categories-empty">
+                Доходных категорий пока нет. Они появятся после API или ручного добавления.
+            </div>
+        }
+    </article>
+
+    <article class="panel">
+        <div class="panel__header">
+            <div>
+                <h2>Категории расходов</h2>
+                <p>Управляйте основными статьями расходов.</p>
+            </div>
+        </div>
+
+        <div class="create-row">
+            <ms-input
+                [ngModel]="newExpenseCategory()"
+                (ngModelChange)="newExpenseCategoryChange.emit($event)"
+                placeholder="Новая категория..."
+            ></ms-input>
+
+            <button type="button" class="round-action" (click)="addExpenseCategory.emit()" aria-label="Добавить категорию расходов">
+                <span class="material-symbols-outlined">add</span>
+            </button>
+        </div>
+
+        @if (expenseCategories().length) {
+            <div class="chip-list">
+                @for (category of expenseCategories(); track category.id) {
+                    <span class="chip chip--expense">{{ category.name }}</span>
+                }
+            </div>
+        } @else {
+            <div class="categories-empty">
+                Расходных категорий пока нет. Добавьте первую категорию вручную.
+            </div>
+        }
+    </article>
+
+    <article class="panel panel--wide">
+        <div class="panel__header">
+            <div>
+                <h2>Теги категорий</h2>
+                <p>Группируйте категории тегами для аналитики.</p>
+            </div>
+        </div>
+
+        <div class="create-row">
+            <ms-input
+                [ngModel]="newTagGroup()"
+                (ngModelChange)="newTagGroupChange.emit($event)"
+                placeholder="Новый тег..."
+            ></ms-input>
+
+            <button type="button" class="round-action" (click)="addTagGroup.emit()" aria-label="Добавить тег">
+                <span class="material-symbols-outlined">add</span>
+            </button>
+        </div>
+
+        @if (tagGroups().length) {
+            <div class="tag-group-list">
+                @for (group of tagGroups(); track group.id) {
+                    <article class="tag-group-card">
+                        <div class="tag-group-card__header">
+                            <strong># {{ group.name }}</strong>
+                        </div>
+
+                        <div class="chip-list chip-list--nested">
+                            @for (category of group.categories; track category) {
+                                <span class="chip chip--tagged">{{ category }}</span>
+                            }
+                        </div>
+                    </article>
+                }
+            </div>
+        } @else {
+            <div class="categories-empty">
+                Групп тегов пока нет. После подключения бэкенда здесь будет полноценное управление связями.
+            </div>
+        }
+    </article>
+</section>

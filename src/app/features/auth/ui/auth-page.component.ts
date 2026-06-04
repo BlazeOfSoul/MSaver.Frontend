@@ -11,6 +11,23 @@ import { InputComponent } from '../../../shared/ui/input/input';
 
 type AuthMode = 'login' | 'register';
 type ApiErrorDetails = Record<string, string[]>;
+type ApiErrorResponse = {
+    code: string;
+    message: string;
+    details: ApiErrorDetails;
+};
+
+const EMAIL_VALIDATORS = [Validators.required, Validators.email, Validators.maxLength(100)];
+const USERNAME_VALIDATORS = [Validators.required, Validators.maxLength(50)];
+const LOGIN_PASSWORD_VALIDATORS = [
+    Validators.required,
+    Validators.minLength(6),
+    Validators.maxLength(100),
+];
+const REGISTER_PASSWORD_VALIDATORS = [
+    ...LOGIN_PASSWORD_VALIDATORS,
+    Validators.pattern(/[^a-zA-Z0-9]/),
+];
 
 @Component({
     selector: 'app-auth-page',
@@ -36,8 +53,8 @@ export class AuthPageComponent {
 
     readonly form = this.fb.nonNullable.group({
         username: [''],
-        email: ['', [Validators.required, Validators.email]],
-        password: ['', [Validators.required, Validators.minLength(6)]],
+        email: ['', EMAIL_VALIDATORS],
+        password: ['', LOGIN_PASSWORD_VALIDATORS],
         confirmPassword: [''],
     });
 
@@ -57,16 +74,6 @@ export class AuthPageComponent {
         return this.form.controls.confirmPassword;
     }
 
-    get passwordsDoNotMatch(): boolean {
-        return (
-            !this.isLogin() &&
-            this.confirmPasswordCtrl.touched &&
-            !!this.passwordCtrl.value &&
-            !!this.confirmPasswordCtrl.value &&
-            this.passwordCtrl.value !== this.confirmPasswordCtrl.value
-        );
-    }
-
     toggleMode(): void {
         const nextMode = this.isLogin() ? 'register' : 'login';
 
@@ -83,16 +90,7 @@ export class AuthPageComponent {
             confirmPassword: '',
         });
 
-        if (nextMode === 'register') {
-            this.usernameCtrl.setValidators([Validators.required, Validators.minLength(3)]);
-            this.confirmPasswordCtrl.setValidators([Validators.required]);
-        } else {
-            this.usernameCtrl.clearValidators();
-            this.confirmPasswordCtrl.clearValidators();
-        }
-
-        this.usernameCtrl.updateValueAndValidity({ emitEvent: false });
-        this.confirmPasswordCtrl.updateValueAndValidity({ emitEvent: false });
+        this.applyModeValidators(nextMode);
     }
 
     togglePassword(): void {
@@ -103,17 +101,7 @@ export class AuthPageComponent {
         this.errorMessage.set('');
         this.successMessage.set('');
         this.clearServerErrors();
-
-        if (this.isLogin()) {
-            this.usernameCtrl.clearValidators();
-            this.confirmPasswordCtrl.clearValidators();
-        } else {
-            this.usernameCtrl.setValidators([Validators.required, Validators.minLength(3)]);
-            this.confirmPasswordCtrl.setValidators([Validators.required]);
-        }
-
-        this.usernameCtrl.updateValueAndValidity({ emitEvent: false });
-        this.confirmPasswordCtrl.updateValueAndValidity({ emitEvent: false });
+        this.applyModeValidators(this.mode());
 
         if (this.form.invalid || this.loading()) {
             this.form.markAllAsTouched();
@@ -156,16 +144,13 @@ export class AuthPageComponent {
                     this.successMessage.set('Аккаунт создан. Теперь войдите.');
                     this.mode.set('login');
                     this.showPassword.set(false);
-                    this.usernameCtrl.clearValidators();
-                    this.confirmPasswordCtrl.clearValidators();
+                    this.applyModeValidators('login');
                     this.clearServerErrors();
                     this.form.patchValue({
                         username: '',
                         password: '',
                         confirmPassword: '',
                     });
-                    this.usernameCtrl.updateValueAndValidity({ emitEvent: false });
-                    this.confirmPasswordCtrl.updateValueAndValidity({ emitEvent: false });
                 },
                 error: (error) => this.handleError(error),
             });
@@ -189,6 +174,15 @@ export class AuthPageComponent {
             return `Минимум ${requiredLength} символов.`;
         }
 
+        if (control.errors['maxlength']) {
+            const requiredLength = control.errors['maxlength'].requiredLength;
+            return `Максимум ${requiredLength} символов.`;
+        }
+
+        if (control.errors['pattern']) {
+            return 'Пароль должен содержать хотя бы один специальный символ.';
+        }
+
         if (control.errors['mismatch']) {
             return 'Пароли не совпадают.';
         }
@@ -200,9 +194,10 @@ export class AuthPageComponent {
         return null;
     }
 
-    private handleError(error: any): void {
-        const details = error?.error?.details as Record<string, string[]> | undefined;
-        const message = error?.error?.message as string | undefined;
+    private handleError(error: unknown): void {
+        const apiError = this.readApiError(error);
+        const details = apiError?.details;
+        const message = apiError?.message;
 
         if (this.isLogin()) {
             this.errorMessage.set(this.resolveLoginErrorMessage(error, message));
@@ -235,6 +230,41 @@ export class AuthPageComponent {
         }
 
         return 'Не удалось войти в аккаунт. Попробуйте снова.';
+    }
+
+    private applyModeValidators(mode: AuthMode): void {
+        if (mode === 'register') {
+            this.usernameCtrl.setValidators(USERNAME_VALIDATORS);
+            this.passwordCtrl.setValidators(REGISTER_PASSWORD_VALIDATORS);
+            this.confirmPasswordCtrl.setValidators([Validators.required]);
+        } else {
+            this.usernameCtrl.clearValidators();
+            this.passwordCtrl.setValidators(LOGIN_PASSWORD_VALIDATORS);
+            this.confirmPasswordCtrl.clearValidators();
+        }
+
+        this.usernameCtrl.updateValueAndValidity({ emitEvent: false });
+        this.passwordCtrl.updateValueAndValidity({ emitEvent: false });
+        this.confirmPasswordCtrl.updateValueAndValidity({ emitEvent: false });
+    }
+
+    private readApiError(error: unknown): ApiErrorResponse | null {
+        if (
+            !(error instanceof HttpErrorResponse) ||
+            !error.error ||
+            typeof error.error !== 'object'
+        ) {
+            return null;
+        }
+
+        const apiError = error.error as Partial<ApiErrorResponse>;
+
+        return {
+            code: typeof apiError.code === 'string' ? apiError.code : '',
+            message: typeof apiError.message === 'string' ? apiError.message : '',
+            details:
+                apiError.details && typeof apiError.details === 'object' ? apiError.details : {},
+        };
     }
 
     private isNetworkError(error: unknown, message?: string): boolean {
