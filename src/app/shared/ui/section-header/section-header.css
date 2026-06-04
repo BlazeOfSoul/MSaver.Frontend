@@ -1,0 +1,52 @@
+:host {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+:host(.ms-section-header-compact) {
+    margin-bottom: 12px;
+}
+
+.ms-section-header__copy {
+    min-width: 0;
+}
+
+p,
+h2,
+span {
+    margin: 0;
+}
+
+p {
+    margin-bottom: 8px;
+    color: var(--color-ms-primary);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+h2 {
+    color: var(--color-ms-light);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+span {
+    display: block;
+    margin-top: 6px;
+    color: var(--color-ms-light-dark);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.ms-section-header__actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+}

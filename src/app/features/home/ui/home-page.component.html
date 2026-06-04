@@ -1,0 +1,196 @@
+<main class="dashboard-shell">
+    <header class="dashboard-header">
+        <div class="brand">
+            <img src="/images/msaver-logo.png" alt="MSaver" width="42" height="42" />
+
+            <div class="brand__text">
+                <strong>MSaver</strong>
+                <span>Личные финансы</span>
+            </div>
+        </div>
+
+        <div class="account-strip" aria-label="Текущий аккаунт">
+            <span class="material-symbols-outlined" aria-hidden="true">person</span>
+            <span class="account-strip__id">{{ authStore.userId() || 'Аккаунт' }}</span>
+            <span class="account-strip__status">Активен</span>
+        </div>
+
+        <ms-button
+            type="button"
+            variant="secondary"
+            [outlined]="true"
+            class="logout-button"
+            data-testid="logout-button"
+            (onClick)="logout()"
+        >
+            <span class="material-symbols-outlined" aria-hidden="true">logout</span>
+            Выйти
+        </ms-button>
+    </header>
+
+    <section class="hero-grid" aria-labelledby="dashboard-title">
+        <ms-surface variant="hero" class="hero-card">
+            <p class="eyebrow">Финансовый обзор</p>
+            <h1 id="dashboard-title">Финансы под контролем</h1>
+            <p>Следите за балансом, расходами и бюджетом в единой спокойной панели MSaver.</p>
+
+            <div class="hero-insights" aria-label="Сводка месяца">
+                <span>
+                    <b>Июнь</b>
+                    текущий период
+                </span>
+                <span>
+                    <b>18</b>
+                    операций
+                </span>
+                <span>
+                    <b>3</b>
+                    активных цели
+                </span>
+            </div>
+
+            <div class="hero-actions">
+                <ms-button type="button" variant="primary">
+                    <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                    Новая операция
+                </ms-button>
+
+                <ms-button type="button" variant="secondary" [outlined]="true">
+                    <span class="material-symbols-outlined" aria-hidden="true">analytics</span>
+                    Отчет
+                </ms-button>
+            </div>
+        </ms-surface>
+
+        <ms-surface variant="panel" class="health-card">
+            <div class="health-card__top">
+                <span class="material-symbols-outlined health-card__icon" aria-hidden="true">
+                    monitoring
+                </span>
+                <span class="status-pill">Стабильно</span>
+            </div>
+            <div>
+                <strong>86%</strong>
+                <span>План бюджета выполняется стабильно</span>
+            </div>
+        </ms-surface>
+    </section>
+
+    <section class="metric-grid" aria-label="Ключевые показатели">
+        @for (metric of metrics; track metric.label) {
+            <ms-surface
+                variant="tile"
+                [interactive]="true"
+                class="metric-card"
+                [class.tone-success]="metric.tone === 'success'"
+                [class.tone-warning]="metric.tone === 'warning'"
+                [class.tone-info]="metric.tone === 'info'"
+            >
+                <div class="metric-card__icon">
+                    <span class="material-symbols-outlined" aria-hidden="true">{{
+                        metric.icon
+                    }}</span>
+                </div>
+
+                <span>{{ metric.label }}</span>
+                <strong>{{ metric.value }}</strong>
+                <small>{{ metric.detail }}</small>
+                <b>{{ metric.meta }}</b>
+            </ms-surface>
+        }
+    </section>
+
+    <section class="content-grid">
+        <ms-surface variant="section" class="panel">
+            <ms-section-header eyebrow="Действия" title="Быстрые действия" [compact]="true" />
+
+            <div class="action-list">
+                @for (action of quickActions; track action.label) {
+                    <ms-button
+                        type="button"
+                        variant="secondary"
+                        [outlined]="true"
+                        [fullWidth]="true"
+                        class="ms-btn-action-row"
+                        [class.quick-action-income]="action.tone === 'income'"
+                        [class.quick-action-expense]="action.tone === 'expense'"
+                        [class.quick-action-budget]="action.tone === 'budget'"
+                    >
+                        <span
+                            class="material-symbols-outlined quick-action__icon"
+                            aria-hidden="true"
+                        >
+                            {{ action.icon }}
+                        </span>
+                        <span class="quick-action__body">
+                            <strong>{{ action.label }}</strong>
+                            <small>{{ action.description }}</small>
+                        </span>
+                    </ms-button>
+                }
+            </div>
+        </ms-surface>
+
+        <ms-surface variant="section" class="panel">
+            <ms-section-header eyebrow="История" title="Последние операции" [compact]="true" />
+
+            <div class="activity-list">
+                @for (activity of activities; track activity.title) {
+                    <div class="activity-row">
+                        <span
+                            class="activity-row__icon"
+                            [class.is-income]="activity.tone === 'income'"
+                        >
+                            <span class="material-symbols-outlined" aria-hidden="true">
+                                {{ activity.icon }}
+                            </span>
+                        </span>
+                        <span>
+                            <strong>{{ activity.title }}</strong>
+                            <small>{{ activity.category }}</small>
+                        </span>
+                        <b
+                            [class.is-income]="activity.tone === 'income'"
+                            [class.is-expense]="activity.tone === 'expense'"
+                        >
+                            {{ activity.amount }}
+                        </b>
+                    </div>
+                }
+            </div>
+        </ms-surface>
+
+        <ms-surface variant="section" class="panel panel--wide">
+            <ms-section-header
+                eyebrow="Лимиты"
+                title="Бюджет"
+                description="Контроль категорий месяца"
+            >
+                <ms-button type="button" variant="secondary" [outlined]="true" class="panel-action">
+                    <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                    Изменить
+                </ms-button>
+            </ms-section-header>
+
+            <div class="budget-list">
+                @for (budget of budgets; track budget.label) {
+                    <div
+                        class="budget-row"
+                        [class.tone-success]="budget.tone === 'success'"
+                        [class.tone-warning]="budget.tone === 'warning'"
+                        [class.tone-info]="budget.tone === 'info'"
+                    >
+                        <div class="budget-row__label">
+                            <strong>{{ budget.label }}</strong>
+                            <span>{{ budget.value }}</span>
+                        </div>
+
+                        <div class="budget-row__track" aria-hidden="true">
+                            <span [style.width.%]="budget.progress"></span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </ms-surface>
+    </section>
+</main>

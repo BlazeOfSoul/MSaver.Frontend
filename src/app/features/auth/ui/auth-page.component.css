@@ -22,8 +22,8 @@
         ),
         linear-gradient(180deg, rgba(4, 10, 8, 0.2) 0%, rgba(3, 7, 6, 0.42) 100%),
         linear-gradient(145deg, #020303 0%, #04100c 26%, #061310 56%, #030504 100%);
-    color: #ffffff;
-    font-family: 'Inter', sans-serif;
+    color: var(--color-ms-light);
+    font-family: Inter, Arial, sans-serif;
     position: relative;
     overflow: hidden;
 }
@@ -131,7 +131,7 @@ svg {
     font-size: 22px;
     line-height: 1;
     font-weight: 800;
-    letter-spacing: -0.04em;
+    letter-spacing: 0;
     color: #ffffff;
 }
 
@@ -148,10 +148,10 @@ svg {
 
 .auth-copy h2 {
     margin: 0 0 8px;
-    font-size: clamp(2rem, 7vw, 2.6rem);
-    line-height: 0.96;
+    font-size: 2.25rem;
+    line-height: 1;
     font-weight: 800;
-    letter-spacing: -0.05em;
+    letter-spacing: 0;
     color: #ffffff;
 }
 
@@ -164,7 +164,7 @@ svg {
 }
 
 .auth-card {
-    border-radius: 20px;
+    border-radius: var(--radius-ms-xl);
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: linear-gradient(
         180deg,
@@ -178,6 +178,48 @@ svg {
         0 0 0 1px rgba(16, 185, 129, 0.025),
         inset 0 1px 0 rgba(255, 255, 255, 0.03);
     padding: 18px;
+}
+
+.auth-mode-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 18px;
+    padding: 5px;
+    border: 1px solid var(--color-ms-border);
+    border-radius: var(--radius-ms-lg);
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.auth-mode-tabs button {
+    min-height: 42px;
+    border: 0;
+    border-radius: var(--radius-ms-md);
+    color: var(--color-ms-light-dark);
+    background: transparent;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition:
+        color 0.18s ease,
+        background-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.auth-mode-tabs button:hover,
+.auth-mode-tabs button:focus-visible {
+    color: var(--color-ms-light);
+}
+
+.auth-mode-tabs button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(35, 199, 139, 0.16);
+}
+
+.auth-mode-tabs__item--active {
+    color: var(--color-ms-light) !important;
+    background: rgba(35, 199, 139, 0.14) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .auth-form {
@@ -195,7 +237,7 @@ svg {
 .form-field label {
     font-size: 13px;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     color: rgba(255, 255, 255, 0.68);
 }
 
@@ -243,34 +285,9 @@ svg {
     color: #d1fae5;
 }
 
-.separator {
-    position: relative;
-    margin: 22px 0;
+.auth-footnote {
+    margin: 18px 0 0;
     text-align: center;
-}
-
-.separator::before {
-    content: '';
-    position: absolute;
-    inset: 50% 0 auto;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.separator span {
-    position: relative;
-    z-index: 1;
-    padding: 0 12px;
-    background: rgba(5, 10, 8, 0.88);
-    color: rgba(255, 255, 255, 0.28);
-    font-size: 12px;
-}
-
-.switch-block {
-    text-align: center;
-}
-
-.switch-block p {
-    margin: 0;
     font-size: 14px;
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.42);
@@ -280,13 +297,13 @@ svg {
     border: 0;
     background: transparent;
     padding-left: 4px;
-    color: hsl(160 84% 48%);
+    color: var(--color-ms-primary);
     font-weight: 700;
     cursor: pointer;
 }
 
 .switch-btn:hover {
-    color: hsl(160 84% 54%);
+    color: var(--color-ms-primary-soft);
 }
 
 .security-note {
@@ -357,16 +374,16 @@ svg {
 
     .visual-copy h1 {
         margin: 0 0 18px;
-        font-size: clamp(3.2rem, 5vw, 4.8rem);
-        line-height: 0.94;
+        font-size: 4.8rem;
+        line-height: 0.98;
         font-weight: 800;
-        letter-spacing: -0.06em;
+        letter-spacing: 0;
         color: #ffffff;
         text-wrap: balance;
     }
 
     .visual-copy h1 span {
-        color: hsl(160 84% 47%);
+        color: var(--color-ms-primary);
     }
 
     .visual-copy p {
@@ -394,7 +411,7 @@ svg {
         font-size: 18px;
         line-height: 1.1;
         font-weight: 700;
-        letter-spacing: -0.03em;
+        letter-spacing: 0;
         color: #ffffff;
     }
 
@@ -430,7 +447,7 @@ svg {
     }
 
     .auth-copy h2 {
-        font-size: clamp(2.2rem, 3vw, 2.8rem);
+        font-size: 2.65rem;
     }
 
     .auth-copy p {

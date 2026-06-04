@@ -67,7 +67,13 @@ export class AuthPageComponent {
     }
 
     toggleMode(): void {
-        const nextMode = this.isLogin() ? 'register' : 'login';
+        this.setMode(this.isLogin() ? 'register' : 'login');
+    }
+
+    setMode(nextMode: AuthMode): void {
+        if (this.mode() === nextMode) {
+            return;
+        }
 
         this.mode.set(nextMode);
         this.errorMessage.set('');
