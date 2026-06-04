@@ -15,6 +15,7 @@ import { TransactionDraft } from '../../home-page.models';
 })
 export class AddTransactionDialogComponent {
     open = input<boolean>(false);
+    saving = input<boolean>(false);
     draft = input.required<TransactionDraft>();
     accountOptions = input.required<ReadonlyArray<MsSelectOption>>();
     incomeCategoryOptions = input.required<ReadonlyArray<MsSelectOption>>();
@@ -26,13 +27,16 @@ export class AddTransactionDialogComponent {
 
     readonly hasAccounts = computed(() => this.accountOptions().length > 0);
     readonly categoryOptions = computed(() =>
-        this.draft().type === 'income' ? this.incomeCategoryOptions() : this.expenseCategoryOptions(),
+        this.draft().type === 'income'
+            ? this.incomeCategoryOptions()
+            : this.expenseCategoryOptions(),
     );
     readonly canSave = computed(
         () =>
             this.hasAccounts() &&
+            !this.saving() &&
             !!this.draft().accountId &&
-            !!this.draft().category &&
+            !!this.draft().categoryId &&
             this.draft().amount > 0,
     );
 }

@@ -13,23 +13,38 @@
                     <article class="account-card">
                         <div class="account-card__top">
                             <span class="account-card__icon" [style.color]="account.color">
-                                <span class="material-symbols-outlined">account_balance_wallet</span>
+                                <span class="material-symbols-outlined"
+                                    >account_balance_wallet</span
+                                >
                             </span>
                             <strong>{{ account.name }}</strong>
+
+                            <button
+                                type="button"
+                                class="icon-action icon-action--danger"
+                                [disabled]="saving()"
+                                (click)="deleteAccount.emit(account.id)"
+                                aria-label="Удалить счёт"
+                            >
+                                <span class="material-symbols-outlined">delete</span>
+                            </button>
                         </div>
 
                         <span class="account-card__currency">{{ account.currencyLabel }}</span>
                         <strong class="account-card__balance" [style.color]="account.color">
                             {{ account.balanceLabel }}
                         </strong>
+                        <span class="account-card__change">
+                            Изменение за месяц: {{ account.monthChangeLabel }}
+                        </span>
                     </article>
                 }
             </div>
         } @else {
             <div class="accounts-empty">
                 <span class="material-symbols-outlined">account_balance_wallet</span>
-                <strong>Счетов пока нет</strong>
-                <p>Добавьте первый счет. Позже данные здесь будут приходить с бэкенда.</p>
+                <strong>Счета: null</strong>
+                <p>Создайте первый счёт, чтобы появились баланс, переводы и аналитика.</p>
             </div>
         }
 
@@ -48,7 +63,13 @@
                 ></ms-select>
             </div>
 
-            <button type="button" class="round-action" (click)="createAccount.emit()" aria-label="Добавить счет">
+            <button
+                type="button"
+                class="round-action"
+                [disabled]="saving()"
+                (click)="createAccount.emit()"
+                aria-label="Добавить счёт"
+            >
                 <span class="material-symbols-outlined">add</span>
             </button>
         </div>
@@ -68,19 +89,25 @@
                     label="Откуда"
                     [options]="accountOptions()"
                     [value]="transferDraft().fromAccountId"
-                    (valueChange)="transferDraftChange.emit({ ...transferDraft(), fromAccountId: $event })"
+                    (valueChange)="
+                        transferDraftChange.emit({ ...transferDraft(), fromAccountId: $event })
+                    "
                 ></ms-select>
 
                 <ms-select
                     label="Куда"
                     [options]="accountOptions()"
                     [value]="transferDraft().toAccountId"
-                    (valueChange)="transferDraftChange.emit({ ...transferDraft(), toAccountId: $event })"
+                    (valueChange)="
+                        transferDraftChange.emit({ ...transferDraft(), toAccountId: $event })
+                    "
                 ></ms-select>
 
                 <ms-input
                     [ngModel]="transferDraft().amount"
-                    (ngModelChange)="transferDraftChange.emit({ ...transferDraft(), amount: +($event || 0) })"
+                    (ngModelChange)="
+                        transferDraftChange.emit({ ...transferDraft(), amount: +($event || 0) })
+                    "
                     placeholder="Сумма"
                     type="text"
                 ></ms-input>
@@ -88,15 +115,15 @@
         } @else {
             <div class="accounts-empty accounts-empty--compact">
                 <span class="material-symbols-outlined">swap_horiz</span>
-                <strong>Нужно минимум два счета</strong>
-                <p>Создайте хотя бы два счета, чтобы переводы между ними стали доступны.</p>
+                <strong>Переводы: null</strong>
+                <p>Создайте минимум два счёта, чтобы переводить деньги между ними.</p>
             </div>
         }
 
         <ms-button
             variant="primary"
             [fullWidth]="true"
-            [disabled]="accountOptions().length < 2"
+            [disabled]="accountOptions().length < 2 || saving()"
             (onClick)="submitTransfer.emit()"
         >
             Перевести

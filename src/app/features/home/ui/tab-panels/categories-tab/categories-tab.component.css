@@ -54,6 +54,11 @@
     cursor: pointer;
 }
 
+.round-action:disabled {
+    cursor: progress;
+    opacity: 0.55;
+}
+
 .chip-list,
 .tag-group-list {
     display: grid;
@@ -68,11 +73,34 @@
 .chip {
     display: inline-flex;
     align-items: center;
+    gap: 0.35rem;
     padding: 0.55rem 0.85rem;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.05);
     color: var(--color-ms-light);
     font-size: 0.92rem;
+}
+
+.chip__action {
+    display: inline-flex;
+    width: 1.35rem;
+    height: 1.35rem;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 999px;
+    color: currentColor;
+    background: rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+}
+
+.chip__action:disabled {
+    cursor: progress;
+    opacity: 0.55;
+}
+
+.chip__action .material-symbols-outlined {
+    font-size: 1rem;
 }
 
 .chip--income {
@@ -101,6 +129,10 @@
     background: rgba(255, 255, 255, 0.03);
 }
 
+.categories-empty--compact {
+    padding: 0.75rem 0.85rem;
+}
+
 .tag-group-card {
     display: grid;
     gap: 0.85rem;
@@ -108,6 +140,36 @@
     border-radius: 1rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tag-group-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.icon-action {
+    display: inline-flex;
+    width: 2.35rem;
+    height: 2.35rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.75rem;
+    color: var(--color-ms-light-dark);
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+}
+
+.icon-action:disabled {
+    cursor: progress;
+    opacity: 0.55;
+}
+
+.icon-action--danger:hover:not(:disabled) {
+    color: var(--color-ms-danger);
+    border-color: rgba(255, 111, 145, 0.25);
 }
 
 @media (min-width: 1024px) {

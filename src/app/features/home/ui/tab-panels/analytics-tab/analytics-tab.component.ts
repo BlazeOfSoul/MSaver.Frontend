@@ -27,7 +27,9 @@ export class AnalyticsTabComponent {
     topExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     yearStats = input.required<ReadonlyArray<AnalyticsMetricCard>>();
 
-    readonly incomeVsExpenseLabels = computed(() => this.incomeVsExpense().map((item) => item.label));
+    readonly incomeVsExpenseLabels = computed(() =>
+        this.incomeVsExpense().map((item) => item.label),
+    );
     readonly incomeVsExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Доходы',
@@ -41,25 +43,31 @@ export class AnalyticsTabComponent {
         },
     ]);
 
-    readonly expenseCategoryLabels = computed(() => this.expenseCategories().map((item) => item.name));
+    readonly expenseCategoryLabels = computed(() =>
+        this.expenseCategories().map((item) => item.name),
+    );
     readonly expenseCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
         this.expenseCategories().map((item, index) => ({
             label: item.name,
-            data: [item.progress || this.readAmount(item.amount)],
+            data: [item.amountValue],
             color: this.pickColor(index),
         })),
     );
 
-    readonly incomeCategoryLabels = computed(() => this.incomeCategories().map((item) => item.name));
+    readonly incomeCategoryLabels = computed(() =>
+        this.incomeCategories().map((item) => item.name),
+    );
     readonly incomeCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
         this.incomeCategories().map((item, index) => ({
             label: item.name,
-            data: [item.progress || this.readAmount(item.amount)],
+            data: [item.amountValue],
             color: this.pickColor(index),
         })),
     );
 
-    readonly monthlyExpenseLabels = computed(() => this.monthlyExpenses().map((item) => item.label));
+    readonly monthlyExpenseLabels = computed(() =>
+        this.monthlyExpenses().map((item) => item.label),
+    );
     readonly monthlyExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Расходы',
@@ -68,7 +76,9 @@ export class AnalyticsTabComponent {
         },
     ]);
 
-    readonly balanceDynamicsLabels = computed(() => this.balanceDynamics().map((item) => item.label));
+    readonly balanceDynamicsLabels = computed(() =>
+        this.balanceDynamics().map((item) => item.label),
+    );
     readonly balanceDynamicsDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Баланс',
@@ -82,7 +92,7 @@ export class AnalyticsTabComponent {
     readonly tagExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Теги',
-            data: this.tagExpenses().map((item) => item.progress || this.readAmount(item.amount)),
+            data: this.tagExpenses().map((item) => item.amountValue),
             color: '#23c78b',
         },
     ]);
@@ -91,7 +101,7 @@ export class AnalyticsTabComponent {
     readonly topExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Топ расходов',
-            data: this.topExpenses().map((item) => item.progress || this.readAmount(item.amount)),
+            data: this.topExpenses().map((item) => item.amountValue),
             color: '#e8b45d',
         },
     ]);

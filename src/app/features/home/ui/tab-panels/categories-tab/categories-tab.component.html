@@ -3,7 +3,7 @@
         <div class="panel__header">
             <div>
                 <h2>Категории доходов</h2>
-                <p>Соберите понятную структуру поступлений.</p>
+                <p>Структура поступлений для транзакций и аналитики.</p>
             </div>
         </div>
 
@@ -14,7 +14,13 @@
                 placeholder="Новая категория..."
             ></ms-input>
 
-            <button type="button" class="round-action" (click)="addIncomeCategory.emit()" aria-label="Добавить категорию доходов">
+            <button
+                type="button"
+                class="round-action"
+                [disabled]="saving()"
+                (click)="addIncomeCategory.emit()"
+                aria-label="Добавить категорию доходов"
+            >
                 <span class="material-symbols-outlined">add</span>
             </button>
         </div>
@@ -22,13 +28,22 @@
         @if (incomeCategories().length) {
             <div class="chip-list">
                 @for (category of incomeCategories(); track category.id) {
-                    <span class="chip chip--income">{{ category.name }}</span>
+                    <span class="chip chip--income">
+                        {{ category.name }}
+                        <button
+                            type="button"
+                            class="chip__action"
+                            [disabled]="saving()"
+                            (click)="deleteCategory.emit(category.id)"
+                            aria-label="Удалить категорию"
+                        >
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </span>
                 }
             </div>
         } @else {
-            <div class="categories-empty">
-                Доходных категорий пока нет. Они появятся после API или ручного добавления.
-            </div>
+            <div class="categories-empty">Категории доходов: null.</div>
         }
     </article>
 
@@ -36,7 +51,7 @@
         <div class="panel__header">
             <div>
                 <h2>Категории расходов</h2>
-                <p>Управляйте основными статьями расходов.</p>
+                <p>Основные статьи расходов для операций и графиков.</p>
             </div>
         </div>
 
@@ -47,7 +62,13 @@
                 placeholder="Новая категория..."
             ></ms-input>
 
-            <button type="button" class="round-action" (click)="addExpenseCategory.emit()" aria-label="Добавить категорию расходов">
+            <button
+                type="button"
+                class="round-action"
+                [disabled]="saving()"
+                (click)="addExpenseCategory.emit()"
+                aria-label="Добавить категорию расходов"
+            >
                 <span class="material-symbols-outlined">add</span>
             </button>
         </div>
@@ -55,13 +76,22 @@
         @if (expenseCategories().length) {
             <div class="chip-list">
                 @for (category of expenseCategories(); track category.id) {
-                    <span class="chip chip--expense">{{ category.name }}</span>
+                    <span class="chip chip--expense">
+                        {{ category.name }}
+                        <button
+                            type="button"
+                            class="chip__action"
+                            [disabled]="saving()"
+                            (click)="deleteCategory.emit(category.id)"
+                            aria-label="Удалить категорию"
+                        >
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </span>
                 }
             </div>
         } @else {
-            <div class="categories-empty">
-                Расходных категорий пока нет. Добавьте первую категорию вручную.
-            </div>
+            <div class="categories-empty">Категории расходов: null.</div>
         }
     </article>
 
@@ -69,7 +99,7 @@
         <div class="panel__header">
             <div>
                 <h2>Теги категорий</h2>
-                <p>Группируйте категории тегами для аналитики.</p>
+                <p>Группируйте категории для срезов аналитики.</p>
             </div>
         </div>
 
@@ -80,7 +110,13 @@
                 placeholder="Новый тег..."
             ></ms-input>
 
-            <button type="button" class="round-action" (click)="addTagGroup.emit()" aria-label="Добавить тег">
+            <button
+                type="button"
+                class="round-action"
+                [disabled]="saving()"
+                (click)="addTagGroup.emit()"
+                aria-label="Добавить тег"
+            >
                 <span class="material-symbols-outlined">add</span>
             </button>
         </div>
@@ -90,21 +126,68 @@
                 @for (group of tagGroups(); track group.id) {
                     <article class="tag-group-card">
                         <div class="tag-group-card__header">
-                            <strong># {{ group.name }}</strong>
+                            <strong [style.color]="group.color"># {{ group.name }}</strong>
+                            <button
+                                type="button"
+                                class="icon-action icon-action--danger"
+                                [disabled]="saving()"
+                                (click)="deleteTag.emit(group.id)"
+                                aria-label="Удалить тег"
+                            >
+                                <span class="material-symbols-outlined">delete</span>
+                            </button>
                         </div>
 
-                        <div class="chip-list chip-list--nested">
-                            @for (category of group.categories; track category) {
-                                <span class="chip chip--tagged">{{ category }}</span>
-                            }
-                        </div>
+                        @if (categoryOptions().length) {
+                            <ms-select
+                                label="Добавить категорию"
+                                [options]="categoryOptions()"
+                                value=""
+                                (valueChange)="
+                                    assignCategoryToTag.emit({
+                                        tagId: group.id,
+                                        categoryId: $event,
+                                    })
+                                "
+                            ></ms-select>
+                        }
+
+                        @if (group.categories.length) {
+                            <div class="chip-list chip-list--nested">
+                                @for (category of group.categories; track category.id) {
+                                    <span
+                                        class="chip"
+                                        [class.chip--income]="category.type === 'income'"
+                                        [class.chip--expense]="category.type === 'expense'"
+                                    >
+                                        {{ category.name }}
+                                        <button
+                                            type="button"
+                                            class="chip__action"
+                                            [disabled]="saving()"
+                                            (click)="
+                                                removeCategoryFromTag.emit({
+                                                    tagId: group.id,
+                                                    categoryId: category.id,
+                                                })
+                                            "
+                                            aria-label="Убрать категорию из тега"
+                                        >
+                                            <span class="material-symbols-outlined">close</span>
+                                        </button>
+                                    </span>
+                                }
+                            </div>
+                        } @else {
+                            <div class="categories-empty categories-empty--compact">
+                                Категории тега: null.
+                            </div>
+                        }
                     </article>
                 }
             </div>
         } @else {
-            <div class="categories-empty">
-                Групп тегов пока нет. После подключения бэкенда здесь будет полноценное управление связями.
-            </div>
+            <div class="categories-empty">Теги: null.</div>
         }
     </article>
 </section>

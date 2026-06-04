@@ -30,9 +30,21 @@
                     </div>
                 </div>
 
-                <strong class="transaction-row__amount" [attr.data-tone]="item.tone">
-                    {{ item.amountLabel }}
-                </strong>
+                <div class="transaction-row__actions">
+                    <strong class="transaction-row__amount" [attr.data-tone]="item.tone">
+                        {{ item.amountLabel }}
+                    </strong>
+
+                    <button
+                        type="button"
+                        class="icon-action icon-action--danger"
+                        [disabled]="saving()"
+                        (click)="deleteTransaction.emit(item.id)"
+                        aria-label="Удалить транзакцию"
+                    >
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
+                </div>
             </article>
         }
     </div>

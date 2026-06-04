@@ -3,7 +3,7 @@
         <div class="panel__header">
             <div>
                 <h2>Аналитика</h2>
-                <p>Графики и разрезы по тратам, доходам и балансу.</p>
+                <p>Графики и срезы по тратам, доходам и балансу.</p>
             </div>
         </div>
 
@@ -21,7 +21,7 @@
     <ms-chart-card
         class="panel--wide"
         title="Доходы vs Расходы"
-        subtitle="Сравнение потоков по месяцам."
+        subtitle="Сравнение потоков по месяцам выбранного года."
         type="bar"
         [labels]="incomeVsExpenseLabels()"
         [datasets]="incomeVsExpenseDatasets()"
@@ -29,7 +29,7 @@
 
     <ms-chart-card
         title="Расходы по категориям"
-        subtitle="Структура расходов по основным категориям."
+        subtitle="Структура расходов выбранного месяца."
         type="doughnut"
         [labels]="expenseCategoryLabels()"
         [datasets]="expenseCategoryDatasets()"
@@ -37,15 +37,15 @@
 
     <ms-chart-card
         title="Доходы по категориям"
-        subtitle="Структура поступлений."
+        subtitle="Структура поступлений выбранного месяца."
         type="doughnut"
         [labels]="incomeCategoryLabels()"
         [datasets]="incomeCategoryDatasets()"
     ></ms-chart-card>
 
     <ms-chart-card
-        title="Расходы за месяц"
-        subtitle="Детализация расходов в течение месяца."
+        title="Расходы по месяцам"
+        subtitle="Динамика расходов в выбранном году."
         type="bar"
         [labels]="monthlyExpenseLabels()"
         [datasets]="monthlyExpenseDatasets()"
@@ -53,18 +53,10 @@
 
     <ms-chart-card
         title="Динамика баланса"
-        subtitle="Изменение остатка во времени."
+        subtitle="Закрывающий баланс по месяцам выбранного года."
         type="line"
         [labels]="balanceDynamicsLabels()"
         [datasets]="balanceDynamicsDatasets()"
-    ></ms-chart-card>
-
-    <ms-chart-card
-        title="Расходы по месяцам"
-        subtitle="Сравнение месячной нагрузки."
-        type="line"
-        [labels]="monthlyExpenseLabels()"
-        [datasets]="monthlyExpenseDatasets()"
     ></ms-chart-card>
 
     <ms-chart-card
@@ -77,7 +69,7 @@
 
     <ms-chart-card
         title="Топ расходов"
-        subtitle="Самые затратные позиции."
+        subtitle="Самые затратные категории выбранного месяца."
         type="bar"
         [labels]="topExpenseLabels()"
         [datasets]="topExpenseDatasets()"
@@ -85,9 +77,9 @@
 
     <ms-chart-card
         class="panel--wide"
-        title="Статистика по годам"
-        subtitle="Годовая история финансовых результатов."
-        type="line"
+        title="Статистика года"
+        subtitle="Итоги доходов и расходов за выбранный год."
+        type="bar"
         [labels]="yearStatLabels()"
         [datasets]="yearStatDatasets()"
     ></ms-chart-card>

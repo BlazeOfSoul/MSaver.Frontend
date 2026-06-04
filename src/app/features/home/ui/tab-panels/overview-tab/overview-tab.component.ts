@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TransactionItem } from '../../home-page.models';
 
 @Component({
@@ -10,4 +10,7 @@ import { TransactionItem } from '../../home-page.models';
 })
 export class OverviewTabComponent {
     transactions = input.required<ReadonlyArray<TransactionItem>>();
+    saving = input(false);
+
+    deleteTransaction = output<string>();
 }

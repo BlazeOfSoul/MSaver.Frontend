@@ -4,7 +4,7 @@
             <header class="dialog__header">
                 <div>
                     <h2>Новая транзакция</h2>
-                    <p>Аккуратное окно для будущего CRUD-потока. Сейчас готово под подключение API.</p>
+                    <p>Добавьте доход или расход в выбранный месяц.</p>
                 </div>
 
                 <button
@@ -43,16 +43,18 @@
                         label="Счёт"
                         [options]="accountOptions()"
                         [value]="draft().accountId"
-                        placeholder="Выберите счет"
+                        placeholder="Выберите счёт"
                         (valueChange)="draftChange.emit({ ...draft(), accountId: $event })"
                     ></ms-select>
 
                     <div class="dialog__grid">
                         <div class="dialog__field">
-                            <span class="dialog__field-label">Сумма (BYN)</span>
+                            <span class="dialog__field-label">Сумма</span>
                             <ms-input
                                 [ngModel]="draft().amount"
-                                (ngModelChange)="draftChange.emit({ ...draft(), amount: +($event || 0) })"
+                                (ngModelChange)="
+                                    draftChange.emit({ ...draft(), amount: +($event || 0) })
+                                "
                                 placeholder="0"
                             ></ms-input>
                         </div>
@@ -60,9 +62,9 @@
                         <ms-select
                             label="Категория"
                             [options]="categoryOptions()"
-                            [value]="draft().category"
+                            [value]="draft().categoryId"
                             placeholder="Выберите категорию"
-                            (valueChange)="draftChange.emit({ ...draft(), category: $event })"
+                            (valueChange)="draftChange.emit({ ...draft(), categoryId: $event })"
                         ></ms-select>
 
                         <div class="dialog__field">
@@ -70,7 +72,7 @@
                             <ms-input
                                 [ngModel]="draft().date"
                                 (ngModelChange)="draftChange.emit({ ...draft(), date: $event })"
-                                placeholder="02.06.2026"
+                                placeholder="2026-06-04"
                             ></ms-input>
                         </div>
 
@@ -78,7 +80,9 @@
                             <span class="dialog__field-label">Описание</span>
                             <ms-input
                                 [ngModel]="draft().description"
-                                (ngModelChange)="draftChange.emit({ ...draft(), description: $event })"
+                                (ngModelChange)="
+                                    draftChange.emit({ ...draft(), description: $event })
+                                "
                                 placeholder="Необязательно"
                             ></ms-input>
                         </div>
@@ -86,21 +90,24 @@
                 } @else {
                     <div class="dialog__empty">
                         <span class="material-symbols-outlined">account_balance_wallet</span>
-                        <strong>Пока нет счетов</strong>
-                        <p>Сначала создайте хотя бы один счет во вкладке `Счета`, после этого диалог станет активным.</p>
+                        <strong>Счета: null</strong>
+                        <p>Сначала создайте хотя бы один счёт.</p>
                     </div>
                 }
             </div>
 
             <div class="dialog__footer">
-                <div class="dialog__hint">
-                    <span class="material-symbols-outlined">info</span>
-                    <span>Валюту пока фиксируем как BYN, позже возьмем из бэкенда.</span>
-                </div>
+                @if (hasAccounts() && !categoryOptions().length) {
+                    <div class="dialog__hint">
+                        <span class="material-symbols-outlined">info</span>
+                        <span>Категории выбранного типа: null.</span>
+                    </div>
+                }
 
                 <ms-button
                     [fullWidth]="true"
                     variant="primary"
+                    [loading]="saving()"
                     [disabled]="!canSave()"
                     (onClick)="save.emit()"
                 >

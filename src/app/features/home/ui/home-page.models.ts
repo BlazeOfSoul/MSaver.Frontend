@@ -19,6 +19,8 @@ export interface TransactionItem {
     id: string;
     title: string;
     category: string;
+    categoryId: string;
+    categoryType: 'Debit' | 'Credit' | 'TransferIncome' | 'TransferExpense';
     accountId: string;
     accountName: string;
     date: string;
@@ -35,6 +37,8 @@ export interface AccountBalanceItem {
     currencyLabel: string;
     balanceLabel: string;
     balanceValue: number;
+    monthChangeLabel: string;
+    monthChangeValue: number;
     color: string;
 }
 
@@ -75,20 +79,30 @@ export interface CategoryBreakdownItem {
     id: string;
     name: string;
     amount: string;
+    amountValue: number;
     progress: number;
+    color: string;
+    type: 'income' | 'expense';
     tone: 'good' | 'warning' | 'danger';
 }
 
 export interface TagGroupItem {
     id: string;
     name: string;
-    categories: string[];
+    color: string;
+    categories: ReadonlyArray<TagCategoryItem>;
+}
+
+export interface TagCategoryItem {
+    id: string;
+    name: string;
+    type: 'income' | 'expense';
 }
 
 export interface TransactionDraft {
     type: 'income' | 'expense';
     accountId: string;
-    category: string;
+    categoryId: string;
     amount: number;
     date: string;
     description: string;

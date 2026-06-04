@@ -30,88 +30,111 @@
             <section class="home-page__content">
                 <header class="content-header">
                     <div>
-                        <h1>
-                            {{
-                                activeTab() === 'overview'
-                                    ? 'Транзакции'
-                                    : activeTab() === 'accounts'
-                                      ? 'Счета'
-                                      : activeTab() === 'analytics'
-                                        ? 'Аналитика'
-                                        : 'Категории'
-                            }}
-                        </h1>
-                        <p>
-                            {{
-                                activeTab() === 'overview'
-                                    ? 'Главная вкладка показывает только транзакции и быстрый доступ к добавлению новой операции.'
-                                    : activeTab() === 'accounts'
-                                      ? 'Разные счета, их баланс и перевод между ними.'
-                                      : activeTab() === 'analytics'
-                                        ? 'Графики по доходам, расходам, категориям, тегам и годовой статистике.'
-                                        : 'Управление категориями доходов, расходов и тегами аналитики.'
-                            }}
-                        </p>
+                        <h1>{{ activeTabTitle() }}</h1>
+                        <p>{{ activeTabDescription() }}</p>
                     </div>
+
+                    @if (errorMessage()) {
+                        <button
+                            type="button"
+                            class="content-header__retry"
+                            (click)="reloadDashboard()"
+                        >
+                            Обновить
+                        </button>
+                    }
                 </header>
 
-                @switch (activeTab()) {
-                    @case ('overview') {
-                        @if (filteredTransactions().length) {
-                            <ms-overview-tab [transactions]="filteredTransactions()"></ms-overview-tab>
-                        } @else {
-                            <ms-main-empty-state
-                                title="Нет транзакций"
-                                description="Добавьте первую транзакцию через кнопку сверху или измените фильтр по счету."
-                            ></ms-main-empty-state>
+                @if (errorMessage()) {
+                    <div class="home-alert">
+                        <span class="material-symbols-outlined">error</span>
+                        <span>{{ errorMessage() }}</span>
+                    </div>
+                }
+
+                @if (isLoading()) {
+                    <ms-main-empty-state
+                        icon="sync"
+                        title="Загружаем данные"
+                        description="Получаем счета, баланс, категории, теги и транзакции с backend."
+                    ></ms-main-empty-state>
+                } @else if (isServerEmpty()) {
+                    <ms-main-empty-state
+                        icon="cloud_off"
+                        title="Ошибка сервера"
+                        description="Данных нет из-за ошибки backend. Пустые состояния вкладок скрыты, чтобы не путать это с null."
+                    ></ms-main-empty-state>
+                } @else {
+                    @switch (activeTab()) {
+                        @case ('overview') {
+                            @if (filteredTransactions().length) {
+                                <ms-overview-tab
+                                    [transactions]="filteredTransactions()"
+                                    [saving]="isSaving()"
+                                    (deleteTransaction)="deleteTransaction($event)"
+                                ></ms-overview-tab>
+                            } @else {
+                                <ms-main-empty-state
+                                    title="Транзакции: null"
+                                    description="За выбранный месяц и фильтр операций нет."
+                                ></ms-main-empty-state>
+                            }
                         }
-                    }
 
-                    @case ('accounts') {
-                        <ms-accounts-tab
-                            [accounts]="visibleAccounts()"
-                            [transferDraft]="transferDraft()"
-                            [currencyOptions]="currencyOptions"
-                            [accountOptions]="accountOptions()"
-                            [newAccountName]="newAccountName()"
-                            [newAccountCurrency]="newAccountCurrency()"
-                            (transferDraftChange)="updateTransferDraft($event)"
-                            (newAccountNameChange)="setNewAccountName($event)"
-                            (newAccountCurrencyChange)="setNewAccountCurrency($event)"
-                            (createAccount)="createNewAccount()"
-                            (submitTransfer)="transferBetweenAccounts()"
-                        ></ms-accounts-tab>
-                    }
+                        @case ('accounts') {
+                            <ms-accounts-tab
+                                [accounts]="visibleAccounts()"
+                                [transferDraft]="transferDraft()"
+                                [currencyOptions]="currencyOptions"
+                                [accountOptions]="accountOptions()"
+                                [newAccountName]="newAccountName()"
+                                [newAccountCurrency]="newAccountCurrency()"
+                                [saving]="isSaving()"
+                                (transferDraftChange)="updateTransferDraft($event)"
+                                (newAccountNameChange)="setNewAccountName($event)"
+                                (newAccountCurrencyChange)="setNewAccountCurrency($event)"
+                                (createAccount)="createNewAccount()"
+                                (deleteAccount)="deleteAccount($event)"
+                                (submitTransfer)="transferBetweenAccounts()"
+                            ></ms-accounts-tab>
+                        }
 
-                    @case ('analytics') {
-                        <ms-analytics-tab
-                            [metrics]="analyticsMetrics()"
-                            [incomeVsExpense]="incomeVsExpense"
-                            [expenseCategories]="expenseCategories()"
-                            [incomeCategories]="incomeCategories()"
-                            [monthlyExpenses]="monthlyExpensesChart"
-                            [balanceDynamics]="balanceDynamicsChart"
-                            [tagExpenses]="tagExpensesChart"
-                            [topExpenses]="topExpensesChart"
-                            [yearStats]="yearStatsChart"
-                        ></ms-analytics-tab>
-                    }
+                        @case ('analytics') {
+                            <ms-analytics-tab
+                                [metrics]="analyticsMetrics()"
+                                [incomeVsExpense]="incomeVsExpense()"
+                                [expenseCategories]="expenseCategories()"
+                                [incomeCategories]="incomeCategories()"
+                                [monthlyExpenses]="monthlyExpensesChart()"
+                                [balanceDynamics]="balanceDynamicsChart()"
+                                [tagExpenses]="tagExpensesChart()"
+                                [topExpenses]="topExpensesChart()"
+                                [yearStats]="yearStatsChart()"
+                            ></ms-analytics-tab>
+                        }
 
-                    @case ('categories') {
-                        <ms-categories-tab
-                            [incomeCategories]="incomeCategories()"
-                            [expenseCategories]="expenseCategories()"
-                            [tagGroups]="tagGroups()"
-                            [newIncomeCategory]="newIncomeCategory()"
-                            [newExpenseCategory]="newExpenseCategory()"
-                            [newTagGroup]="newTagGroup()"
-                            (newIncomeCategoryChange)="setNewIncomeCategory($event)"
-                            (newExpenseCategoryChange)="setNewExpenseCategory($event)"
-                            (newTagGroupChange)="setNewTagGroup($event)"
-                            (addIncomeCategory)="addIncomeCategory()"
-                            (addExpenseCategory)="addExpenseCategory()"
-                            (addTagGroup)="addTagGroup()"
-                        ></ms-categories-tab>
+                        @case ('categories') {
+                            <ms-categories-tab
+                                [incomeCategories]="incomeCategories()"
+                                [expenseCategories]="expenseCategories()"
+                                [tagGroups]="tagGroups()"
+                                [categoryOptions]="allCategoryOptions()"
+                                [newIncomeCategory]="newIncomeCategory()"
+                                [newExpenseCategory]="newExpenseCategory()"
+                                [newTagGroup]="newTagGroup()"
+                                [saving]="isSaving()"
+                                (newIncomeCategoryChange)="setNewIncomeCategory($event)"
+                                (newExpenseCategoryChange)="setNewExpenseCategory($event)"
+                                (newTagGroupChange)="setNewTagGroup($event)"
+                                (addIncomeCategory)="addIncomeCategory()"
+                                (addExpenseCategory)="addExpenseCategory()"
+                                (deleteCategory)="deleteCategory($event)"
+                                (addTagGroup)="addTagGroup()"
+                                (deleteTag)="deleteTag($event)"
+                                (assignCategoryToTag)="assignCategoryToTag($event)"
+                                (removeCategoryFromTag)="removeCategoryFromTag($event)"
+                            ></ms-categories-tab>
+                        }
                     }
                 }
             </section>
@@ -120,6 +143,7 @@
 
     <ms-add-transaction-dialog
         [open]="isTransactionDialogOpen()"
+        [saving]="isSaving()"
         [draft]="transactionDraft()"
         [accountOptions]="accountOptions()"
         [incomeCategoryOptions]="incomeCategoryOptions()"

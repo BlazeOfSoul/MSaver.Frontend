@@ -20,10 +20,12 @@ export class AccountsTabComponent {
     accountOptions = input.required<ReadonlyArray<MsSelectOption>>();
     newAccountName = input.required<string>();
     newAccountCurrency = input.required<string>();
+    saving = input(false);
 
     transferDraftChange = output<TransferDraft>();
     newAccountNameChange = output<string>();
     newAccountCurrencyChange = output<string>();
     createAccount = output<void>();
+    deleteAccount = output<string>();
     submitTransfer = output<void>();
 }
