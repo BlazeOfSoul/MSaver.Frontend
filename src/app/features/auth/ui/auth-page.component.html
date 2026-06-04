@@ -86,6 +86,28 @@
                 </div>
 
                 <div class="auth-card">
+                    <div class="auth-mode-tabs" role="tablist" aria-label="Режим авторизации">
+                        <button
+                            type="button"
+                            role="tab"
+                            [attr.aria-selected]="isLogin()"
+                            [class.auth-mode-tabs__item--active]="isLogin()"
+                            (click)="setMode('login')"
+                        >
+                            Вход
+                        </button>
+
+                        <button
+                            type="button"
+                            role="tab"
+                            [attr.aria-selected]="!isLogin()"
+                            [class.auth-mode-tabs__item--active]="!isLogin()"
+                            (click)="setMode('register')"
+                        >
+                            Регистрация
+                        </button>
+                    </div>
+
                     <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
                         @if (!isLogin()) {
                             <div class="form-field">
@@ -218,18 +240,12 @@
                         </ms-button>
                     </form>
 
-                    <div class="separator">
-                        <span>или</span>
-                    </div>
-
-                    <div class="switch-block">
-                        <p>
-                            {{ isLogin() ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
-                            <button type="button" class="switch-btn" (click)="toggleMode()">
-                                {{ isLogin() ? 'Создать' : 'Войти' }}
-                            </button>
-                        </p>
-                    </div>
+                    <p class="auth-footnote">
+                        {{ isLogin() ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
+                        <button type="button" class="switch-btn" (click)="toggleMode()">
+                            {{ isLogin() ? 'Создать' : 'Войти' }}
+                        </button>
+                    </p>
                 </div>
 
                 <p class="security-note">Данные защищены. Доступ к аккаунту только у вас.</p>
