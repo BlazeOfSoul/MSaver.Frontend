@@ -12,6 +12,12 @@
     padding: 0.9rem 0 2rem;
 }
 
+.home-page--setup {
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+}
+
 .home-page__container {
     width: min(100%, 86rem);
     margin: 0 auto;
@@ -81,7 +87,8 @@
 }
 
 .home-alert {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 0.65rem;
     padding: 0.85rem 1rem;
@@ -89,10 +96,35 @@
     border-radius: 1rem;
     background: rgba(255, 111, 145, 0.12);
     color: var(--color-ms-light);
+    animation: home-alert-enter 0.18s ease-out both;
 }
 
 .home-alert .material-symbols-outlined {
     color: #ff8fab;
+}
+
+.home-alert--leaving {
+    animation: home-alert-leave 0.18s ease-in both;
+}
+
+.home-alert__close {
+    display: inline-grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border: 0;
+    border-radius: 0.65rem;
+    color: var(--color-ms-light);
+    background: rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+}
+
+.home-alert__close:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.home-alert__close .material-symbols-outlined {
+    font-size: 1.15rem;
 }
 
 .home-loader,
@@ -138,6 +170,11 @@
     align-items: center;
 }
 
+.first-account-setup--screen {
+    width: min(100%, 58rem);
+    min-height: min(36rem, calc(100dvh - 2rem));
+}
+
 .first-account-setup__copy {
     display: grid;
     gap: 0.65rem;
@@ -175,6 +212,25 @@
 @keyframes loader-spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes home-alert-enter {
+    from {
+        opacity: 0;
+        transform: translateY(-0.35rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes home-alert-leave {
+    to {
+        opacity: 0;
+        transform: translateY(-0.35rem);
     }
 }
 

@@ -21,6 +21,9 @@ export interface MsSelectOption {
     templateUrl: './select.html',
     styleUrl: './select.css',
     changeDetection: ChangeDetectionStrategy.OnPush,
+    host: {
+        '[class.ms-select-host--open]': 'isOpen()',
+    },
 })
 export class SelectComponent {
     private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);

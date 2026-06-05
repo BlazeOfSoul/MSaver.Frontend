@@ -71,6 +71,7 @@ svg {
     flex: 1;
     display: flex;
     justify-content: center;
+    overflow-x: hidden;
     padding: 24px 20px 28px;
     position: relative;
 }
@@ -78,6 +79,8 @@ svg {
 .auth-panel__inner {
     width: 100%;
     max-width: 440px;
+    max-width: min(440px, calc(100vw - 40px));
+    min-width: 0;
     display: flex;
     flex-direction: column;
 }
@@ -89,6 +92,7 @@ svg {
 
 .auth-body {
     display: flex;
+    min-width: 0;
     flex-direction: column;
     justify-content: center;
     flex: 1;
@@ -103,6 +107,7 @@ svg {
 .brand--mobile {
     display: flex;
     justify-content: center;
+    min-width: 0;
 }
 
 .brand--desktop {
@@ -123,6 +128,7 @@ svg {
 
 .brand__text {
     display: flex;
+    min-width: 0;
     flex-direction: column;
     gap: 3px;
 }
@@ -139,6 +145,7 @@ svg {
     font-size: 12px;
     line-height: 1.2;
     color: rgba(255, 255, 255, 0.46);
+    overflow-wrap: anywhere;
 }
 
 .auth-copy {
@@ -164,6 +171,9 @@ svg {
 }
 
 .auth-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     border-radius: var(--radius-ms-xl);
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: linear-gradient(
@@ -181,6 +191,7 @@ svg {
 }
 
 .auth-mode-tabs {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
@@ -191,7 +202,27 @@ svg {
     background: rgba(255, 255, 255, 0.035);
 }
 
+.auth-mode-tabs::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 5px;
+    width: calc(50% - 8px);
+    border-radius: var(--radius-ms-md);
+    background: rgba(35, 199, 139, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: transform 0.24s ease;
+}
+
+.auth-mode-tabs--register::before {
+    transform: translateX(calc(100% + 6px));
+}
+
 .auth-mode-tabs button {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
     min-height: 42px;
     border: 0;
     border-radius: var(--radius-ms-md);
@@ -199,6 +230,9 @@ svg {
     background: transparent;
     font-size: 14px;
     font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     cursor: pointer;
     transition:
         color 0.18s ease,
@@ -218,8 +252,6 @@ svg {
 
 .auth-mode-tabs__item--active {
     color: var(--color-ms-light) !important;
-    background: rgba(35, 199, 139, 0.14) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .auth-form {
@@ -232,6 +264,7 @@ svg {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    animation: auth-field-enter 0.22s ease both;
 }
 
 .form-field label {
@@ -312,6 +345,27 @@ svg {
     font-size: 12px;
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.24);
+}
+
+@keyframes auth-field-enter {
+    from {
+        opacity: 0;
+        transform: translateY(0.35rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-mode-tabs::before,
+    .form-field,
+    .field-error {
+        animation: none;
+        transition: none;
+    }
 }
 
 .visual-copy,
@@ -480,7 +534,7 @@ svg {
     }
 
     .auth-panel__inner {
-        max-width: 100%;
+        max-width: calc(100vw - 32px);
     }
 
     .auth-copy {
@@ -490,5 +544,14 @@ svg {
     .auth-card {
         padding: 16px;
         border-radius: 18px;
+    }
+
+    .brand--mobile {
+        align-items: flex-start;
+        justify-content: flex-start;
+    }
+
+    .brand__caption {
+        max-width: 28ch;
     }
 }

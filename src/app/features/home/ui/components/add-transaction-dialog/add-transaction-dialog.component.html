@@ -1,5 +1,5 @@
 @if (open()) {
-    <div class="dialog-backdrop" (click)="close.emit()">
+    <div class="dialog-backdrop" (click)="onBackdropClick($event)">
         <section class="dialog" (click)="$event.stopPropagation()">
             <header class="dialog__header">
                 <div>
@@ -51,11 +51,15 @@
                         <div class="dialog__field">
                             <span class="dialog__field-label">Сумма</span>
                             <ms-input
-                                [ngModel]="draft().amount"
+                                [ngModel]="formatMoneyAmount(draft().amount)"
                                 (ngModelChange)="
-                                    draftChange.emit({ ...draft(), amount: +($event || 0) })
+                                    draftChange.emit({
+                                        ...draft(),
+                                        amount: parseMoneyAmount($event),
+                                    })
                                 "
-                                placeholder="0"
+                                inputMode="decimal"
+                                placeholder="0.00"
                             ></ms-input>
                         </div>
 

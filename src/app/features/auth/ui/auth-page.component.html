@@ -86,7 +86,12 @@
                 </div>
 
                 <div class="auth-card">
-                    <div class="auth-mode-tabs" role="tablist" aria-label="Режим авторизации">
+                    <div
+                        class="auth-mode-tabs"
+                        [class.auth-mode-tabs--register]="!isLogin()"
+                        role="tablist"
+                        aria-label="Режим авторизации"
+                    >
                         <button
                             type="button"
                             role="tab"

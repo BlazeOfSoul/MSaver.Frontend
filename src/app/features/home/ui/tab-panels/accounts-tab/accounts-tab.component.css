@@ -87,6 +87,7 @@
 .account-card__top strong {
     min-width: 0;
     flex: 1;
+    overflow-wrap: anywhere;
 }
 
 .account-card__icon {
@@ -208,6 +209,15 @@
 @media (max-width: 640px) {
     .account-create {
         grid-template-columns: 1fr;
+    }
+
+    .panel {
+        padding: 0.95rem;
+        border-radius: 1rem;
+    }
+
+    .account-card {
+        padding: 0.9rem;
     }
 
     .round-action {

@@ -18,6 +18,7 @@ import {
     formatMoney,
     formatSignedMoney,
     resolveCurrencyLabel,
+    safeText,
 } from './home-formatters';
 
 export function mapAccount(
@@ -27,16 +28,17 @@ export function mapAccount(
 ): AccountBalanceItem {
     const balanceValue = balance?.closingBalance ?? account.currentBalance;
     const monthChangeValue = balance?.monthChange ?? 0;
+    const currencyCode = safeText(account.currencyCode, '');
 
     return {
         id: account.id,
-        name: account.name,
-        currencyCode: account.currencyCode,
-        currencyLabel: resolveCurrencyLabel(account.currencyCode),
+        name: safeText(account.name, 'Счёт без названия'),
+        currencyCode,
+        currencyLabel: resolveCurrencyLabel(currencyCode),
         balanceValue,
-        balanceLabel: formatMoney(balanceValue, account.currencyCode),
+        balanceLabel: formatMoney(balanceValue, currencyCode),
         monthChangeValue,
-        monthChangeLabel: formatSignedMoney(monthChangeValue, account.currencyCode),
+        monthChangeLabel: formatSignedMoney(monthChangeValue, currencyCode),
         color: account.color || ACCOUNT_COLORS[index % ACCOUNT_COLORS.length],
     };
 }
@@ -44,17 +46,20 @@ export function mapAccount(
 export function mapTransaction(transaction: TransactionResponse): TransactionItem {
     const tone = isExpenseCategory(transaction.category.type) ? 'expense' : 'income';
     const amount = Math.abs(transaction.amount);
+    const categoryName = safeText(transaction.category.name, 'Категория без названия');
+    const accountName = safeText(transaction.account.name, 'Счёт без названия');
+    const description = safeText(transaction.description, '');
 
     return {
         id: transaction.id,
-        title: transaction.description || transaction.category.name,
-        category: transaction.category.name,
+        title: description || categoryName,
+        category: categoryName,
         categoryId: transaction.category.id,
         categoryType: transaction.category.type,
         accountId: transaction.account.id,
-        accountName: transaction.account.name,
+        accountName,
         date: formatDate(transaction.date),
-        description: transaction.description,
+        description,
         amountValue: amount,
         amountLabel: `${tone === 'income' ? '+' : '-'}${formatMoney(
             amount,
@@ -80,7 +85,7 @@ export function mapCategories(
 
         return {
             id: category.id,
-            name: category.name,
+            name: safeText(category.name, 'Категория без названия'),
             amount: formatMoney(amountValue, 'BYN'),
             amountValue,
             progress,
@@ -94,13 +99,13 @@ export function mapCategories(
 export function mapTags(tags: ReadonlyArray<TagDetailsResponse>): TagGroupItem[] {
     return tags.map((tag, index) => ({
         id: tag.id,
-        name: tag.name,
+        name: safeText(tag.name, 'Тег без названия'),
         color: tag.color || CATEGORY_COLORS[index % CATEGORY_COLORS.length],
         categories: tag.categories
             .filter((category) => !category.isDeleted)
             .map((category) => ({
                 id: category.id,
-                name: category.name,
+                name: safeText(category.name, 'Категория без названия'),
                 type: isExpenseCategory(category.type) ? 'expense' : 'income',
             })),
     }));

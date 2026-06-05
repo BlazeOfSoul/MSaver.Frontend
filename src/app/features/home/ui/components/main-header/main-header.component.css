@@ -62,8 +62,7 @@
     color: var(--color-ms-light);
 }
 
-.brand-caption,
-.period-meta {
+.brand-caption {
     font-size: 0.8125rem;
     color: var(--color-ms-light-dark);
 }
@@ -131,8 +130,7 @@
         font-size: 0.94rem;
     }
 
-    .brand-caption,
-    .period-meta {
+    .brand-caption {
         font-size: 0.74rem;
     }
 

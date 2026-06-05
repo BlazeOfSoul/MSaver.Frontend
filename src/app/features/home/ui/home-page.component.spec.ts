@@ -1,7 +1,7 @@
 import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { AuthService } from '../../auth/data-access/auth.service';
 import { AuthStore } from '../../auth/data-access/auth.store';
 import {
@@ -10,6 +10,7 @@ import {
     MonthBalanceResponse,
     PagedResponse,
     TagResponse,
+    TagDetailsResponse,
     TransactionResponse,
 } from '../data-access/home-api.models';
 import { HomeApiService } from '../data-access/home-api.service';
@@ -45,7 +46,9 @@ describe('HomePageComponent', () => {
         getTransactions: ReturnType<typeof vi.fn>;
         getMonthBalance: ReturnType<typeof vi.fn>;
         createAccount: ReturnType<typeof vi.fn>;
+        createTransaction: ReturnType<typeof vi.fn>;
         createTransfer: ReturnType<typeof vi.fn>;
+        assignTagCategories: ReturnType<typeof vi.fn>;
     };
     let router: {
         navigateByUrl: ReturnType<typeof vi.fn>;
@@ -67,7 +70,15 @@ describe('HomePageComponent', () => {
             getAccounts: vi.fn(() => of(page<AccountResponse>([]))),
             getCategories: vi.fn(() => of(page<CategoryResponse>([]))),
             getTags: vi.fn(() => of(page<TagResponse>([]))),
-            getTagById: vi.fn(),
+            getTagById: vi.fn(() =>
+                of<TagDetailsResponse>({
+                    id: 'tag-id',
+                    name: 'Essentials',
+                    color: '#23c78b',
+                    isDeleted: false,
+                    categories: [],
+                }),
+            ),
             getTransactions: vi.fn(() => of(page<TransactionResponse>([]))),
             getMonthBalance: vi.fn((accountId: string, year: number, month: number) =>
                 of<MonthBalanceResponse>({
@@ -82,6 +93,7 @@ describe('HomePageComponent', () => {
                 }),
             ),
             createAccount: vi.fn(() => of('account-id')),
+            createTransaction: vi.fn(() => of('transaction-id')),
             createTransfer: vi.fn(() =>
                 of({
                     expenseTransactionId: 'expense-id',
@@ -93,6 +105,7 @@ describe('HomePageComponent', () => {
                     toCurrencyCode: 'EUR',
                 }),
             ),
+            assignTagCategories: vi.fn(() => of('tag-id')),
         };
 
         await TestBed.configureTestingModule({
@@ -106,27 +119,46 @@ describe('HomePageComponent', () => {
         }).compileComponents();
     });
 
-    it('renders the authenticated dashboard structure', () => {
+    it('renders the authenticated dashboard structure when the user has an account', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
-        const text = host.textContent ?? '';
 
         expect(host.querySelector('ms-main-header')).not.toBeNull();
+        expect(host.querySelector('.period-meta')).toBeNull();
         expect(host.querySelector('ms-main-summary-cards')).not.toBeNull();
         expect(host.querySelector('ms-main-tab-bar')).not.toBeNull();
-        expect(text).toContain('Транзакции');
+        expect(host.textContent ?? '').toContain('Транзакции');
     });
 
-    it('shows first-login setup and creates the primary account with selected currency', () => {
+    it('blocks the dashboard with first-login setup until the primary account is created', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
         const component = fixture.componentInstance;
         const host = fixture.nativeElement as HTMLElement;
 
-        expect(host.textContent).toContain('Создайте основной счёт');
+        expect(host.querySelector('.first-account-setup')).not.toBeNull();
+        expect(host.querySelector('ms-main-header')).toBeNull();
+        expect(host.querySelector('ms-main-summary-cards')).toBeNull();
+        expect(host.querySelector('ms-main-tab-bar')).toBeNull();
+        expect(host.textContent ?? '').toContain('Создайте основной счёт');
 
         component.setNewAccountCurrency('USD');
         component.createPrimaryAccount();
@@ -186,7 +218,161 @@ describe('HomePageComponent', () => {
         });
     });
 
+    it('sends a backend-ready payload when saving an expense transaction', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'income-category',
+                        name: 'Salary',
+                        type: 'Credit',
+                        color: '#23c78b',
+                    },
+                    {
+                        id: 'expense-category',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff8fab',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.updateTransactionDraft({
+            type: 'expense',
+            accountId: 'main-account',
+            categoryId: 'expense-category',
+            amount: 12.35,
+            date: '05.06.2026',
+            description: '  Lunch  ',
+        });
+        component.saveTransaction();
+
+        expect(homeApi.createTransaction).toHaveBeenCalledWith({
+            accountId: 'main-account',
+            categoryId: 'expense-category',
+            amount: -12.35,
+            date: '2026-06-05',
+            description: 'Lunch',
+        });
+    });
+
+    it('lets the user dismiss a loading error after a short closing animation', () => {
+        vi.useFakeTimers();
+        homeApi.getAccounts.mockReturnValue(throwError(() => new Error('network')));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const closeButton = host.querySelector<HTMLElement>('[data-testid="dismiss-error"]');
+
+        expect(host.querySelector('.home-alert')).not.toBeNull();
+        expect(closeButton).not.toBeNull();
+
+        closeButton?.click();
+        fixture.detectChanges();
+
+        expect(host.querySelector('.home-alert--leaving')).not.toBeNull();
+
+        vi.advanceTimersByTime(220);
+        fixture.detectChanges();
+
+        expect(host.querySelector('.home-alert')).toBeNull();
+
+        vi.useRealTimers();
+    });
+
+    it('refreshes only tag data when assigning a category to a tag', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                    },
+                ]),
+            ),
+        );
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
+        const initialCategoryCalls = homeApi.getCategories.mock.calls.length;
+        const initialTransactionCalls = homeApi.getTransactions.mock.calls.length;
+        const initialBalanceCalls = homeApi.getMonthBalance.mock.calls.length;
+        const initialTagCalls = homeApi.getTags.mock.calls.length;
+
+        fixture.componentInstance.assignCategoryToTag({
+            tagId: 'tag-id',
+            categoryId: 'food-id',
+        });
+
+        expect(homeApi.assignTagCategories).toHaveBeenCalledWith('tag-id', {
+            categoryIds: ['food-id'],
+        });
+        expect(homeApi.getTags.mock.calls.length).toBe(initialTagCalls + 1);
+        expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
+        expect(homeApi.getCategories.mock.calls.length).toBe(initialCategoryCalls);
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls);
+        expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls);
+    });
+
     it('clears the session and redirects to auth on logout', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 

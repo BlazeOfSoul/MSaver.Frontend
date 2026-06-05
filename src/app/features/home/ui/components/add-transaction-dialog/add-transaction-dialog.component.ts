@@ -39,4 +39,25 @@ export class AddTransactionDialogComponent {
             !!this.draft().categoryId &&
             this.draft().amount > 0,
     );
+
+    onBackdropClick(event: MouseEvent): void {
+        if (event.target === event.currentTarget) {
+            this.close.emit();
+        }
+    }
+
+    formatMoneyAmount(value: number): string {
+        return Number.isFinite(value) && value > 0 ? value.toFixed(2) : '0.00';
+    }
+
+    parseMoneyAmount(value: string | number): number {
+        const normalized = `${value ?? ''}`.replace(',', '.').replace(/\s/g, '').trim();
+        const parsed = Number.parseFloat(normalized);
+
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return 0;
+        }
+
+        return Math.round(parsed * 100) / 100;
+    }
 }

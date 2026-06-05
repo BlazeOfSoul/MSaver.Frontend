@@ -51,24 +51,30 @@ export class AnalyticsTabComponent {
     readonly expenseCategoryLabels = computed(() =>
         this.expenseCategories().map((item) => item.name),
     );
-    readonly expenseCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
-        this.expenseCategories().map((item, index) => ({
-            label: item.name,
-            data: [item.amountValue],
-            color: this.pickColor(index),
-        })),
-    );
+    readonly expenseCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
+        {
+            label: 'Расходы',
+            data: this.expenseCategories().map((item) => item.amountValue),
+            color: '#ff6f91',
+            colors: this.expenseCategories().map(
+                (item, index) => item.color || this.pickColor(index),
+            ),
+        },
+    ]);
 
     readonly incomeCategoryLabels = computed(() =>
         this.incomeCategories().map((item) => item.name),
     );
-    readonly incomeCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
-        this.incomeCategories().map((item, index) => ({
-            label: item.name,
-            data: [item.amountValue],
-            color: this.pickColor(index),
-        })),
-    );
+    readonly incomeCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
+        {
+            label: 'Доходы',
+            data: this.incomeCategories().map((item) => item.amountValue),
+            color: '#23c78b',
+            colors: this.incomeCategories().map(
+                (item, index) => item.color || this.pickColor(index),
+            ),
+        },
+    ]);
 
     readonly monthlyExpenseLabels = computed(() =>
         this.monthlyExpenses().map((item) => item.label),

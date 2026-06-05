@@ -17,4 +17,19 @@
             </div>
         }
     </div>
+
+    @if (type() === 'doughnut' && labels().length) {
+        <div class="chart-card__legend" aria-label="Легенда графика">
+            @for (label of labels(); track label; let index = $index) {
+                <span class="chart-card__legend-item">
+                    <span
+                        class="chart-card__legend-dot"
+                        [style.background]="legendColor(index)"
+                        aria-hidden="true"
+                    ></span>
+                    <span>{{ label }}</span>
+                </span>
+            }
+        </div>
+    }
 </article>

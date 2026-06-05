@@ -2,9 +2,9 @@
     <ng-container *ngTemplateOutlet="beforeInputTemplate()" />
 
     @if (icon()) {
-        <span class="ms-input-icon" aria-hidden="true">
-            <img [src]="icon()!" [alt]="iconAlt()" />
-        </span>
+    <span class="ms-input-icon" aria-hidden="true">
+        <img [src]="icon()!" [alt]="iconAlt()" />
+    </span>
     }
 
     <input
@@ -12,6 +12,7 @@
         [name]="name()"
         [type]="type()"
         [attr.autocomplete]="autocomplete() || null"
+        [attr.inputmode]="inputMode() || null"
         [placeholder]="placeholder()"
         [disabled]="isDisabled"
         [tabIndex]="tabIndex()"
@@ -27,18 +28,16 @@
     />
 
     @if (actionIcon()) {
-        <button
-            type="button"
-            class="ms-input-action"
-            [disabled]="actionDisabled() || isDisabled"
-            [attr.aria-label]="actionAriaLabel()"
-            (click)="action.emit()"
-        >
-            <img [src]="actionIcon()!" alt="" aria-hidden="true" />
-        </button>
-    }
-
-    @if (afterInputTemplate()) {
-        <ng-container *ngTemplateOutlet="afterInputTemplate()" />
+    <button
+        type="button"
+        class="ms-input-action"
+        [disabled]="actionDisabled() || isDisabled"
+        [attr.aria-label]="actionAriaLabel()"
+        (click)="action.emit()"
+    >
+        <img [src]="actionIcon()!" alt="" aria-hidden="true" />
+    </button>
+    } @if (afterInputTemplate()) {
+    <ng-container *ngTemplateOutlet="afterInputTemplate()" />
     }
 </div>

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -53,6 +53,7 @@ export class HomePageComponent {
     readonly categorySearchControl = new FormControl('', { nonNullable: true });
     readonly tabs = HOME_TABS;
     readonly currencyOptions = CURRENCY_OPTIONS;
+    readonly isErrorDismissing = signal(false);
 
     readonly activeTab = this.dashboard.activeTab;
     readonly selectedAccountId = this.dashboard.selectedAccountId;
@@ -93,7 +94,6 @@ export class HomePageComponent {
     readonly yearStatsChart = this.dashboard.yearStatsChart;
     readonly analyticsMetrics = this.dashboard.analyticsMetrics;
     readonly summaryCards = this.dashboard.summaryCards;
-    readonly recordsCount = this.dashboard.recordsCount;
     readonly activeTabTitle = this.dashboard.activeTabTitle;
     readonly activeTabDescription = this.dashboard.activeTabDescription;
 
@@ -112,7 +112,21 @@ export class HomePageComponent {
     }
 
     reloadDashboard(): void {
+        this.isErrorDismissing.set(false);
         this.dashboard.loadDashboard();
+    }
+
+    dismissError(): void {
+        if (!this.errorMessage() || this.isErrorDismissing()) {
+            return;
+        }
+
+        this.isErrorDismissing.set(true);
+
+        window.setTimeout(() => {
+            this.dashboard.dismissError();
+            this.isErrorDismissing.set(false);
+        }, 180);
     }
 
     setActiveTab(tab: HomeTabId): void {

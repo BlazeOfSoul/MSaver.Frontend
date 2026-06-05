@@ -63,6 +63,7 @@ export interface HomeChartDataset {
     label: string;
     data: number[];
     color: string;
+    colors?: string[];
     fill?: boolean;
 }
 

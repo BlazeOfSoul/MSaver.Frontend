@@ -11,7 +11,6 @@ import { Button } from '../../../../../shared/ui/button/button';
 })
 export class MainHeaderComponent {
     monthLabel = input.required<string>();
-    recordsCount = input<number>(0);
 
     previousMonth = output<void>();
     nextMonth = output<void>();

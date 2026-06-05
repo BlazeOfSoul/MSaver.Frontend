@@ -103,7 +103,7 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
                 this.type() === 'line'
                     ? `${dataset.color}33`
                     : this.type() === 'doughnut'
-                      ? this.datasets().map((item) => item.color)
+                      ? (dataset.colors ?? dataset.data.map((_, index) => this.legendColor(index)))
                       : dataset.color,
             pointBackgroundColor: dataset.color,
             pointBorderColor: dataset.color,
@@ -129,7 +129,7 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
                 },
                 plugins: {
                     legend: {
-                        display: this.type() !== 'bar',
+                        display: this.type() === 'line',
                         labels: {
                             color: 'rgba(255,255,255,0.72)',
                             usePointStyle: true,
@@ -175,5 +175,16 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
                           },
             },
         });
+    }
+
+    legendColor(index: number): string {
+        const firstDataset = this.datasets()[0];
+
+        return (
+            firstDataset?.colors?.[index] ??
+            this.datasets()[index]?.color ??
+            firstDataset?.color ??
+            '#23c78b'
+        );
     }
 }

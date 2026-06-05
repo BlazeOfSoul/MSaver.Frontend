@@ -92,7 +92,10 @@
         <div class="panel__header">
             <div>
                 <h2>Перевод между счетами</h2>
-                <p>Перемещайте деньги между счетами. Для разных валют можно указать курс вручную или оставить поле пустым для текущего курса.</p>
+                <p>
+                    Перемещайте деньги между счетами. Для разных валют можно указать курс вручную
+                    или оставить поле пустым для текущего курса.
+                </p>
             </div>
         </div>
 
@@ -117,11 +120,15 @@
                 ></ms-select>
 
                 <ms-input
-                    [ngModel]="transferDraft().amount"
+                    [ngModel]="formatMoneyAmount(transferDraft().amount)"
                     (ngModelChange)="
-                        transferDraftChange.emit({ ...transferDraft(), amount: +($event || 0) })
+                        transferDraftChange.emit({
+                            ...transferDraft(),
+                            amount: parseMoneyAmount($event),
+                        })
                     "
                     placeholder="Сумма списания"
+                    inputMode="decimal"
                     type="text"
                 ></ms-input>
 
@@ -139,6 +146,7 @@
                                 })
                             "
                             placeholder="Например, 0.92"
+                            inputMode="decimal"
                             type="text"
                         ></ms-input>
                         <span class="transfer-rate__hint">

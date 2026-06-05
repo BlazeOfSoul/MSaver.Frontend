@@ -148,7 +148,11 @@ export class HomeDashboardStore {
         mapCategories(this.categoryResponses(), this.transactionResponses(), 'expense'),
     );
     readonly filteredIncomeCategories = computed(() =>
-        this.filterByQuery(this.incomeCategories(), (item) => item.name, this.categorySearchQuery()),
+        this.filterByQuery(
+            this.incomeCategories(),
+            (item) => item.name,
+            this.categorySearchQuery(),
+        ),
     );
     readonly filteredExpenseCategories = computed(() =>
         this.filterByQuery(
@@ -357,18 +361,6 @@ export class HomeDashboardStore {
             icon: 'receipt_long',
         },
     ]);
-    readonly recordsCount = computed(() => {
-        switch (this.activeTab()) {
-            case 'accounts':
-                return this.visibleAccounts().length;
-            case 'analytics':
-                return this.analyticsMetrics().length;
-            case 'categories':
-                return this.expenseCategories().length + this.incomeCategories().length;
-            default:
-                return this.filteredTransactions().length;
-        }
-    });
     readonly activeTabTitle = computed(() => {
         switch (this.activeTab()) {
             case 'accounts':
@@ -436,6 +428,10 @@ export class HomeDashboardStore {
         this.categorySearchQuery.set(value);
     }
 
+    dismissError(): void {
+        this.errorMessage.set('');
+    }
+
     setAccountFilter(accountId: string): void {
         this.selectedAccountId.set(accountId);
         this.loadDashboard(false);
@@ -491,7 +487,7 @@ export class HomeDashboardStore {
             () => {
                 this.isTransactionDialogOpen.set(false);
                 this.transactionDraft.set(this.getDefaultTransactionDraft());
-                this.loadDashboard(false);
+                this.reloadTags();
             },
         );
     }
@@ -599,7 +595,7 @@ export class HomeDashboardStore {
 
     deleteAccount(accountId: string): void {
         this.runMutation(this.homeApi.deleteAccount(accountId), 'Не удалось удалить счёт.', () =>
-            this.loadDashboard(false),
+            this.reloadTags(),
         );
     }
 
@@ -646,14 +642,14 @@ export class HomeDashboardStore {
             'Не удалось создать тег.',
             () => {
                 this.newTagGroup.set('');
-                this.loadDashboard(false);
+                this.reloadTags();
             },
         );
     }
 
     deleteTag(tagId: string): void {
         this.runMutation(this.homeApi.deleteTag(tagId), 'Не удалось удалить тег.', () =>
-            this.loadDashboard(false),
+            this.reloadTags(),
         );
     }
 
@@ -826,8 +822,20 @@ export class HomeDashboardStore {
         this.runMutation(
             this.homeApi.assignTagCategories(tagId, { categoryIds }),
             'Не удалось обновить категории тега.',
-            () => this.loadDashboard(false),
+            () => this.reloadTags(),
         );
+    }
+
+    private reloadTags(): void {
+        this.loadTagDetails()
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+                next: (tags) => this.tagDetailsResponses.set(tags),
+                error: () =>
+                    this.errorMessage.set(
+                        'Не удалось обновить теги. Проверьте подключение и попробуйте ещё раз.',
+                    ),
+            });
     }
 
     private runMutation<T>(
