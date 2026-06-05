@@ -11,13 +11,6 @@
                     (logout)="logout()"
                 ></ms-main-header>
 
-                <ms-main-toolbar
-                    [searchControl]="searchControl"
-                    [accountOptions]="toolbarAccountOptions()"
-                    [selectedAccountId]="selectedAccountId()"
-                    (accountChange)="setAccountFilter($event)"
-                ></ms-main-toolbar>
-
                 <ms-main-summary-cards [cards]="summaryCards()"></ms-main-summary-cards>
 
                 <ms-main-tab-bar
@@ -53,43 +46,78 @@
                 }
 
                 @if (isLoading()) {
-                    <ms-main-empty-state
-                        icon="sync"
-                        title="Загружаем данные"
-                        description="Получаем счета, баланс, категории, теги и транзакции с backend."
-                    ></ms-main-empty-state>
+                    <div class="home-loader" role="status" aria-live="polite">
+                        <span class="loader-spinner" aria-hidden="true"></span>
+                        <strong>Загружаем ваши финансы</strong>
+                        <span>Собираем счета, операции и аналитику.</span>
+                    </div>
                 } @else if (isServerEmpty()) {
                     <ms-main-empty-state
                         icon="cloud_off"
-                        title="Ошибка сервера"
-                        description="Данных нет из-за ошибки backend. Пустые состояния вкладок скрыты, чтобы не путать это с null."
+                        title="Данные временно недоступны"
+                        description="Не удалось получить информацию. Проверьте подключение и попробуйте обновить страницу."
                     ></ms-main-empty-state>
+                } @else if (needsAccountSetup()) {
+                    <section class="first-account-setup">
+                        <div class="first-account-setup__copy">
+                            <span class="first-account-setup__icon material-symbols-outlined">
+                                account_balance_wallet
+                            </span>
+                            <p class="eyebrow">Первый шаг</p>
+                            <h2>Создайте основной счёт</h2>
+                            <p>
+                                Выберите валюту, в которой чаще всего ведёте учёт. Мы создадим
+                                стартовый счёт, а позже вы сможете добавить карты, наличные и
+                                резервы в других валютах.
+                            </p>
+                        </div>
+
+                        <div class="first-account-setup__form">
+                            <ms-select
+                                label="Валюта основного счёта"
+                                [options]="currencyOptions"
+                                [value]="newAccountCurrency()"
+                                (valueChange)="setNewAccountCurrency($event)"
+                            ></ms-select>
+
+                            <ms-button
+                                variant="primary"
+                                [fullWidth]="true"
+                                [loading]="isSaving()"
+                                (onClick)="createPrimaryAccount()"
+                            >
+                                Создать основной счёт
+                            </ms-button>
+                        </div>
+                    </section>
                 } @else {
                     @switch (activeTab()) {
                         @case ('overview') {
-                            @if (filteredTransactions().length) {
-                                <ms-overview-tab
-                                    [transactions]="filteredTransactions()"
-                                    [saving]="isSaving()"
-                                    (deleteTransaction)="deleteTransaction($event)"
-                                ></ms-overview-tab>
-                            } @else {
-                                <ms-main-empty-state
-                                    title="Транзакции: null"
-                                    description="За выбранный месяц и фильтр операций нет."
-                                ></ms-main-empty-state>
-                            }
+                            <ms-overview-tab
+                                [transactions]="filteredTransactions()"
+                                [searchControl]="searchControl"
+                                [accountOptions]="toolbarAccountOptions()"
+                                [selectedAccountId]="selectedAccountId()"
+                                [saving]="isSaving()"
+                                (accountChange)="setAccountFilter($event)"
+                                (deleteTransaction)="deleteTransaction($event)"
+                            ></ms-overview-tab>
                         }
 
                         @case ('accounts') {
                             <ms-accounts-tab
-                                [accounts]="visibleAccounts()"
+                                [accounts]="accountList()"
+                                [allAccounts]="accounts()"
                                 [transferDraft]="transferDraft()"
                                 [currencyOptions]="currencyOptions"
                                 [accountOptions]="accountOptions()"
+                                [accountFilterOptions]="toolbarAccountOptions()"
+                                [searchControl]="accountSearchControl"
+                                [selectedAccountId]="selectedAccountId()"
                                 [newAccountName]="newAccountName()"
                                 [newAccountCurrency]="newAccountCurrency()"
                                 [saving]="isSaving()"
+                                (accountChange)="setAccountFilter($event)"
                                 (transferDraftChange)="updateTransferDraft($event)"
                                 (newAccountNameChange)="setNewAccountName($event)"
                                 (newAccountCurrencyChange)="setNewAccountCurrency($event)"
@@ -110,15 +138,19 @@
                                 [tagExpenses]="tagExpensesChart()"
                                 [topExpenses]="topExpensesChart()"
                                 [yearStats]="yearStatsChart()"
+                                [accountOptions]="toolbarAccountOptions()"
+                                [selectedAccountId]="selectedAccountId()"
+                                (accountChange)="setAccountFilter($event)"
                             ></ms-analytics-tab>
                         }
 
                         @case ('categories') {
                             <ms-categories-tab
-                                [incomeCategories]="incomeCategories()"
-                                [expenseCategories]="expenseCategories()"
-                                [tagGroups]="tagGroups()"
+                                [incomeCategories]="filteredIncomeCategories()"
+                                [expenseCategories]="filteredExpenseCategories()"
+                                [tagGroups]="filteredTagGroups()"
                                 [categoryOptions]="allCategoryOptions()"
+                                [searchControl]="categorySearchControl"
                                 [newIncomeCategory]="newIncomeCategory()"
                                 [newExpenseCategory]="newExpenseCategory()"
                                 [newTagGroup]="newTagGroup()"

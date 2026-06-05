@@ -40,6 +40,10 @@
     gap: 0.875rem;
 }
 
+.analytics-toolbar {
+    width: min(100%, 22rem);
+}
+
 .metric-grid--years {
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
 }
@@ -48,8 +52,25 @@
     display: grid;
     gap: 0.25rem;
     padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.045);
     border-radius: 1rem;
     background: rgba(255, 255, 255, 0.03);
+}
+
+.metric-card:nth-child(1) {
+    border-color: rgba(35, 199, 139, 0.18);
+}
+
+.metric-card:nth-child(2) {
+    border-color: rgba(255, 111, 145, 0.18);
+}
+
+.metric-card:nth-child(3) {
+    border-color: rgba(232, 180, 93, 0.18);
+}
+
+.metric-card:nth-child(4) {
+    border-color: rgba(103, 166, 193, 0.18);
 }
 
 .metric-card__value {
@@ -60,6 +81,21 @@
 @media (min-width: 720px) {
     .metric-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .panel {
+        padding: 0.95rem;
+        border-radius: 1rem;
+    }
+
+    .metric-card {
+        padding: 0.9rem;
+    }
+
+    .metric-card__value {
+        font-size: 1.2rem;
     }
 }
 

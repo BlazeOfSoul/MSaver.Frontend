@@ -1,9 +1,10 @@
 export function formatMoney(value: number, currencyCode: string): string {
     const symbol = resolveCurrencySymbol(currencyCode);
+    const precision = currencyCode === 'RUB' ? 0 : 2;
 
     return `${new Intl.NumberFormat('ru-RU', {
-        minimumFractionDigits: currencyCode === 'RUB' ? 0 : 2,
-        maximumFractionDigits: currencyCode === 'RUB' ? 0 : 2,
+        minimumFractionDigits: precision,
+        maximumFractionDigits: precision,
     }).format(value)} ${symbol}`;
 }
 
@@ -24,9 +25,31 @@ export function formatDate(value: string): string {
 }
 
 export function resolveCurrencyLabel(currencyCode: string): string {
-    return currencyCode === 'BYN' ? 'Белорусский рубль' : currencyCode;
+    switch (currencyCode) {
+        case 'BYN':
+            return 'Белорусский рубль';
+        case 'USD':
+            return 'Доллар США';
+        case 'EUR':
+            return 'Евро';
+        case 'RUB':
+            return 'Российский рубль';
+        default:
+            return currencyCode;
+    }
 }
 
 export function resolveCurrencySymbol(currencyCode: string): string {
-    return currencyCode === 'BYN' ? 'Br' : currencyCode;
+    switch (currencyCode) {
+        case 'BYN':
+            return 'Br';
+        case 'USD':
+            return '$';
+        case 'EUR':
+            return '€';
+        case 'RUB':
+            return '₽';
+        default:
+            return currencyCode;
+    }
 }

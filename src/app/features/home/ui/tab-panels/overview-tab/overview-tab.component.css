@@ -37,6 +37,35 @@
     gap: 0.75rem;
 }
 
+.overview-toolbar {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.transactions-empty {
+    display: grid;
+    min-height: 13rem;
+    place-items: center;
+    align-content: center;
+    gap: 0.5rem;
+    padding: 1.25rem;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 1rem;
+    color: var(--color-ms-light-dark);
+    text-align: center;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.transactions-empty strong {
+    color: var(--color-ms-light);
+}
+
+.transactions-empty p {
+    max-width: 26rem;
+    margin: 0;
+    line-height: 1.45;
+}
+
 .transaction-row {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -140,5 +169,11 @@
     .transaction-row__actions {
         grid-column: 2;
         justify-content: space-between;
+    }
+}
+
+@media (min-width: 720px) {
+    .overview-toolbar {
+        grid-template-columns: minmax(14rem, 0.35fr) minmax(0, 0.65fr);
     }
 }

@@ -5,10 +5,11 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../auth/data-access/auth.service';
 import { AuthStore } from '../../auth/data-access/auth.store';
+import { Button } from '../../../shared/ui/button/button';
+import { SelectComponent } from '../../../shared/ui/select/select';
 import { AddTransactionDialogComponent } from './components/add-transaction-dialog/add-transaction-dialog.component';
 import { MainHeaderComponent } from './components/main-header/main-header.component';
 import { MainSummaryCardsComponent } from './components/main-summary-cards/main-summary-cards.component';
-import { MainToolbarComponent } from './components/main-toolbar/main-toolbar.component';
 import { MainEmptyStateComponent } from './components/main-empty-state/main-empty-state.component';
 import { MainTabBarComponent } from './components/main-tab-bar/main-tab-bar.component';
 import { AccountsTabComponent } from './tab-panels/accounts-tab/accounts-tab.component';
@@ -25,7 +26,6 @@ import { HomeDashboardStore } from './home-dashboard.store';
     imports: [
         MainHeaderComponent,
         MainSummaryCardsComponent,
-        MainToolbarComponent,
         MainEmptyStateComponent,
         MainTabBarComponent,
         OverviewTabComponent,
@@ -33,6 +33,8 @@ import { HomeDashboardStore } from './home-dashboard.store';
         AnalyticsTabComponent,
         CategoriesTabComponent,
         AddTransactionDialogComponent,
+        Button,
+        SelectComponent,
     ],
     providers: [HomeDashboardStore],
     templateUrl: './home-page.component.html',
@@ -47,6 +49,8 @@ export class HomePageComponent {
     private readonly router = inject(Router);
 
     readonly searchControl = new FormControl('', { nonNullable: true });
+    readonly accountSearchControl = new FormControl('', { nonNullable: true });
+    readonly categorySearchControl = new FormControl('', { nonNullable: true });
     readonly tabs = HOME_TABS;
     readonly currencyOptions = CURRENCY_OPTIONS;
 
@@ -56,6 +60,7 @@ export class HomePageComponent {
     readonly isSaving = this.dashboard.isSaving;
     readonly errorMessage = this.dashboard.errorMessage;
     readonly isServerEmpty = this.dashboard.isServerEmpty;
+    readonly needsAccountSetup = this.dashboard.needsAccountSetup;
     readonly isTransactionDialogOpen = this.dashboard.isTransactionDialogOpen;
     readonly newAccountName = this.dashboard.newAccountName;
     readonly newAccountCurrency = this.dashboard.newAccountCurrency;
@@ -65,11 +70,15 @@ export class HomePageComponent {
     readonly transferDraft = this.dashboard.transferDraft;
     readonly transactionDraft = this.dashboard.transactionDraft;
     readonly accounts = this.dashboard.accounts;
+    readonly accountList = this.dashboard.accountList;
     readonly visibleAccounts = this.dashboard.visibleAccounts;
     readonly filteredTransactions = this.dashboard.filteredTransactions;
     readonly incomeCategories = this.dashboard.incomeCategories;
     readonly expenseCategories = this.dashboard.expenseCategories;
+    readonly filteredIncomeCategories = this.dashboard.filteredIncomeCategories;
+    readonly filteredExpenseCategories = this.dashboard.filteredExpenseCategories;
     readonly tagGroups = this.dashboard.tagGroups;
+    readonly filteredTagGroups = this.dashboard.filteredTagGroups;
     readonly toolbarAccountOptions = this.dashboard.toolbarAccountOptions;
     readonly accountOptions = this.dashboard.accountOptions;
     readonly allCategoryOptions = this.dashboard.allCategoryOptions;
@@ -92,6 +101,12 @@ export class HomePageComponent {
         this.searchControl.valueChanges
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((value) => this.dashboard.setSearchQuery(value ?? ''));
+        this.accountSearchControl.valueChanges
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((value) => this.dashboard.setAccountSearchQuery(value ?? ''));
+        this.categorySearchControl.valueChanges
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((value) => this.dashboard.setCategorySearchQuery(value ?? ''));
 
         this.dashboard.loadDashboard();
     }
@@ -154,6 +169,10 @@ export class HomePageComponent {
 
     createNewAccount(): void {
         this.dashboard.createNewAccount();
+    }
+
+    createPrimaryAccount(): void {
+        this.dashboard.createPrimaryAccount();
     }
 
     deleteAccount(accountId: string): void {

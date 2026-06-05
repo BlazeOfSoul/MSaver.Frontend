@@ -12,7 +12,13 @@
         </div>
 
         <div class="main-header__actions">
-            <button type="button" class="icon-button" (click)="logout.emit()" aria-label="Выйти">
+            <button
+                type="button"
+                class="icon-button"
+                data-testid="logout-button"
+                (click)="logout.emit()"
+                aria-label="Выйти"
+            >
                 <span class="material-symbols-outlined">logout</span>
             </button>
         </div>

@@ -7,6 +7,19 @@
             </div>
         </div>
 
+        <div class="accounts-toolbar">
+            <ms-select
+                [options]="accountFilterOptions()"
+                [value]="selectedAccountId()"
+                (valueChange)="accountChange.emit($event)"
+            ></ms-select>
+
+            <ms-input
+                [formControl]="searchControl()"
+                placeholder="Поиск по названию или валюте"
+            ></ms-input>
+        </div>
+
         @if (accounts().length) {
             <div class="accounts-grid">
                 @for (account of accounts(); track account.id) {
@@ -43,7 +56,7 @@
         } @else {
             <div class="accounts-empty">
                 <span class="material-symbols-outlined">account_balance_wallet</span>
-                <strong>Счета: null</strong>
+                <strong>Пока нет счетов</strong>
                 <p>Создайте первый счёт, чтобы появились баланс, переводы и аналитика.</p>
             </div>
         }
@@ -79,7 +92,7 @@
         <div class="panel__header">
             <div>
                 <h2>Перевод между счетами</h2>
-                <p>Быстрое перемещение средств без выхода из основной панели.</p>
+                <p>Перемещайте деньги между счетами. Для разных валют можно указать курс вручную или оставить поле пустым для текущего курса.</p>
             </div>
         </div>
 
@@ -108,14 +121,45 @@
                     (ngModelChange)="
                         transferDraftChange.emit({ ...transferDraft(), amount: +($event || 0) })
                     "
-                    placeholder="Сумма"
+                    placeholder="Сумма списания"
+                    type="text"
+                ></ms-input>
+
+                @if (usesDifferentCurrencies()) {
+                    <div class="transfer-rate">
+                        <span class="transfer-rate__label">
+                            Курс {{ fromAccount()?.currencyCode }} → {{ toAccount()?.currencyCode }}
+                        </span>
+                        <ms-input
+                            [ngModel]="transferDraft().rate ?? ''"
+                            (ngModelChange)="
+                                transferDraftChange.emit({
+                                    ...transferDraft(),
+                                    rate: $event ? +$event : null,
+                                })
+                            "
+                            placeholder="Например, 0.92"
+                            type="text"
+                        ></ms-input>
+                        <span class="transfer-rate__hint">
+                            Если оставить пустым, будет использован текущий курс.
+                        </span>
+                    </div>
+                }
+
+                <ms-input
+                    [ngModel]="transferDraft().description"
+                    (ngModelChange)="
+                        transferDraftChange.emit({ ...transferDraft(), description: $event })
+                    "
+                    placeholder="Комментарий к переводу"
                     type="text"
                 ></ms-input>
             </div>
         } @else {
             <div class="accounts-empty accounts-empty--compact">
                 <span class="material-symbols-outlined">swap_horiz</span>
-                <strong>Переводы: null</strong>
+                <strong>Переводы появятся после второго счёта</strong>
                 <p>Создайте минимум два счёта, чтобы переводить деньги между ними.</p>
             </div>
         }
@@ -123,7 +167,8 @@
         <ms-button
             variant="primary"
             [fullWidth]="true"
-            [disabled]="accountOptions().length < 2 || saving()"
+            [loading]="saving()"
+            [disabled]="!canSubmitTransfer()"
             (onClick)="submitTransfer.emit()"
         >
             Перевести

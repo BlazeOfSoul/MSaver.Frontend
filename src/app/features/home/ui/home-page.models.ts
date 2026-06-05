@@ -46,6 +46,8 @@ export interface TransferDraft {
     fromAccountId: string;
     toAccountId: string;
     amount: number;
+    rate: number | null;
+    description: string;
 }
 
 export interface AnalyticsMetricCard {

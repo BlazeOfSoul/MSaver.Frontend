@@ -7,6 +7,14 @@
             </div>
         </div>
 
+        <div class="analytics-toolbar">
+            <ms-select
+                [options]="accountOptions()"
+                [value]="selectedAccountId()"
+                (valueChange)="accountChange.emit($event)"
+            ></ms-select>
+        </div>
+
         <div class="metric-grid">
             @for (metric of metrics(); track metric.id) {
                 <article class="metric-card">

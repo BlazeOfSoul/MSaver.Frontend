@@ -1,4 +1,11 @@
 <section class="categories-layout">
+    <div class="categories-search panel panel--wide">
+        <ms-input
+            [formControl]="searchControl()"
+            placeholder="Поиск по категориям и тегам"
+        ></ms-input>
+    </div>
+
     <article class="panel">
         <div class="panel__header">
             <div>
@@ -43,7 +50,7 @@
                 }
             </div>
         } @else {
-            <div class="categories-empty">Категории доходов: null.</div>
+            <div class="categories-empty">Категорий доходов пока нет.</div>
         }
     </article>
 
@@ -91,7 +98,7 @@
                 }
             </div>
         } @else {
-            <div class="categories-empty">Категории расходов: null.</div>
+            <div class="categories-empty">Категорий расходов пока нет.</div>
         }
     </article>
 
@@ -180,14 +187,14 @@
                             </div>
                         } @else {
                             <div class="categories-empty categories-empty--compact">
-                                Категории тега: null.
+                                В этом теге пока нет категорий.
                             </div>
                         }
                     </article>
                 }
             </div>
         } @else {
-            <div class="categories-empty">Теги: null.</div>
+            <div class="categories-empty">Тегов пока нет.</div>
         }
     </article>
 </section>

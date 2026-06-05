@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Button } from '../../../../../shared/ui/button/button';
 import { InputComponent } from '../../../../../shared/ui/input/input';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
@@ -8,16 +8,20 @@ import { AccountBalanceItem, TransferDraft } from '../../home-page.models';
 @Component({
     selector: 'ms-accounts-tab',
     standalone: true,
-    imports: [FormsModule, Button, InputComponent, SelectComponent],
+    imports: [FormsModule, ReactiveFormsModule, Button, InputComponent, SelectComponent],
     templateUrl: './accounts-tab.component.html',
     styleUrl: './accounts-tab.component.css',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountsTabComponent {
     accounts = input.required<ReadonlyArray<AccountBalanceItem>>();
+    allAccounts = input.required<ReadonlyArray<AccountBalanceItem>>();
     transferDraft = input.required<TransferDraft>();
     currencyOptions = input.required<ReadonlyArray<MsSelectOption>>();
     accountOptions = input.required<ReadonlyArray<MsSelectOption>>();
+    accountFilterOptions = input.required<ReadonlyArray<MsSelectOption>>();
+    searchControl = input.required<FormControl<string>>();
+    selectedAccountId = input.required<string>();
     newAccountName = input.required<string>();
     newAccountCurrency = input.required<string>();
     saving = input(false);
@@ -28,4 +32,25 @@ export class AccountsTabComponent {
     createAccount = output<void>();
     deleteAccount = output<string>();
     submitTransfer = output<void>();
+    accountChange = output<string>();
+
+    readonly fromAccount = computed(() =>
+        this.allAccounts().find((account) => account.id === this.transferDraft().fromAccountId),
+    );
+    readonly toAccount = computed(() =>
+        this.allAccounts().find((account) => account.id === this.transferDraft().toAccountId),
+    );
+    readonly usesDifferentCurrencies = computed(
+        () =>
+            !!this.fromAccount() &&
+            !!this.toAccount() &&
+            this.fromAccount()?.currencyCode !== this.toAccount()?.currencyCode,
+    );
+    readonly canSubmitTransfer = computed(
+        () =>
+            this.accountOptions().length > 1 &&
+            !!this.transferDraft().amount &&
+            this.transferDraft().fromAccountId !== this.transferDraft().toAccountId &&
+            !this.saving(),
+    );
 }

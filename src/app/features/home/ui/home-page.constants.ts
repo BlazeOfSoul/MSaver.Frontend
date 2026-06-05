@@ -4,7 +4,12 @@ import { HomeTabItem } from './home-page.models';
 export const ACCOUNT_COLORS = ['#23c78b', '#ffd166', '#67a6c1', '#ff8fab', '#c77dff'];
 export const CATEGORY_COLORS = ['#23c78b', '#67a6c1', '#ff6f91', '#e8b45d', '#c77dff', '#79e0b5'];
 
-export const CURRENCY_OPTIONS: ReadonlyArray<MsSelectOption> = [{ value: 'BYN', label: 'BYN' }];
+export const CURRENCY_OPTIONS: ReadonlyArray<MsSelectOption> = [
+    { value: 'BYN', label: 'BYN - Белорусский рубль' },
+    { value: 'USD', label: 'USD - Доллар США' },
+    { value: 'EUR', label: 'EUR - Евро' },
+    { value: 'RUB', label: 'RUB - Российский рубль' },
+];
 
 export const HOME_TABS: ReadonlyArray<HomeTabItem> = [
     { id: 'overview', label: 'Главная', icon: 'grid_view' },

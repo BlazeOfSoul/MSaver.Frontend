@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { InputComponent } from '../../../../../shared/ui/input/input';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import { CategoryBreakdownItem, TagGroupItem } from '../../home-page.models';
@@ -7,7 +7,7 @@ import { CategoryBreakdownItem, TagGroupItem } from '../../home-page.models';
 @Component({
     selector: 'ms-categories-tab',
     standalone: true,
-    imports: [FormsModule, InputComponent, SelectComponent],
+    imports: [FormsModule, ReactiveFormsModule, InputComponent, SelectComponent],
     templateUrl: './categories-tab.component.html',
     styleUrl: './categories-tab.component.css',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,6 +20,7 @@ export class CategoriesTabComponent {
     newExpenseCategory = input.required<string>();
     newTagGroup = input.required<string>();
     categoryOptions = input.required<ReadonlyArray<MsSelectOption>>();
+    searchControl = input.required<FormControl<string>>();
     saving = input(false);
 
     newIncomeCategoryChange = output<string>();

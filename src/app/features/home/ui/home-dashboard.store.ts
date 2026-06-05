@@ -49,8 +49,10 @@ import {
     mapTransaction,
 } from './home-page.mappers';
 
-const SERVER_ERROR_MESSAGE =
-    'Сервер недоступен или вернул ошибку. Проверьте backend и попробуйте обновить данные.';
+const FRIENDLY_LOAD_ERROR_MESSAGE =
+    'Не получилось загрузить данные. Проверьте подключение и попробуйте ещё раз.';
+const PRIMARY_ACCOUNT_NAME = 'Основной счёт';
+
 interface DashboardPayload {
     accounts: AccountResponse[];
     categories: CategoryResponse[];
@@ -69,6 +71,8 @@ export class HomeDashboardStore {
     readonly selectedMonth = signal(startOfMonth(new Date()));
     readonly selectedAccountId = signal('all');
     readonly searchQuery = signal('');
+    readonly accountSearchQuery = signal('');
+    readonly categorySearchQuery = signal('');
     readonly isLoading = signal(false);
     readonly isSaving = signal(false);
     readonly hasLoaded = signal(false);
@@ -83,6 +87,8 @@ export class HomeDashboardStore {
         fromAccountId: '',
         toAccountId: '',
         amount: 0,
+        rate: null,
+        description: '',
     });
     readonly transactionDraft = signal<TransactionDraft>(this.getEmptyTransactionDraft());
 
@@ -95,6 +101,9 @@ export class HomeDashboardStore {
 
     readonly monthLabel = computed(() => monthLabel(this.selectedMonth()));
     readonly isServerEmpty = computed(() => !!this.errorMessage() && !this.hasLoaded());
+    readonly needsAccountSetup = computed(
+        () => this.hasLoaded() && !this.errorMessage() && this.accountResponses().length === 0,
+    );
     readonly selectedMonthBalanceByAccountId = computed(() => {
         const selected = this.selectedMonth();
         const key = monthKey(selected);
@@ -116,6 +125,13 @@ export class HomeDashboardStore {
             (item) => this.selectedAccountId() === 'all' || item.id === this.selectedAccountId(),
         ),
     );
+    readonly accountList = computed(() =>
+        this.filterByQuery(
+            this.visibleAccounts(),
+            (item) => `${item.name} ${item.currencyCode} ${item.currencyLabel}`,
+            this.accountSearchQuery(),
+        ),
+    );
     readonly transactions = computed<TransactionItem[]>(() =>
         this.transactionResponses().map((transaction) => mapTransaction(transaction)),
     );
@@ -131,12 +147,29 @@ export class HomeDashboardStore {
     readonly expenseCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(this.categoryResponses(), this.transactionResponses(), 'expense'),
     );
+    readonly filteredIncomeCategories = computed(() =>
+        this.filterByQuery(this.incomeCategories(), (item) => item.name, this.categorySearchQuery()),
+    );
+    readonly filteredExpenseCategories = computed(() =>
+        this.filterByQuery(
+            this.expenseCategories(),
+            (item) => item.name,
+            this.categorySearchQuery(),
+        ),
+    );
     readonly allCategoryOptions = computed<MsSelectOption[]>(() =>
         this.categoryResponses()
             .filter((category) => category.type === 'Credit' || category.type === 'Debit')
             .map((category) => ({ value: category.id, label: category.name })),
     );
     readonly tagGroups = computed<TagGroupItem[]>(() => mapTags(this.tagDetailsResponses()));
+    readonly filteredTagGroups = computed(() =>
+        this.filterByQuery(
+            this.tagGroups(),
+            (item) => `${item.name} ${item.categories.map((category) => category.name).join(' ')}`,
+            this.categorySearchQuery(),
+        ),
+    );
     readonly toolbarAccountOptions = computed<MsSelectOption[]>(() => [
         { value: 'all', label: 'Все счета' },
         ...this.accounts().map((account) => ({ value: account.id, label: account.name })),
@@ -258,32 +291,38 @@ export class HomeDashboardStore {
             },
         ];
     });
-    readonly analyticsMetrics = computed<ReadonlyArray<AnalyticsMetricCard>>(() => [
-        {
-            id: 'metric-transactions',
-            label: 'Транзакции',
-            value: `${this.filteredTransactions().length}`,
-            caption: 'Операции за выбранный месяц',
-        },
-        {
-            id: 'metric-accounts',
-            label: 'Счета',
-            value: `${this.visibleAccounts().length}`,
-            caption: 'Активные счета из API',
-        },
-        {
-            id: 'metric-categories',
-            label: 'Категории',
-            value: `${this.incomeCategories().length + this.expenseCategories().length}`,
-            caption: 'Доходные и расходные категории',
-        },
-        {
-            id: 'metric-balance',
-            label: 'Баланс',
-            value: formatMoney(this.totalBalance(), 'BYN'),
-            caption: 'Закрывающий баланс выбранного месяца',
-        },
-    ]);
+    readonly analyticsMetrics = computed<ReadonlyArray<AnalyticsMetricCard>>(() => {
+        const income = this.incomeTotal();
+        const expense = this.expenseTotal();
+        const net = income - expense;
+
+        return [
+            {
+                id: 'metric-income',
+                label: 'Доходы',
+                value: formatMoney(income, 'BYN'),
+                caption: 'Поступления за выбранный период',
+            },
+            {
+                id: 'metric-expense',
+                label: 'Расходы',
+                value: formatMoney(expense, 'BYN'),
+                caption: 'Списания за выбранный период',
+            },
+            {
+                id: 'metric-net',
+                label: 'Чистый итог',
+                value: formatMoney(net, 'BYN'),
+                caption: net >= 0 ? 'Период закрывается в плюс' : 'Расходы выше доходов',
+            },
+            {
+                id: 'metric-balance',
+                label: 'Баланс',
+                value: formatMoney(this.totalBalance(), 'BYN'),
+                caption: 'Закрывающий баланс выбранного месяца',
+            },
+        ];
+    });
     readonly summaryCards = computed<ReadonlyArray<HomeSummaryCard>>(() => [
         {
             id: 'balance',
@@ -310,12 +349,12 @@ export class HomeDashboardStore {
             icon: 'north_east',
         },
         {
-            id: 'budget',
-            label: 'Категории',
-            value: `${this.expenseCategories().length}`,
-            helper: 'Расходных категорий',
+            id: 'operations',
+            label: 'Операции',
+            value: `${this.filteredTransactions().length}`,
+            helper: 'За выбранный период',
             tone: 'neutral',
-            icon: 'savings',
+            icon: 'receipt_long',
         },
     ]);
     readonly recordsCount = computed(() => {
@@ -375,7 +414,7 @@ export class HomeDashboardStore {
                 next: (payload) => this.setPayload(payload),
                 error: () => {
                     this.clearPayload();
-                    this.errorMessage.set(SERVER_ERROR_MESSAGE);
+                    this.errorMessage.set(FRIENDLY_LOAD_ERROR_MESSAGE);
                     this.hasLoaded.set(false);
                 },
             });
@@ -387,6 +426,14 @@ export class HomeDashboardStore {
 
     setSearchQuery(value: string): void {
         this.searchQuery.set(value);
+    }
+
+    setAccountSearchQuery(value: string): void {
+        this.accountSearchQuery.set(value);
+    }
+
+    setCategorySearchQuery(value: string): void {
+        this.categorySearchQuery.set(value);
     }
 
     setAccountFilter(accountId: string): void {
@@ -463,10 +510,22 @@ export class HomeDashboardStore {
 
     transferBetweenAccounts(): void {
         const draft = this.transferDraft();
+        const fromAccount = this.accounts().find((account) => account.id === draft.fromAccountId);
+        const toAccount = this.accounts().find((account) => account.id === draft.toAccountId);
 
-        if (!draft.amount || draft.fromAccountId === draft.toAccountId || this.isSaving()) {
+        if (
+            !draft.amount ||
+            !fromAccount ||
+            !toAccount ||
+            draft.fromAccountId === draft.toAccountId ||
+            this.isSaving()
+        ) {
             return;
         }
+
+        const usesSameCurrency = fromAccount.currencyCode === toAccount.currencyCode;
+        const rate = usesSameCurrency ? null : draft.rate && draft.rate > 0 ? draft.rate : null;
+        const description = draft.description.trim() || 'Перевод между счетами';
 
         this.runMutation(
             this.homeApi.createTransfer({
@@ -474,12 +533,17 @@ export class HomeDashboardStore {
                 toAccountId: draft.toAccountId,
                 amount: Math.abs(draft.amount),
                 date: this.defaultDateForSelectedMonth(),
-                rate: null,
-                description: 'Перевод между счетами',
+                rate,
+                description,
             }),
-            'Не удалось выполнить перевод.',
+            'Не получилось выполнить перевод. Проверьте счета, сумму и курс.',
             () => {
-                this.transferDraft.update((value) => ({ ...value, amount: 0 }));
+                this.transferDraft.update((value) => ({
+                    ...value,
+                    amount: 0,
+                    rate: null,
+                    description: '',
+                }));
                 this.loadDashboard(false);
             },
         );
@@ -491,6 +555,25 @@ export class HomeDashboardStore {
 
     setNewAccountCurrency(value: string): void {
         this.newAccountCurrency.set(value);
+    }
+
+    createPrimaryAccount(): void {
+        if (this.isSaving()) {
+            return;
+        }
+
+        this.runMutation(
+            this.homeApi.createAccount({
+                name: PRIMARY_ACCOUNT_NAME,
+                currencyCode: this.newAccountCurrency(),
+                color: ACCOUNT_COLORS[0],
+            }),
+            'Не получилось создать основной счёт. Проверьте валюту и попробуйте ещё раз.',
+            () => {
+                this.newAccountName.set('');
+                this.loadDashboard(false);
+            },
+        );
     }
 
     createNewAccount(): void {
@@ -809,11 +892,17 @@ export class HomeDashboardStore {
                 ? transferDraft.toAccountId
                 : (accountOptions[1]?.value ?? accountOptions[0]?.value ?? ''),
             amount: transferDraft.amount,
+            rate: transferDraft.rate,
+            description: transferDraft.description,
         });
     }
 
-    private filterByQuery<T>(items: ReadonlyArray<T>, pickText: (item: T) => string): T[] {
-        const query = this.searchQuery().trim().toLowerCase();
+    private filterByQuery<T>(
+        items: ReadonlyArray<T>,
+        pickText: (item: T) => string,
+        rawQuery = this.searchQuery(),
+    ): T[] {
+        const query = rawQuery.trim().toLowerCase();
 
         if (!query) {
             return [...items];

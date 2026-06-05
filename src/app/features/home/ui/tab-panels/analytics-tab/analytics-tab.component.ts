@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { ChartCardComponent } from '../../components/chart-card/chart-card.component';
+import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import {
     HomeChartDataset,
     AnalyticsMetricCard,
@@ -11,7 +12,7 @@ import {
 @Component({
     selector: 'ms-analytics-tab',
     standalone: true,
-    imports: [ChartCardComponent],
+    imports: [ChartCardComponent, SelectComponent],
     templateUrl: './analytics-tab.component.html',
     styleUrl: './analytics-tab.component.css',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,6 +27,10 @@ export class AnalyticsTabComponent {
     tagExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     topExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     yearStats = input.required<ReadonlyArray<AnalyticsMetricCard>>();
+    accountOptions = input.required<ReadonlyArray<MsSelectOption>>();
+    selectedAccountId = input.required<string>();
+
+    accountChange = output<string>();
 
     readonly incomeVsExpenseLabels = computed(() =>
         this.incomeVsExpense().map((item) => item.label),

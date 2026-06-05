@@ -6,8 +6,22 @@
         </div>
     </div>
 
-    <div class="transaction-list">
-        @for (item of transactions(); track item.id) {
+    <div class="overview-toolbar">
+        <ms-select
+            [options]="accountOptions()"
+            [value]="selectedAccountId()"
+            (valueChange)="accountChange.emit($event)"
+        ></ms-select>
+
+        <ms-input
+            [formControl]="searchControl()"
+            placeholder="Поиск по описанию, категории или счёту"
+        ></ms-input>
+    </div>
+
+    @if (transactions().length) {
+        <div class="transaction-list">
+            @for (item of transactions(); track item.id) {
             <article class="transaction-row">
                 <div class="transaction-row__leading" [attr.data-tone]="item.tone">
                     <span class="material-symbols-outlined">
@@ -46,6 +60,13 @@
                     </button>
                 </div>
             </article>
-        }
-    </div>
+            }
+        </div>
+    } @else {
+        <div class="transactions-empty">
+            <span class="material-symbols-outlined">receipt_long</span>
+            <strong>Операций за этот период нет</strong>
+            <p>Добавьте доход, расход или измените поиск, чтобы увидеть движения по счетам.</p>
+        </div>
+    }
 </section>
