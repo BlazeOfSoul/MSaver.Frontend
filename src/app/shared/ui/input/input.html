@@ -25,6 +25,7 @@
         [class.has-right-action]="!!actionIcon()"
         (input)="onInput($event)"
         (focus)="onFocus()"
+        (blur)="onBlur()"
     />
 
     @if (actionIcon()) {

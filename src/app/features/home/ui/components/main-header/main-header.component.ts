@@ -11,9 +11,11 @@ import { Button } from '../../../../../shared/ui/button/button';
 })
 export class MainHeaderComponent {
     monthLabel = input.required<string>();
+    userName = input<string | null>(null);
 
     previousMonth = output<void>();
     nextMonth = output<void>();
     addTransaction = output<void>();
+    settings = output<void>();
     logout = output<void>();
 }

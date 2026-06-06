@@ -3,9 +3,9 @@
 @import 'tailwindcss';
 
 @theme {
-    --color-ms-primary: #23c78b;
-    --color-ms-primary-soft: #79e0b5;
-    --color-ms-primary-deep: #169768;
+    --color-ms-primary: #1fb47f;
+    --color-ms-primary-soft: #77d8b3;
+    --color-ms-primary-deep: #147a5b;
     --color-ms-secondary: #07110d;
     --color-ms-accent: #18241f;
     --color-ms-accent-dark: #121b17;
@@ -26,10 +26,10 @@
     --color-ms-warning: #e8b45d;
     --color-ms-danger: #ff6f91;
 
-    --radius-ms-sm: 10px;
-    --radius-ms-md: 14px;
-    --radius-ms-lg: 16px;
-    --radius-ms-xl: 20px;
+    --radius-ms-sm: 6px;
+    --radius-ms-md: 8px;
+    --radius-ms-lg: 8px;
+    --radius-ms-xl: 8px;
 
     --shadow-ms-soft: 0 12px 34px rgba(0, 0, 0, 0.24);
     --shadow-ms-surface: 0 18px 44px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.045);
@@ -55,9 +55,12 @@ html {
     color: var(--color-ms-light);
     min-height: 100%;
     background:
-        linear-gradient(180deg, rgba(35, 199, 139, 0.08) 0%, rgba(35, 199, 139, 0) 28%),
+        linear-gradient(120deg, rgba(31, 180, 127, 0.07), rgba(103, 166, 193, 0.045), rgba(199, 125, 255, 0.035)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.018) 0%, transparent 18rem),
         linear-gradient(145deg, #070b12 0%, #0b1210 46%, #060807 100%);
+    background-size: 220% 220%, 100% 100%, 100% 100%;
     background-color: var(--color-ms-dark);
+    animation: ms-page-background 18s ease-in-out infinite;
 }
 
 body {
@@ -168,6 +171,17 @@ ms-button.ms-btn .ms-btn__spinner {
     }
 }
 
+@keyframes ms-page-background {
+    0%,
+    100% {
+        background-position: 0% 50%, 0 0, 0 0;
+    }
+
+    50% {
+        background-position: 100% 50%, 0 0, 0 0;
+    }
+}
+
 ms-button.ms-btn.ms-btn-outline {
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
@@ -224,11 +238,11 @@ ms-button.ms-btn.ms-btn-loading {
 }
 
 ms-button.ms-btn.ms-btn-primary {
-    --bg-color: #18ad76;
+    --bg-color: #149a6e;
     --text-color: #ffffff;
-    --border-color: color-mix(in oklab, #18ad76, white 7%);
+    --border-color: color-mix(in oklab, #149a6e, white 7%);
     --accent-color: var(--color-ms-primary-soft);
-    --glow-color: rgba(24, 173, 118, 0.2);
+    --glow-color: rgba(20, 154, 110, 0.14);
 }
 
 ms-button.ms-btn.ms-btn-primary.ms-btn-outline {

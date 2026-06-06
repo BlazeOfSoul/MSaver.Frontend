@@ -2,8 +2,11 @@
     display: block;
     min-height: 100dvh;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 18rem),
+        linear-gradient(120deg, rgba(31, 180, 127, 0.045), rgba(103, 166, 193, 0.03), rgba(199, 125, 255, 0.025)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 18rem),
         linear-gradient(145deg, #070b12 0%, #09110f 42%, #050706 100%);
+    background-size: 220% 220%, 100% 100%, 100% 100%;
+    animation: home-background-pan 18s ease-in-out infinite;
     overflow-x: hidden;
 }
 
@@ -37,7 +40,7 @@
     gap: 1rem;
     padding: 0.9rem;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 1.5rem;
+    border-radius: 0.5rem;
     background:
         linear-gradient(180deg, rgba(10, 15, 13, 0.94), rgba(10, 15, 13, 0.88)),
         color-mix(in oklab, var(--color-ms-dark-light), transparent 8%);
@@ -65,7 +68,7 @@
     margin: 0;
     font-size: clamp(1.45rem, 4vw, 2.05rem);
     line-height: 1;
-    letter-spacing: -0.04em;
+    letter-spacing: 0;
     color: var(--color-ms-light);
 }
 
@@ -93,7 +96,7 @@
     gap: 0.65rem;
     padding: 0.85rem 1rem;
     border: 1px solid rgba(255, 111, 145, 0.35);
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     background: rgba(255, 111, 145, 0.12);
     color: var(--color-ms-light);
     animation: home-alert-enter 0.18s ease-out both;
@@ -133,7 +136,7 @@
     gap: 1rem;
     padding: 1.25rem;
     border: 1px solid var(--color-ms-border);
-    border-radius: 1.25rem;
+    border-radius: 0.5rem;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
         color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
@@ -192,7 +195,7 @@
     width: 3rem;
     height: 3rem;
     place-items: center;
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     color: var(--color-ms-primary);
     background: rgba(35, 199, 139, 0.1);
 }
@@ -234,6 +237,17 @@
     }
 }
 
+@keyframes home-background-pan {
+    0%,
+    100% {
+        background-position: 0% 50%, 0 0, 0 0;
+    }
+
+    50% {
+        background-position: 100% 50%, 0 0, 0 0;
+    }
+}
+
 @media (max-width: 767px) {
     .home-page {
         padding: 0.65rem 0 1.35rem;
@@ -244,7 +258,7 @@
         top: auto;
         gap: 0.85rem;
         padding: 0.8rem;
-        border-radius: 1.25rem;
+        border-radius: 0.5rem;
     }
 
     .home-page__container {
@@ -274,7 +288,7 @@
 
     .home-page__sticky {
         padding: 0.72rem;
-        border-radius: 1.1rem;
+        border-radius: 0.5rem;
     }
 
     .content-header h1 {

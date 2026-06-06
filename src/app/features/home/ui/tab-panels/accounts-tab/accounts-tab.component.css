@@ -12,7 +12,7 @@
     gap: 1rem;
     padding: 1.2rem;
     border: 1px solid var(--color-ms-border);
-    border-radius: 1.25rem;
+    border-radius: 0.5rem;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
         color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
@@ -50,7 +50,7 @@
     gap: 0.45rem;
     justify-items: center;
     padding: 1.4rem 1rem;
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     text-align: center;
     color: var(--color-ms-light-dark);
     background: rgba(255, 255, 255, 0.025);
@@ -73,9 +73,11 @@
     display: grid;
     gap: 0.55rem;
     padding: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 1rem;
-    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid color-mix(in oklab, var(--account-color), transparent 78%);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(135deg, color-mix(in oklab, var(--account-color), transparent 88%), transparent 60%),
+        rgba(255, 255, 255, 0.03);
 }
 
 .account-card__top {
@@ -96,16 +98,31 @@
     height: 2.25rem;
     align-items: center;
     justify-content: center;
-    border-radius: 0.85rem;
-    background: rgba(255, 255, 255, 0.04);
+    border-radius: 0.5rem;
+    color: color-mix(in oklab, var(--account-color), white 16%);
+    background: color-mix(in oklab, var(--account-color), transparent 86%);
 }
 
 .account-card__balance {
     font-size: 1.35rem;
+    color: color-mix(in oklab, var(--account-color), white 18%);
 }
 
 .account-card__change {
     font-size: 0.86rem;
+}
+
+.account-card__badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: 0 0.6rem;
+    border: 1px solid color-mix(in oklab, var(--account-color), transparent 68%);
+    border-radius: 999px;
+    color: color-mix(in oklab, var(--account-color), white 24%);
+    background: color-mix(in oklab, var(--account-color), transparent 88%);
+    font-size: 0.78rem;
+    font-weight: 800;
 }
 
 .account-create {
@@ -121,9 +138,24 @@
     gap: 0.75rem;
 }
 
+.transfer-grid {
+    align-items: end;
+}
+
+.transfer-grid > * {
+    min-width: 0;
+}
+
+.account-create__field-stack {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
 .transfer-rate {
     display: grid;
     gap: 0.4rem;
+    min-width: 0;
 }
 
 .transfer-rate__label {
@@ -138,6 +170,17 @@
     line-height: 1.35;
 }
 
+.transfer-description {
+    grid-column: 1 / -1;
+}
+
+.field-error {
+    margin: 0;
+    color: var(--color-ms-danger);
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
 .round-action {
     display: inline-flex;
     width: 3rem;
@@ -145,10 +188,10 @@
     align-items: center;
     justify-content: center;
     border: 0;
-    border-radius: 0.9rem;
-    color: #04120d;
-    background: var(--color-ms-primary);
-    box-shadow: 0 16px 30px rgba(35, 199, 139, 0.2);
+    border-radius: 0.5rem;
+    color: #06130f;
+    background: color-mix(in oklab, var(--color-ms-primary), #0f6f57 24%);
+    box-shadow: 0 12px 24px rgba(35, 199, 139, 0.16);
     cursor: pointer;
 }
 
@@ -164,7 +207,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     color: var(--color-ms-light-dark);
     background: rgba(255, 255, 255, 0.04);
     cursor: pointer;
@@ -213,7 +256,7 @@
 
     .panel {
         padding: 0.95rem;
-        border-radius: 1rem;
+        border-radius: 0.5rem;
     }
 
     .account-card {

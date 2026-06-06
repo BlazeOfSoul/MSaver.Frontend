@@ -37,9 +37,11 @@
                 <div class="home-page__sticky">
                     <ms-main-header
                         [monthLabel]="monthLabel()"
+                        [userName]="authStore.userName()"
                         (previousMonth)="goToPreviousMonth()"
                         (nextMonth)="goToNextMonth()"
                         (addTransaction)="startAddingTransaction()"
+                        (settings)="openSettings()"
                         (logout)="logout()"
                     ></ms-main-header>
 
@@ -128,6 +130,9 @@
                                     [selectedAccountId]="selectedAccountId()"
                                     [newAccountName]="newAccountName()"
                                     [newAccountCurrency]="newAccountCurrency()"
+                                    [newAccountNameError]="accountNameError()"
+                                    [transferRateError]="transferRateError()"
+                                    [rateLoading]="isTransferRateLoading()"
                                     [saving]="isSaving()"
                                     (accountChange)="setAccountFilter($event)"
                                     (transferDraftChange)="updateTransferDraft($event)"
@@ -165,10 +170,14 @@
                                     [searchControl]="categorySearchControl"
                                     [newIncomeCategory]="newIncomeCategory()"
                                     [newExpenseCategory]="newExpenseCategory()"
+                                    [newIncomeCategoryColor]="newIncomeCategoryColor()"
+                                    [newExpenseCategoryColor]="newExpenseCategoryColor()"
                                     [newTagGroup]="newTagGroup()"
                                     [saving]="isSaving()"
                                     (newIncomeCategoryChange)="setNewIncomeCategory($event)"
                                     (newExpenseCategoryChange)="setNewExpenseCategory($event)"
+                                    (newIncomeCategoryColorChange)="setNewIncomeCategoryColor($event)"
+                                    (newExpenseCategoryColorChange)="setNewExpenseCategoryColor($event)"
                                     (newTagGroupChange)="setNewTagGroup($event)"
                                     (addIncomeCategory)="addIncomeCategory()"
                                     (addExpenseCategory)="addExpenseCategory()"
@@ -178,6 +187,13 @@
                                     (assignCategoryToTag)="assignCategoryToTag($event)"
                                     (removeCategoryFromTag)="removeCategoryFromTag($event)"
                                 ></ms-categories-tab>
+                            }
+
+                            @case ('settings') {
+                                <ms-settings-tab
+                                    [applicationCurrencyCode]="applicationCurrencyCode()"
+                                    [accounts]="accounts()"
+                                ></ms-settings-tab>
                             }
                         }
                     }

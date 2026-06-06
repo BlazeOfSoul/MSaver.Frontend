@@ -16,6 +16,7 @@ import { AccountsTabComponent } from './tab-panels/accounts-tab/accounts-tab.com
 import { AnalyticsTabComponent } from './tab-panels/analytics-tab/analytics-tab.component';
 import { CategoriesTabComponent } from './tab-panels/categories-tab/categories-tab.component';
 import { OverviewTabComponent } from './tab-panels/overview-tab/overview-tab.component';
+import { SettingsTabComponent } from './tab-panels/settings-tab/settings-tab.component';
 import { HomeTabId, TransactionDraft, TransferDraft } from './home-page.models';
 import { CURRENCY_OPTIONS, HOME_TABS } from './home-page.constants';
 import { HomeDashboardStore } from './home-dashboard.store';
@@ -32,6 +33,7 @@ import { HomeDashboardStore } from './home-dashboard.store';
         AccountsTabComponent,
         AnalyticsTabComponent,
         CategoriesTabComponent,
+        SettingsTabComponent,
         AddTransactionDialogComponent,
         Button,
         SelectComponent,
@@ -59,7 +61,10 @@ export class HomePageComponent {
     readonly selectedAccountId = this.dashboard.selectedAccountId;
     readonly isLoading = this.dashboard.isLoading;
     readonly isSaving = this.dashboard.isSaving;
+    readonly isTransferRateLoading = this.dashboard.isTransferRateLoading;
     readonly errorMessage = this.dashboard.errorMessage;
+    readonly accountNameError = this.dashboard.accountNameError;
+    readonly transferRateError = this.dashboard.transferRateError;
     readonly isServerEmpty = this.dashboard.isServerEmpty;
     readonly needsAccountSetup = this.dashboard.needsAccountSetup;
     readonly isTransactionDialogOpen = this.dashboard.isTransactionDialogOpen;
@@ -67,6 +72,8 @@ export class HomePageComponent {
     readonly newAccountCurrency = this.dashboard.newAccountCurrency;
     readonly newIncomeCategory = this.dashboard.newIncomeCategory;
     readonly newExpenseCategory = this.dashboard.newExpenseCategory;
+    readonly newIncomeCategoryColor = this.dashboard.newIncomeCategoryColor;
+    readonly newExpenseCategoryColor = this.dashboard.newExpenseCategoryColor;
     readonly newTagGroup = this.dashboard.newTagGroup;
     readonly transferDraft = this.dashboard.transferDraft;
     readonly transactionDraft = this.dashboard.transactionDraft;
@@ -82,6 +89,7 @@ export class HomePageComponent {
     readonly filteredTagGroups = this.dashboard.filteredTagGroups;
     readonly toolbarAccountOptions = this.dashboard.toolbarAccountOptions;
     readonly accountOptions = this.dashboard.accountOptions;
+    readonly applicationCurrencyCode = this.dashboard.applicationCurrencyCode;
     readonly allCategoryOptions = this.dashboard.allCategoryOptions;
     readonly incomeCategoryOptions = this.dashboard.incomeCategoryOptions;
     readonly expenseCategoryOptions = this.dashboard.expenseCategoryOptions;
@@ -108,6 +116,11 @@ export class HomePageComponent {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((value) => this.dashboard.setCategorySearchQuery(value ?? ''));
 
+        if (!this.authStore.isAuthenticated()) {
+            void this.router.navigateByUrl('/auth');
+            return;
+        }
+
         this.dashboard.loadDashboard();
     }
 
@@ -131,6 +144,10 @@ export class HomePageComponent {
 
     setActiveTab(tab: HomeTabId): void {
         this.dashboard.setActiveTab(tab);
+    }
+
+    openSettings(): void {
+        this.dashboard.setActiveTab('settings');
     }
 
     setAccountFilter(accountId: string): void {
@@ -199,6 +216,14 @@ export class HomePageComponent {
 
     setNewExpenseCategory(value: string): void {
         this.dashboard.setNewExpenseCategory(value);
+    }
+
+    setNewIncomeCategoryColor(value: string): void {
+        this.dashboard.setNewIncomeCategoryColor(value);
+    }
+
+    setNewExpenseCategoryColor(value: string): void {
+        this.dashboard.setNewExpenseCategoryColor(value);
     }
 
     setNewTagGroup(value: string): void {

@@ -2,8 +2,8 @@
     <article class="panel">
         <div class="panel__header">
             <div>
-                <h2>Счета</h2>
-                <p>Разделяйте деньги по кошелькам, картам и резервам.</p>
+                <h2>Счета и балансы</h2>
+                <p>Карты, наличные и резервы с балансом в своей валюте.</p>
             </div>
         </div>
 
@@ -23,51 +23,69 @@
         @if (accounts().length) {
             <div class="accounts-grid">
                 @for (account of accounts(); track account.id) {
-                    <article class="account-card">
+                    <article class="account-card" [style.--account-color]="account.color">
                         <div class="account-card__top">
-                            <span class="account-card__icon" [style.color]="account.color">
-                                <span class="material-symbols-outlined"
-                                    >account_balance_wallet</span
-                                >
+                            <span class="account-card__icon">
+                                <span class="material-symbols-outlined">
+                                    account_balance_wallet
+                                </span>
                             </span>
                             <strong>{{ account.name }}</strong>
 
-                            <button
-                                type="button"
-                                class="icon-action icon-action--danger"
-                                [disabled]="saving()"
-                                (click)="deleteAccount.emit(account.id)"
-                                aria-label="Удалить счёт"
-                            >
-                                <span class="material-symbols-outlined">delete</span>
-                            </button>
+                            @if (!account.isPrimary) {
+                                <button
+                                    type="button"
+                                    class="icon-action icon-action--danger"
+                                    data-testid="delete-account"
+                                    [disabled]="saving()"
+                                    (click)="deleteAccount.emit(account.id)"
+                                    aria-label="Удалить счёт"
+                                >
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            } @else {
+                                <span class="account-card__badge">Основной</span>
+                            }
                         </div>
 
                         <span class="account-card__currency">{{ account.currencyLabel }}</span>
-                        <strong class="account-card__balance" [style.color]="account.color">
+                        <strong class="account-card__balance">
                             {{ account.balanceLabel }}
                         </strong>
                         <span class="account-card__change">
-                            Изменение за месяц: {{ account.monthChangeLabel }}
+                            За месяц: {{ account.monthChangeLabel }}
                         </span>
                     </article>
                 }
             </div>
         } @else {
             <div class="accounts-empty">
-                <span class="material-symbols-outlined">account_balance_wallet</span>
-                <strong>Пока нет счетов</strong>
-                <p>Создайте первый счёт, чтобы появились баланс, переводы и аналитика.</p>
+                @if (allAccounts().length) {
+                    <span class="material-symbols-outlined">search_off</span>
+                    <strong>Ничего не найдено</strong>
+                    <p>Измените фильтр или поисковый запрос, чтобы увидеть нужный счёт.</p>
+                } @else {
+                    <span class="material-symbols-outlined">account_balance_wallet</span>
+                    <strong>Пока нет счетов</strong>
+                    <p>Создайте первый счёт, чтобы появились баланс, переводы и аналитика.</p>
+                }
             </div>
         }
 
         <div class="account-create">
             <div class="account-create__fields">
-                <ms-input
-                    [ngModel]="newAccountName()"
-                    (ngModelChange)="newAccountNameChange.emit($event)"
-                    placeholder="Название счёта..."
-                ></ms-input>
+                <div class="account-create__field-stack">
+                    <ms-input
+                        [ngModel]="newAccountName()"
+                        (ngModelChange)="newAccountNameChange.emit($event)"
+                        placeholder="Название счёта..."
+                        [invalid]="!!newAccountNameError()"
+                    ></ms-input>
+
+                    @if (newAccountNameError()) {
+                        <p class="field-error">{{ newAccountNameError() }}</p>
+                    }
+                </div>
 
                 <ms-select
                     [options]="currencyOptions()"
@@ -92,10 +110,7 @@
         <div class="panel__header">
             <div>
                 <h2>Перевод между счетами</h2>
-                <p>
-                    Перемещайте деньги между счетами. Для разных валют можно указать курс вручную
-                    или оставить поле пустым для текущего курса.
-                </p>
+                <p>Курс подставляется автоматически для выбранной пары валют, но его можно поправить вручную.</p>
             </div>
         </div>
 
@@ -120,13 +135,10 @@
                 ></ms-select>
 
                 <ms-input
-                    [ngModel]="formatMoneyAmount(transferDraft().amount)"
-                    (ngModelChange)="
-                        transferDraftChange.emit({
-                            ...transferDraft(),
-                            amount: parseMoneyAmount($event),
-                        })
-                    "
+                    [ngModel]="transferAmountText()"
+                    (focused)="onTransferAmountFocus()"
+                    (blurred)="onTransferAmountBlur()"
+                    (ngModelChange)="onTransferAmountInput($event)"
                     placeholder="Сумма списания"
                     inputMode="decimal"
                     type="text"
@@ -135,27 +147,30 @@
                 @if (usesDifferentCurrencies()) {
                     <div class="transfer-rate">
                         <span class="transfer-rate__label">
-                            Курс {{ fromAccount()?.currencyCode }} → {{ toAccount()?.currencyCode }}
+                            Курс {{ bankRatePairLabel() }}
                         </span>
                         <ms-input
-                            [ngModel]="transferDraft().rate ?? ''"
-                            (ngModelChange)="
-                                transferDraftChange.emit({
-                                    ...transferDraft(),
-                                    rate: $event ? +$event : null,
-                                })
-                            "
-                            placeholder="Например, 0.92"
+                            [ngModel]="displayTransferRate()"
+                            (ngModelChange)="onTransferRateInput($event)"
+                            placeholder="Например, 2.89"
                             inputMode="decimal"
                             type="text"
                         ></ms-input>
                         <span class="transfer-rate__hint">
-                            Если оставить пустым, будет использован текущий курс.
+                            @if (rateLoading()) {
+                                Получаем актуальный курс...
+                            } @else {
+                                {{ bankRateHint() }}
+                            }
                         </span>
+                        @if (transferRateError()) {
+                            <span class="field-error">{{ transferRateError() }}</span>
+                        }
                     </div>
                 }
 
                 <ms-input
+                    class="transfer-description"
                     [ngModel]="transferDraft().description"
                     (ngModelChange)="
                         transferDraftChange.emit({ ...transferDraft(), description: $event })

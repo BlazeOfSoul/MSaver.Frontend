@@ -64,4 +64,57 @@ describe('AddTransactionDialogComponent', () => {
         expect(component.parseMoneyAmount('12,345')).toBe(12.35);
         expect(component.parseMoneyAmount('abc')).toBe(0);
     });
+
+    it('keeps the typed amount while editing and formats it only after blur', () => {
+        const draftSpy = vi.fn();
+        component.draftChange.subscribe(draftSpy);
+        fixture.detectChanges();
+
+        component.onAmountInput('10,');
+
+        expect(component.amountText()).toBe('10,');
+        expect(draftSpy).toHaveBeenLastCalledWith({
+            ...draft,
+            amount: 10,
+        });
+
+        component.onAmountInput('10,5');
+
+        expect(component.amountText()).toBe('10,5');
+        expect(draftSpy).toHaveBeenLastCalledWith({
+            ...draft,
+            amount: 10.5,
+        });
+
+        component.onAmountBlur();
+
+        expect(component.amountText()).toBe('10.50');
+    });
+
+    it('removes the initial zero mask when typing starts before the input visually clears', () => {
+        const draftSpy = vi.fn();
+        const emptyDraft = { ...draft, amount: 0 };
+        fixture.componentRef.setInput('draft', emptyDraft);
+        component.draftChange.subscribe(draftSpy);
+        fixture.detectChanges();
+
+        component.onAmountFocus();
+        component.onAmountInput('0.0012,5');
+
+        expect(component.amountText()).toBe('12,5');
+        expect(draftSpy).toHaveBeenLastCalledWith({
+            ...emptyDraft,
+            amount: 12.5,
+        });
+    });
+
+    it('renders amount as a primary touch-friendly field', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const amountCard = host.querySelector('.dialog__amount-card');
+
+        expect(amountCard).not.toBeNull();
+        expect(amountCard?.querySelector('ms-input')).not.toBeNull();
+    });
 });

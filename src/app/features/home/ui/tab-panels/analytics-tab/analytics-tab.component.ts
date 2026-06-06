@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { ChartCardComponent } from '../../components/chart-card/chart-card.component';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import {
@@ -31,6 +31,7 @@ export class AnalyticsTabComponent {
     selectedAccountId = input.required<string>();
 
     accountChange = output<string>();
+    readonly selectedTagExpenseId = signal('all');
 
     readonly incomeVsExpenseLabels = computed(() =>
         this.incomeVsExpense().map((item) => item.label),
@@ -99,11 +100,42 @@ export class AnalyticsTabComponent {
         },
     ]);
 
-    readonly tagExpenseLabels = computed(() => this.tagExpenses().map((item) => item.name));
+    readonly netCashFlowLabels = computed(() =>
+        this.incomeVsExpense().map((item) => item.label),
+    );
+    readonly netCashFlowDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
+        {
+            label: 'Чистый поток',
+            data: this.incomeVsExpense().map((item) => item.income - item.expense),
+            color: '#67a6c1',
+            fill: true,
+        },
+    ]);
+
+    readonly tagExpenseOptions = computed<ReadonlyArray<MsSelectOption>>(() => [
+        { value: 'all', label: 'Все теги' },
+        ...this.tagExpenses().map((item) => ({
+            value: item.id,
+            label: item.name,
+            color: item.color,
+        })),
+    ]);
+    readonly selectedTagExpenses = computed(() => {
+        const selectedTagId = this.selectedTagExpenseId();
+
+        if (selectedTagId === 'all') {
+            return this.tagExpenses();
+        }
+
+        return this.tagExpenses().filter((item) => item.id === selectedTagId);
+    });
+    readonly tagExpenseLabels = computed(() =>
+        this.selectedTagExpenses().map((item) => item.name),
+    );
     readonly tagExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Теги',
-            data: this.tagExpenses().map((item) => item.amountValue),
+            data: this.selectedTagExpenses().map((item) => item.amountValue),
             color: '#23c78b',
         },
     ]);

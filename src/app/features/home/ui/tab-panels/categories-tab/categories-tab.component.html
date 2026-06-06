@@ -9,17 +9,29 @@
     <article class="panel">
         <div class="panel__header">
             <div>
-                <h2>Категории доходов</h2>
-                <p>Структура поступлений для транзакций и аналитики.</p>
+                <h2>Доходы</h2>
+                <p>Категории поступлений для быстрых операций и отчётов.</p>
             </div>
         </div>
 
-        <div class="create-row">
+        <div class="create-form">
             <ms-input
                 [ngModel]="newIncomeCategory()"
                 (ngModelChange)="newIncomeCategoryChange.emit($event)"
                 placeholder="Новая категория..."
             ></ms-input>
+
+            <label class="color-field">
+                <span>Цвет</span>
+                <input
+                    type="color"
+                    data-testid="income-color-picker"
+                    [value]="newIncomeCategoryColor()"
+                    [disabled]="saving()"
+                    (input)="newIncomeCategoryColorChange.emit(readColor($event))"
+                />
+                <strong>{{ newIncomeCategoryColor() }}</strong>
+            </label>
 
             <button
                 type="button"
@@ -33,13 +45,16 @@
         </div>
 
         @if (incomeCategories().length) {
-            <div class="chip-list">
+            <div class="category-rail" aria-label="Категории доходов">
                 @for (category of incomeCategories(); track category.id) {
-                    <span class="chip chip--income">
-                        {{ category.name }}
+                    <span
+                        class="category-chip"
+                        [style.--category-color]="category.color"
+                    >
+                        <span>{{ category.name }}</span>
                         <button
                             type="button"
-                            class="chip__action"
+                            class="category-chip__action"
                             [disabled]="saving()"
                             (click)="deleteCategory.emit(category.id)"
                             aria-label="Удалить категорию"
@@ -57,17 +72,29 @@
     <article class="panel">
         <div class="panel__header">
             <div>
-                <h2>Категории расходов</h2>
-                <p>Основные статьи расходов для операций и графиков.</p>
+                <h2>Расходы</h2>
+                <p>Статьи затрат для операций, бюджета и аналитики.</p>
             </div>
         </div>
 
-        <div class="create-row">
+        <div class="create-form">
             <ms-input
                 [ngModel]="newExpenseCategory()"
                 (ngModelChange)="newExpenseCategoryChange.emit($event)"
                 placeholder="Новая категория..."
             ></ms-input>
+
+            <label class="color-field">
+                <span>Цвет</span>
+                <input
+                    type="color"
+                    data-testid="expense-color-picker"
+                    [value]="newExpenseCategoryColor()"
+                    [disabled]="saving()"
+                    (input)="newExpenseCategoryColorChange.emit(readColor($event))"
+                />
+                <strong>{{ newExpenseCategoryColor() }}</strong>
+            </label>
 
             <button
                 type="button"
@@ -81,13 +108,16 @@
         </div>
 
         @if (expenseCategories().length) {
-            <div class="chip-list">
+            <div class="category-rail" aria-label="Категории расходов">
                 @for (category of expenseCategories(); track category.id) {
-                    <span class="chip chip--expense">
-                        {{ category.name }}
+                    <span
+                        class="category-chip"
+                        [style.--category-color]="category.color"
+                    >
+                        <span>{{ category.name }}</span>
                         <button
                             type="button"
-                            class="chip__action"
+                            class="category-chip__action"
                             [disabled]="saving()"
                             (click)="deleteCategory.emit(category.id)"
                             aria-label="Удалить категорию"
@@ -105,8 +135,8 @@
     <article class="panel panel--wide">
         <div class="panel__header">
             <div>
-                <h2>Теги категорий</h2>
-                <p>Группируйте категории для срезов аналитики.</p>
+                <h2>Теги аналитики</h2>
+                <p>Группы категорий для понятных срезов расходов и доходов.</p>
             </div>
         </div>
 
@@ -131,9 +161,9 @@
         @if (tagGroups().length) {
             <div class="tag-group-list">
                 @for (group of tagGroups(); track group.id) {
-                    <article class="tag-group-card">
+                    <article class="tag-group-card" [style.--tag-color]="group.color">
                         <div class="tag-group-card__header">
-                            <strong [style.color]="group.color"># {{ group.name }}</strong>
+                            <strong># {{ group.name }}</strong>
                             <button
                                 type="button"
                                 class="icon-action icon-action--danger"
@@ -145,32 +175,37 @@
                             </button>
                         </div>
 
-                        @if (categoryOptions().length) {
+                        @if (categoryOptionsForTag(group).length) {
                             <ms-select
                                 label="Добавить категорию"
-                                [options]="categoryOptions()"
+                                [options]="categoryOptionsForTag(group)"
                                 value=""
-                                (valueChange)="
-                                    assignCategoryToTag.emit({
-                                        tagId: group.id,
-                                        categoryId: $event,
-                                    })
-                                "
+                                placeholder="Выберите категорию"
+                                (valueChange)="onAssignCategoryToTag(group.id, $event)"
                             ></ms-select>
+                        } @else {
+                            <div class="categories-empty categories-empty--compact">
+                                Все доступные категории уже в этом теге.
+                            </div>
                         }
 
-                        @if (group.categories.length) {
-                            <div class="chip-list chip-list--nested">
+                        <div class="tag-group-card__categories">
+                            <span class="tag-group-card__label">
+                                Категории в теге · {{ group.categories.length }}
+                            </span>
+
+                            @if (group.categories.length) {
+                            <div class="tag-category-list">
                                 @for (category of group.categories; track category.id) {
                                     <span
-                                        class="chip"
-                                        [class.chip--income]="category.type === 'income'"
-                                        [class.chip--expense]="category.type === 'expense'"
+                                        class="tag-category-pill"
+                                        [style.--category-color]="category.color"
                                     >
-                                        {{ category.name }}
+                                        <i aria-hidden="true"></i>
+                                        <span>{{ category.name }}</span>
                                         <button
                                             type="button"
-                                            class="chip__action"
+                                            class="category-chip__action"
                                             [disabled]="saving()"
                                             (click)="
                                                 removeCategoryFromTag.emit({
@@ -185,11 +220,12 @@
                                     </span>
                                 }
                             </div>
-                        } @else {
+                            } @else {
                             <div class="categories-empty categories-empty--compact">
                                 В этом теге пока нет категорий.
                             </div>
-                        }
+                            }
+                        </div>
                     </article>
                 }
             </div>

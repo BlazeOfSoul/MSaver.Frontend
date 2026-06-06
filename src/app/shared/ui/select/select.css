@@ -22,7 +22,7 @@
     position: relative;
     display: block;
     border: 1px solid var(--color-ms-border);
-    border-radius: 1.1rem;
+    border-radius: 0.5rem;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
         color-mix(in oklab, var(--color-ms-surface), transparent 18%);
@@ -73,6 +73,11 @@
 }
 
 .ms-select__value {
+    --option-color: var(--color-ms-primary);
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.45rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -80,6 +85,16 @@
 
 .ms-select__value--placeholder {
     color: var(--color-ms-light-dark);
+}
+
+.ms-select__dot {
+    --option-color: var(--color-ms-primary);
+    flex: 0 0 auto;
+    width: 0.58rem;
+    height: 0.58rem;
+    border-radius: 999px;
+    background: var(--option-color);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--option-color), transparent 80%);
 }
 
 .ms-select__icon {
@@ -106,7 +121,7 @@
     gap: 0.35rem;
     padding: 0.45rem;
     border: 1px solid var(--color-ms-border-strong);
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     background:
         linear-gradient(180deg, rgba(12, 18, 16, 0.98), rgba(12, 18, 16, 0.96)),
         color-mix(in oklab, var(--color-ms-surface-raised), transparent 4%);
@@ -118,6 +133,7 @@
 }
 
 .ms-select__option {
+    --option-color: var(--color-ms-primary);
     display: flex;
     min-height: 2.8rem;
     align-items: center;
@@ -125,11 +141,24 @@
     gap: 0.75rem;
     padding: 0.65rem 0.8rem;
     border: 0;
-    border-radius: 0.85rem;
+    border-radius: 0.5rem;
     color: var(--color-ms-light);
     background: transparent;
     cursor: pointer;
     text-align: left;
+}
+
+.ms-select__option-label {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ms-select__option-label > span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .ms-select__option:hover,

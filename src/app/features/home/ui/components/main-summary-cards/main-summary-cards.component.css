@@ -14,7 +14,7 @@
     align-items: center;
     padding: 1rem 1.125rem;
     border: 1px solid var(--color-ms-border);
-    border-radius: 1.2rem;
+    border-radius: 0.5rem;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
         color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
@@ -52,7 +52,7 @@
 .summary-card__value {
     font-size: 1.25rem;
     line-height: 1.1;
-    letter-spacing: -0.03em;
+    letter-spacing: 0;
     overflow-wrap: anywhere;
 }
 
@@ -87,7 +87,7 @@
 
     .summary-card {
         padding: 0.9rem 1rem;
-        border-radius: 1rem;
+        border-radius: 0.5rem;
     }
 
     .summary-card__value {

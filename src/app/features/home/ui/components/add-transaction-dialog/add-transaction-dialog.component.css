@@ -5,7 +5,7 @@
 .dialog-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 20;
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -15,13 +15,13 @@
 }
 
 .dialog {
-    width: min(100%, 31rem);
+    width: min(100%, 42rem);
     max-height: min(100dvh - 2rem, 46rem);
     display: grid;
-    gap: 1.1rem;
+    gap: 1rem;
     padding: 1.5rem;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 1.35rem;
+    border-radius: 0.5rem;
     background:
         linear-gradient(180deg, rgba(11, 16, 14, 0.98), rgba(11, 16, 14, 0.95)),
         color-mix(in oklab, var(--color-ms-surface), transparent 4%);
@@ -60,7 +60,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.85rem;
+    border-radius: 0.5rem;
     color: var(--color-ms-light);
     background: rgba(255, 255, 255, 0.03);
     cursor: pointer;
@@ -69,14 +69,14 @@
 .dialog__mode {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 0.25rem;
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     background: rgba(255, 255, 255, 0.06);
 }
 
 .mode-button {
     min-height: 2.75rem;
     border: 0;
-    border-radius: 0.85rem;
+    border-radius: 0.5rem;
     color: rgba(255, 255, 255, 0.66);
     background: transparent;
     cursor: pointer;
@@ -84,7 +84,22 @@
 
 .mode-button--active {
     color: #04120d;
-    background: linear-gradient(180deg, var(--color-ms-primary-soft), var(--color-ms-primary));
+}
+
+.mode-button--income {
+    background: linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-ms-primary-soft), transparent 8%),
+        color-mix(in oklab, var(--color-ms-primary), #0f6f57 18%)
+    );
+}
+
+.mode-button--expense {
+    background: linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-ms-danger), white 38%),
+        color-mix(in oklab, var(--color-ms-danger), #5f1730 18%)
+    );
 }
 
 .dialog__field,
@@ -95,16 +110,45 @@
     gap: 0.5rem;
 }
 
+.dialog__amount-card {
+    grid-column: 1 / -1;
+    padding: 0.9rem;
+    border: 1px solid rgba(35, 199, 139, 0.16);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(135deg, rgba(35, 199, 139, 0.12), transparent 58%),
+        rgba(255, 255, 255, 0.035);
+}
+
+.dialog__amount-card .dialog__field-label {
+    color: color-mix(in oklab, var(--color-ms-primary-soft), white 12%);
+}
+
+.dialog__field--wide {
+    grid-column: 1 / -1;
+}
+
 .dialog__field-label {
     font-size: 0.78rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.66);
 }
 
+.dialog__footer {
+    position: sticky;
+    bottom: -1.5rem;
+    margin: 0 -1.5rem -1.5rem;
+    padding: 0.85rem 1.5rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background:
+        linear-gradient(180deg, rgba(11, 16, 14, 0.72), rgba(11, 16, 14, 0.98) 34%),
+        color-mix(in oklab, var(--color-ms-surface), transparent 4%);
+}
+
 .dialog__empty {
     justify-items: center;
     padding: 1.25rem 1rem;
-    border-radius: 1rem;
+    border-radius: 0.5rem;
     text-align: center;
     color: var(--color-ms-light-dark);
     background: rgba(255, 255, 255, 0.03);
@@ -133,15 +177,16 @@
 
 @media (max-width: 480px) {
     .dialog-backdrop {
-        padding: 0.6rem;
+        align-items: end;
+        padding: 0.5rem;
     }
 
     .dialog {
         width: 100%;
-        max-height: min(100dvh - 1.2rem, 100dvh);
+        max-height: min(100dvh - 0.5rem, 100dvh);
         gap: 1rem;
-        padding: 1rem;
-        border-radius: 1.1rem;
+        padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
+        border-radius: 0.5rem;
     }
 
     .dialog__header h2 {
@@ -151,5 +196,11 @@
     .dialog__header p,
     .dialog__hint {
         font-size: 0.8rem;
+    }
+
+    .dialog__footer {
+        bottom: calc(-1 * max(1rem, env(safe-area-inset-bottom)));
+        margin: 0 -1rem calc(-1 * max(1rem, env(safe-area-inset-bottom)));
+        padding: 0.8rem 1rem max(1rem, env(safe-area-inset-bottom));
     }
 }

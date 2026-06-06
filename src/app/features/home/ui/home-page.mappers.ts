@@ -40,6 +40,7 @@ export function mapAccount(
         monthChangeValue,
         monthChangeLabel: formatSignedMoney(monthChangeValue, currencyCode),
         color: account.color || ACCOUNT_COLORS[index % ACCOUNT_COLORS.length],
+        isPrimary: !!account.isPrimary,
     };
 }
 
@@ -56,9 +57,11 @@ export function mapTransaction(transaction: TransactionResponse): TransactionIte
         category: categoryName,
         categoryId: transaction.category.id,
         categoryType: transaction.category.type,
+        categoryColor: transaction.category.color || CATEGORY_COLORS[0],
         accountId: transaction.account.id,
         accountName,
         date: formatDate(transaction.date),
+        dateValue: transaction.date,
         description,
         amountValue: amount,
         amountLabel: `${tone === 'income' ? '+' : '-'}${formatMoney(
@@ -73,10 +76,13 @@ export function mapCategories(
     categories: ReadonlyArray<CategoryResponse>,
     transactions: ReadonlyArray<TransactionResponse>,
     type: 'income' | 'expense',
+    currencyCode = 'BYN',
+    readAmount: (transaction: TransactionResponse) => number = (transaction) =>
+        Math.abs(transaction.amount),
 ): CategoryBreakdownItem[] {
     const categoryType = type === 'income' ? 'Credit' : 'Debit';
     const visibleCategories = categories.filter((category) => category.type === categoryType);
-    const totals = categoryTotals(transactions);
+    const totals = categoryTotals(transactions, readAmount);
     const max = Math.max(1, ...visibleCategories.map((category) => totals.get(category.id) ?? 0));
 
     return visibleCategories.map((category) => {
@@ -86,7 +92,7 @@ export function mapCategories(
         return {
             id: category.id,
             name: safeText(category.name, 'Категория без названия'),
-            amount: formatMoney(amountValue, 'BYN'),
+            amount: formatMoney(amountValue, currencyCode),
             amountValue,
             progress,
             color: category.color || CATEGORY_COLORS[0],
@@ -106,6 +112,7 @@ export function mapTags(tags: ReadonlyArray<TagDetailsResponse>): TagGroupItem[]
             .map((category) => ({
                 id: category.id,
                 name: safeText(category.name, 'Категория без названия'),
+                color: category.color || CATEGORY_COLORS[0],
                 type: isExpenseCategory(category.type) ? 'expense' : 'income',
             })),
     }));
@@ -113,12 +120,14 @@ export function mapTags(tags: ReadonlyArray<TagDetailsResponse>): TagGroupItem[]
 
 export function categoryTotals(
     transactions: ReadonlyArray<TransactionResponse>,
+    readAmount: (transaction: TransactionResponse) => number = (transaction) =>
+        Math.abs(transaction.amount),
 ): Map<string, number> {
     const totals = new Map<string, number>();
 
     transactions.forEach((transaction) => {
         const current = totals.get(transaction.category.id) ?? 0;
-        totals.set(transaction.category.id, current + Math.abs(transaction.amount));
+        totals.set(transaction.category.id, current + readAmount(transaction));
     });
 
     return totals;

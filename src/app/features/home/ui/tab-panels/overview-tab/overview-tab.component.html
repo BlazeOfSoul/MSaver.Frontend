@@ -1,8 +1,8 @@
 <section class="panel">
     <div class="panel__header">
         <div>
-            <h2>Транзакции</h2>
-            <p>Все движения по счетам в одном аккуратном списке.</p>
+            <h2>Журнал операций</h2>
+            <p>Доходы, расходы и переводы в отсортированной таблице выбранного месяца.</p>
         </div>
     </div>
 
@@ -20,53 +20,143 @@
     </div>
 
     @if (transactions().length) {
-        <div class="transaction-list">
-            @for (item of transactions(); track item.id) {
-            <article class="transaction-row">
-                <div class="transaction-row__leading" [attr.data-tone]="item.tone">
-                    <span class="material-symbols-outlined">
-                        {{ item.tone === 'income' ? 'south_west' : 'north_east' }}
-                    </span>
-                </div>
-
-                <div class="transaction-row__copy">
-                    <div class="transaction-row__title-line">
-                        <strong>{{ item.title }}</strong>
-                        <span class="transaction-row__category">{{ item.category }}</span>
-                    </div>
-
-                    <div class="transaction-row__meta">
-                        <span>{{ item.accountName }}</span>
-                        <span>{{ item.date }}</span>
-                        @if (item.description) {
-                            <span>{{ item.description }}</span>
-                        }
-                    </div>
-                </div>
-
-                <div class="transaction-row__actions">
-                    <strong class="transaction-row__amount" [attr.data-tone]="item.tone">
-                        {{ item.amountLabel }}
-                    </strong>
-
-                    <button
-                        type="button"
-                        class="icon-action icon-action--danger"
-                        [disabled]="saving()"
-                        (click)="deleteTransaction.emit(item.id)"
-                        aria-label="Удалить транзакцию"
-                    >
-                        <span class="material-symbols-outlined">delete</span>
-                    </button>
-                </div>
-            </article>
-            }
+        <div class="transactions-table-shell">
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th scope="col">
+                            <button type="button" class="table-sort" (click)="changeSort('date')">
+                                Дата
+                                <span class="material-symbols-outlined">{{ sortIcon('date') }}</span>
+                            </button>
+                        </th>
+                        <th scope="col">
+                            <button type="button" class="table-sort" (click)="changeSort('title')">
+                                Операция
+                                <span class="material-symbols-outlined">{{ sortIcon('title') }}</span>
+                            </button>
+                        </th>
+                        <th scope="col">
+                            <button
+                                type="button"
+                                class="table-sort"
+                                (click)="changeSort('category')"
+                            >
+                                Категория
+                                <span class="material-symbols-outlined">
+                                    {{ sortIcon('category') }}
+                                </span>
+                            </button>
+                        </th>
+                        <th scope="col">
+                            <button
+                                type="button"
+                                class="table-sort"
+                                (click)="changeSort('account')"
+                            >
+                                Счёт
+                                <span class="material-symbols-outlined">
+                                    {{ sortIcon('account') }}
+                                </span>
+                            </button>
+                        </th>
+                        <th scope="col" class="transactions-table__amount-head">
+                            <button type="button" class="table-sort" (click)="changeSort('amount')">
+                                Сумма
+                                <span class="material-symbols-outlined">{{ sortIcon('amount') }}</span>
+                            </button>
+                        </th>
+                        <th scope="col" class="transactions-table__actions-head">
+                            <span class="sr-only">Действия</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (item of pagedTransactions(); track item.id) {
+                        <tr>
+                            <td data-label="Дата">
+                                <span class="transaction-date">{{ item.date }}</span>
+                            </td>
+                            <td data-label="Операция">
+                                <div class="transaction-name">
+                                    <span class="transaction-name__icon" [attr.data-tone]="item.tone">
+                                        <span class="material-symbols-outlined">
+                                            {{ item.tone === 'income' ? 'south_west' : 'north_east' }}
+                                        </span>
+                                    </span>
+                                    <div>
+                                        <strong>{{ item.title }}</strong>
+                                        @if (item.description && item.description !== item.title) {
+                                            <span>{{ item.description }}</span>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-label="Категория">
+                                <span
+                                    class="transaction-category"
+                                    [style.--category-color]="item.categoryColor"
+                                >
+                                    {{ item.category }}
+                                </span>
+                            </td>
+                            <td data-label="Счёт">{{ item.accountName }}</td>
+                            <td data-label="Сумма" class="transactions-table__amount">
+                                <strong [attr.data-tone]="item.tone">{{ item.amountLabel }}</strong>
+                            </td>
+                            <td class="transactions-table__actions">
+                                <button
+                                    type="button"
+                                    class="icon-action icon-action--danger"
+                                    [disabled]="saving()"
+                                    (click)="deleteTransaction.emit(item.id)"
+                                    aria-label="Удалить транзакцию"
+                                >
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
+
+        @if (totalPages() > 1) {
+            <nav class="pagination" aria-label="Страницы транзакций">
+                <button
+                    type="button"
+                    class="pagination__button"
+                    [disabled]="currentPageIndex() === 0"
+                    (click)="goToPreviousPage()"
+                    data-testid="previous-transactions-page"
+                    aria-label="Предыдущая страница"
+                >
+                    <span class="material-symbols-outlined">chevron_left</span>
+                </button>
+                <span class="pagination__meta">{{ pageLabel() }}</span>
+                <button
+                    type="button"
+                    class="pagination__button"
+                    [disabled]="currentPageIndex() >= totalPages() - 1"
+                    (click)="goToNextPage()"
+                    data-testid="next-transactions-page"
+                    aria-label="Следующая страница"
+                >
+                    <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+            </nav>
+        }
     } @else {
         <div class="transactions-empty">
-            <span class="material-symbols-outlined">receipt_long</span>
-            <strong>Операций за этот период нет</strong>
-            <p>Добавьте доход, расход или измените поиск, чтобы увидеть движения по счетам.</p>
+            @if (hasActiveFilters()) {
+                <span class="material-symbols-outlined">search_off</span>
+                <strong>Ничего не найдено</strong>
+                <p>Попробуйте изменить счёт или запрос, чтобы увидеть подходящие операции.</p>
+            } @else {
+                <span class="material-symbols-outlined">receipt_long</span>
+                <strong>Операций за этот период нет</strong>
+                <p>Добавьте доход или расход, и они появятся здесь в хронологическом журнале.</p>
+            }
         </div>
     }
 </section>

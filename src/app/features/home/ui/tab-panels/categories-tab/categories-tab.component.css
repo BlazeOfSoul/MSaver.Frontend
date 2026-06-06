@@ -10,19 +10,20 @@
 .panel {
     display: grid;
     gap: 1rem;
-    padding: 1.125rem;
+    min-width: 0;
+    padding: 1rem;
     border: 1px solid var(--color-ms-border);
-    border-radius: 1.25rem;
+    border-radius: 0.5rem;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
         color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
     box-shadow:
-        0 22px 48px rgba(0, 0, 0, 0.18),
+        0 18px 36px rgba(0, 0, 0, 0.16),
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .categories-search {
-    padding: 0.85rem;
+    padding: 0.8rem;
 }
 
 .panel__header h2,
@@ -31,17 +32,72 @@
     color: var(--color-ms-light);
 }
 
-.panel__header p,
-.tag-group-card__header span {
+.panel__header p {
     margin: 0.25rem 0 0;
     color: var(--color-ms-light-dark);
 }
 
-.create-row {
+.create-row,
+.create-form {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.75rem;
     align-items: center;
+}
+
+.create-form {
+    grid-template-columns: minmax(0, 1fr) minmax(8.5rem, auto) auto;
+}
+
+.color-field {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-areas:
+        "label label"
+        "input value";
+    align-items: center;
+    gap: 0.35rem 0.55rem;
+    min-height: 52px;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.color-field span {
+    grid-area: label;
+    color: var(--color-ms-light-dark);
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.color-field input {
+    grid-area: input;
+    width: 2.15rem;
+    height: 2.15rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent),
+        transparent;
+    cursor: pointer;
+}
+
+.color-field input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.color-field input::-webkit-color-swatch {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 0.5rem;
+}
+
+.color-field strong {
+    grid-area: value;
+    color: var(--color-ms-light);
+    font-size: 0.78rem;
+    letter-spacing: 0;
 }
 
 .round-action {
@@ -51,10 +107,10 @@
     align-items: center;
     justify-content: center;
     border: 0;
-    border-radius: 0.9rem;
-    color: #04120d;
-    background: var(--color-ms-primary);
-    box-shadow: 0 16px 30px rgba(35, 199, 139, 0.2);
+    border-radius: 0.5rem;
+    color: #06130f;
+    background: color-mix(in oklab, var(--color-ms-primary), #0f6f57 24%);
+    box-shadow: 0 12px 24px rgba(35, 199, 139, 0.16);
     cursor: pointer;
 }
 
@@ -63,34 +119,50 @@
     opacity: 0.55;
 }
 
-.chip-list,
-.tag-group-list {
-    display: grid;
-    gap: 0.875rem;
-}
-
-.chip-list {
+.category-rail {
     display: flex;
-    flex-wrap: wrap;
+    gap: 0.65rem;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 0.15rem 0 0.45rem;
+    scroll-snap-type: x proximity;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-.chip {
-    display: inline-flex;
-    max-width: 100%;
+.category-rail--nested {
+    padding-bottom: 0.1rem;
+}
+
+.category-chip {
+    --category-color: var(--color-ms-primary);
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.55rem 0.85rem;
+    gap: 0.45rem;
+    max-width: min(21rem, 86vw);
+    min-height: 2.45rem;
+    padding: 0.45rem 0.55rem 0.45rem 0.75rem;
+    border: 1px solid color-mix(in oklab, var(--category-color), transparent 62%);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--color-ms-light);
-    font-size: 0.92rem;
-    overflow-wrap: anywhere;
+    color: color-mix(in oklab, var(--category-color), white 32%);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0)),
+        color-mix(in oklab, var(--category-color), transparent 86%);
+    font-weight: 800;
+    scroll-snap-align: start;
 }
 
-.chip__action {
+.category-chip > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.category-chip__action {
     display: inline-flex;
-    width: 1.35rem;
-    height: 1.35rem;
+    width: 1.45rem;
+    height: 1.45rem;
     align-items: center;
     justify-content: center;
     border: 0;
@@ -100,52 +172,29 @@
     cursor: pointer;
 }
 
-.chip__action:disabled {
+.category-chip__action:disabled {
     cursor: progress;
     opacity: 0.55;
 }
 
-.chip__action .material-symbols-outlined {
+.category-chip__action .material-symbols-outlined {
     font-size: 1rem;
 }
 
-.chip--income {
-    background: rgba(35, 199, 139, 0.12);
-    color: #c6ffeb;
-}
-
-.chip--expense {
-    background: rgba(255, 111, 145, 0.12);
-    color: #ffd4df;
-}
-
-.chip--tagged {
-    background: rgba(103, 166, 193, 0.12);
-    color: #d7f0ff;
-}
-
-.chip-list--nested {
-    gap: 0.6rem;
-}
-
-.categories-empty {
-    padding: 1rem 1.05rem;
-    border-radius: 1rem;
-    color: var(--color-ms-light-dark);
-    background: rgba(255, 255, 255, 0.03);
-}
-
-.categories-empty--compact {
-    padding: 0.75rem 0.85rem;
+.tag-group-list {
+    display: grid;
+    gap: 0.85rem;
 }
 
 .tag-group-card {
     display: grid;
     gap: 0.85rem;
-    padding: 1rem;
-    border-radius: 1rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 0.9rem;
+    border: 1px solid color-mix(in oklab, var(--tag-color), transparent 76%);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(135deg, color-mix(in oklab, var(--tag-color), transparent 90%), transparent 62%),
+        rgba(255, 255, 255, 0.03);
 }
 
 .tag-group-card__header {
@@ -157,7 +206,67 @@
 
 .tag-group-card__header strong {
     min-width: 0;
+    color: color-mix(in oklab, var(--tag-color), white 24%);
     overflow-wrap: anywhere;
+}
+
+.tag-group-card__categories {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.tag-group-card__label {
+    color: var(--color-ms-light-dark);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.tag-category-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tag-category-pill {
+    --category-color: var(--color-ms-primary);
+    display: inline-flex;
+    max-width: 100%;
+    min-height: 2.25rem;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.45rem 0.35rem 0.6rem;
+    border: 1px solid color-mix(in oklab, var(--category-color), transparent 64%);
+    border-radius: 999px;
+    color: var(--color-ms-light);
+    background: color-mix(in oklab, var(--category-color), transparent 88%);
+    font-weight: 800;
+}
+
+.tag-category-pill i {
+    flex: 0 0 auto;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 999px;
+    background: var(--category-color);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--category-color), transparent 78%);
+}
+
+.tag-category-pill > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.categories-empty {
+    padding: 0.9rem 1rem;
+    border-radius: 0.5rem;
+    color: var(--color-ms-light-dark);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.categories-empty--compact {
+    padding: 0.75rem 0.85rem;
 }
 
 .icon-action {
@@ -167,7 +276,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     color: var(--color-ms-light-dark);
     background: rgba(255, 255, 255, 0.04);
     cursor: pointer;
@@ -195,15 +304,21 @@
 
 @media (max-width: 640px) {
     .panel {
-        padding: 0.95rem;
-        border-radius: 1rem;
+        padding: 0.9rem;
     }
 
-    .create-row {
-        grid-template-columns: 1fr;
+    .create-row,
+    .create-form {
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .round-action {
-        width: 100%;
+    .color-field {
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas: "input label value";
+        min-height: 3rem;
+    }
+
+    .category-chip {
+        max-width: 78vw;
     }
 }

@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    effect,
+    input,
+    output,
+    signal,
+} from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Button } from '../../../../../shared/ui/button/button';
 import { InputComponent } from '../../../../../shared/ui/input/input';
@@ -24,6 +32,9 @@ export class AccountsTabComponent {
     selectedAccountId = input.required<string>();
     newAccountName = input.required<string>();
     newAccountCurrency = input.required<string>();
+    newAccountNameError = input<string>('');
+    transferRateError = input<string>('');
+    rateLoading = input(false);
     saving = input(false);
 
     transferDraftChange = output<TransferDraft>();
@@ -33,6 +44,9 @@ export class AccountsTabComponent {
     deleteAccount = output<string>();
     submitTransfer = output<void>();
     accountChange = output<string>();
+
+    readonly transferAmountText = signal('0.00');
+    private readonly transferAmountEditing = signal(false);
 
     readonly fromAccount = computed(() =>
         this.allAccounts().find((account) => account.id === this.transferDraft().fromAccountId),
@@ -53,6 +67,44 @@ export class AccountsTabComponent {
             this.transferDraft().fromAccountId !== this.transferDraft().toAccountId &&
             !this.saving(),
     );
+    readonly isBankRateInverted = computed(() => {
+        const rate = this.transferDraft().rate;
+        return !!rate && rate > 0 && rate < 1;
+    });
+    readonly bankRatePairLabel = computed(() => {
+        const from = this.fromAccount()?.currencyCode ?? '';
+        const to = this.toAccount()?.currencyCode ?? '';
+
+        if (!from || !to) {
+            return 'Курс';
+        }
+
+        return this.isBankRateInverted() ? `${to} → ${from}` : `${from} → ${to}`;
+    });
+    readonly bankRateHint = computed(() => {
+        const from = this.fromAccount()?.currencyCode ?? '';
+        const to = this.toAccount()?.currencyCode ?? '';
+        const displayRate = this.displayTransferRate();
+
+        if (!from || !to || !displayRate) {
+            return 'Оставьте курс как есть или укажите свой для этой операции.';
+        }
+
+        const base = this.isBankRateInverted() ? to : from;
+        const quote = this.isBankRateInverted() ? from : to;
+
+        return `1 ${base} = ${displayRate} ${quote}`;
+    });
+
+    constructor() {
+        effect(() => {
+            const amount = this.transferDraft().amount;
+
+            if (!this.transferAmountEditing()) {
+                this.transferAmountText.set(this.formatMoneyAmount(amount));
+            }
+        });
+    }
 
     formatMoneyAmount(value: number): string {
         return Number.isFinite(value) && value > 0 ? value.toFixed(2) : '0.00';
@@ -67,5 +119,82 @@ export class AccountsTabComponent {
         }
 
         return Math.round(parsed * 100) / 100;
+    }
+
+    onTransferAmountFocus(): void {
+        this.transferAmountEditing.set(true);
+
+        if (this.transferDraft().amount <= 0 && this.transferAmountText() === '0.00') {
+            this.transferAmountText.set('');
+        }
+    }
+
+    onTransferAmountInput(value: string | number): void {
+        const nextText = this.normalizeTransferAmountInputText(`${value ?? ''}`);
+
+        this.transferAmountText.set(nextText);
+        this.transferDraftChange.emit({
+            ...this.transferDraft(),
+            amount: this.parseMoneyAmount(nextText),
+        });
+    }
+
+    onTransferAmountBlur(): void {
+        this.transferAmountEditing.set(false);
+        this.transferAmountText.set(this.formatMoneyAmount(this.parseMoneyAmount(this.transferAmountText())));
+    }
+
+    displayTransferRate(): string {
+        const rate = this.transferDraft().rate;
+
+        if (!rate || rate <= 0) {
+            return '';
+        }
+
+        const displayRate = rate < 1 ? 1 / rate : rate;
+
+        return this.formatRate(displayRate);
+    }
+
+    onTransferRateInput(value: string | number): void {
+        const parsed = this.parseTransferRate(value);
+        const nextRate = parsed > 0
+            ? this.isBankRateInverted()
+                ? Math.round((1 / parsed) * 1_000_000) / 1_000_000
+                : parsed
+            : null;
+
+        this.transferDraftChange.emit({
+            ...this.transferDraft(),
+            rate: nextRate,
+        });
+    }
+
+    private normalizeTransferAmountInputText(value: string): string {
+        if (this.transferAmountEditing() && this.transferDraft().amount <= 0 && value.startsWith('0.00')) {
+            return value.slice('0.00'.length);
+        }
+
+        return value;
+    }
+
+    private parseTransferRate(value: string | number): number {
+        const normalized = `${value ?? ''}`.replace(',', '.').replace(/\s/g, '').trim();
+        const parsed = Number.parseFloat(normalized);
+
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return 0;
+        }
+
+        return Math.round(parsed * 1_000_000) / 1_000_000;
+    }
+
+    private formatRate(value: number): string {
+        return Number.isFinite(value)
+            ? value.toLocaleString('ru-RU', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 6,
+            })
+            : '';
     }
 }

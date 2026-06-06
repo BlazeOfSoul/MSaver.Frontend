@@ -1,4 +1,4 @@
-export type HomeTabId = 'overview' | 'accounts' | 'analytics' | 'categories';
+export type HomeTabId = 'overview' | 'accounts' | 'analytics' | 'categories' | 'settings';
 
 export interface HomeTabItem {
     id: HomeTabId;
@@ -21,9 +21,11 @@ export interface TransactionItem {
     category: string;
     categoryId: string;
     categoryType: 'Debit' | 'Credit' | 'TransferIncome' | 'TransferExpense';
+    categoryColor: string;
     accountId: string;
     accountName: string;
     date: string;
+    dateValue: string;
     description: string;
     amountLabel: string;
     amountValue: number;
@@ -40,6 +42,7 @@ export interface AccountBalanceItem {
     monthChangeLabel: string;
     monthChangeValue: number;
     color: string;
+    isPrimary: boolean;
 }
 
 export interface TransferDraft {
@@ -99,6 +102,7 @@ export interface TagGroupItem {
 export interface TagCategoryItem {
     id: string;
     name: string;
+    color: string;
     type: 'income' | 'expense';
 }
 

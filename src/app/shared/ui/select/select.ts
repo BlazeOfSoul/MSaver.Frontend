@@ -13,6 +13,7 @@ import {
 export interface MsSelectOption {
     value: string;
     label: string;
+    color?: string;
 }
 
 @Component({

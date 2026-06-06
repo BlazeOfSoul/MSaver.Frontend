@@ -49,6 +49,8 @@ export class InputComponent implements ControlValueAccessor {
     actionDisabled = input<boolean>(false);
 
     action = output<void>();
+    focused = output<void>();
+    blurred = output<void>();
 
     touched = signal(false);
     value = signal('');
@@ -87,5 +89,11 @@ export class InputComponent implements ControlValueAccessor {
     onFocus(): void {
         this.touched.set(true);
         this.onTouched();
+        this.focused.emit();
+    }
+
+    onBlur(): void {
+        this.onTouched();
+        this.blurred.emit();
     }
 }

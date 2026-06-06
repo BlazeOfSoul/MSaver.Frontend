@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    effect,
+    input,
+    output,
+    signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from '../../../../../shared/ui/button/button';
 import { InputComponent } from '../../../../../shared/ui/input/input';
@@ -25,6 +33,9 @@ export class AddTransactionDialogComponent {
     draftChange = output<TransactionDraft>();
     save = output<void>();
 
+    readonly amountText = signal('0.00');
+    private readonly amountEditing = signal(false);
+
     readonly hasAccounts = computed(() => this.accountOptions().length > 0);
     readonly categoryOptions = computed(() =>
         this.draft().type === 'income'
@@ -39,6 +50,16 @@ export class AddTransactionDialogComponent {
             !!this.draft().categoryId &&
             this.draft().amount > 0,
     );
+
+    constructor() {
+        effect(() => {
+            const amount = this.draft().amount;
+
+            if (!this.amountEditing()) {
+                this.amountText.set(this.formatMoneyAmount(amount));
+            }
+        });
+    }
 
     onBackdropClick(event: MouseEvent): void {
         if (event.target === event.currentTarget) {
@@ -59,5 +80,36 @@ export class AddTransactionDialogComponent {
         }
 
         return Math.round(parsed * 100) / 100;
+    }
+
+    onAmountFocus(): void {
+        this.amountEditing.set(true);
+
+        if (this.draft().amount <= 0 && this.amountText() === '0.00') {
+            this.amountText.set('');
+        }
+    }
+
+    onAmountInput(value: string | number): void {
+        const nextText = this.normalizeAmountInputText(`${value ?? ''}`);
+
+        this.amountText.set(nextText);
+        this.draftChange.emit({
+            ...this.draft(),
+            amount: this.parseMoneyAmount(nextText),
+        });
+    }
+
+    onAmountBlur(): void {
+        this.amountEditing.set(false);
+        this.amountText.set(this.formatMoneyAmount(this.parseMoneyAmount(this.amountText())));
+    }
+
+    private normalizeAmountInputText(value: string): string {
+        if (this.amountEditing() && this.draft().amount <= 0 && value.startsWith('0.00')) {
+            return value.slice('0.00'.length);
+        }
+
+        return value;
     }
 }

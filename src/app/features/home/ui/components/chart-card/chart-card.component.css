@@ -7,7 +7,7 @@
     gap: 1rem;
     padding: 1.125rem;
     border: 1px solid var(--color-ms-border);
-    border-radius: 1.25rem;
+    border-radius: 0.5rem;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
         color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
@@ -77,7 +77,7 @@
     text-align: center;
     color: var(--color-ms-light-dark);
     background: linear-gradient(180deg, rgba(10, 15, 13, 0.14), rgba(10, 15, 13, 0.3));
-    border-radius: 0.9rem;
+    border-radius: 0.5rem;
 }
 
 .chart-card__empty strong {
@@ -94,7 +94,7 @@
     .chart-card {
         gap: 0.85rem;
         padding: 0.95rem;
-        border-radius: 1rem;
+        border-radius: 0.5rem;
     }
 
     .chart-card__header p {

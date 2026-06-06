@@ -2,24 +2,41 @@
     <div class="main-header__top">
         <div class="main-header__brand">
             <div class="brand-mark">
-                <img src="/images/msaver-logo.png" alt="MSaver" width="42" height="42" />
+                <img src="/images/msaver-logo.png" alt="MSaver" width="54" height="54" />
             </div>
 
             <div class="brand-copy">
                 <span class="brand-name">MSaver</span>
-                <span class="brand-caption">Личный кабинет финансов</span>
+                <span class="brand-caption">
+                    @if (userName()) {
+                        Добрый день, {{ userName() }}
+                    } @else {
+                        Добрый день
+                    }
+                </span>
             </div>
         </div>
 
         <div class="main-header__actions">
             <button
                 type="button"
-                class="icon-button"
+                class="header-icon-button"
+                data-testid="settings-button"
+                (click)="settings.emit()"
+                aria-label="Настройки"
+            >
+                <span class="material-symbols-outlined">settings</span>
+            </button>
+
+            <button
+                type="button"
+                class="logout-button"
                 data-testid="logout-button"
                 (click)="logout.emit()"
                 aria-label="Выйти"
             >
                 <span class="material-symbols-outlined">logout</span>
+                <span>Выйти</span>
             </button>
         </div>
     </div>

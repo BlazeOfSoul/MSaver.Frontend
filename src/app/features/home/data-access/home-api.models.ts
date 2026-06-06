@@ -17,6 +17,7 @@ export interface AccountResponse {
     currentBalance: number;
     color: string | null;
     isArchived: boolean;
+    isPrimary?: boolean;
 }
 
 export interface MonthBalanceResponse {
@@ -126,6 +127,12 @@ export interface CreateTransferResponse {
     incomeTransactionId: string;
     withdrawAmount: number;
     depositAmount: number;
+    rate: number;
+    fromCurrencyCode: string;
+    toCurrencyCode: string;
+}
+
+export interface TransferRateResponse {
     rate: number;
     fromCurrencyCode: string;
     toCurrencyCode: string;

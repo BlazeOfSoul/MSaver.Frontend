@@ -17,6 +17,7 @@ import {
     TagDetailsResponse,
     TagResponse,
     TransactionResponse,
+    TransferRateResponse,
 } from './home-api.models';
 
 const LIST_SIZE = 100;
@@ -157,5 +158,15 @@ export class HomeApiService {
             `${this.baseUrl}/Transactions/transfer`,
             payload,
         );
+    }
+
+    getTransferRate(fromAccountId: string, toAccountId: string): Observable<TransferRateResponse> {
+        const params = new HttpParams()
+            .set('fromAccountId', fromAccountId)
+            .set('toAccountId', toAccountId);
+
+        return this.http.get<TransferRateResponse>(`${this.baseUrl}/Transactions/transfer-rate`, {
+            params,
+        });
     }
 }

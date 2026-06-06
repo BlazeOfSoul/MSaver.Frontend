@@ -2,8 +2,8 @@
     <article class="panel">
         <div class="panel__header">
             <div>
-                <h2>Аналитика</h2>
-                <p>Графики и срезы по тратам, доходам и балансу.</p>
+                <h2>Финансовая аналитика</h2>
+                <p>Понятные графики для контроля доходов, расходов и баланса.</p>
             </div>
         </div>
 
@@ -26,69 +26,124 @@
         </div>
     </article>
 
-    <ms-chart-card
-        class="panel--wide"
-        title="Доходы vs Расходы"
-        subtitle="Сравнение потоков по месяцам выбранного года."
-        type="bar"
-        [labels]="incomeVsExpenseLabels()"
-        [datasets]="incomeVsExpenseDatasets()"
-    ></ms-chart-card>
+    <section class="analytics-section analytics-section--wide">
+        <div class="analytics-section__header">
+            <span>Денежный поток</span>
+        </div>
 
-    <ms-chart-card
-        title="Расходы по категориям"
-        subtitle="Структура расходов выбранного месяца."
-        type="doughnut"
-        [labels]="expenseCategoryLabels()"
-        [datasets]="expenseCategoryDatasets()"
-    ></ms-chart-card>
+        <ms-chart-card
+            class="panel--wide"
+            title="Доходы и расходы"
+            subtitle="Сравнение денежных потоков по месяцам выбранного года."
+            type="bar"
+            [labels]="incomeVsExpenseLabels()"
+            [datasets]="incomeVsExpenseDatasets()"
+        ></ms-chart-card>
 
-    <ms-chart-card
-        title="Доходы по категориям"
-        subtitle="Структура поступлений выбранного месяца."
-        type="doughnut"
-        [labels]="incomeCategoryLabels()"
-        [datasets]="incomeCategoryDatasets()"
-    ></ms-chart-card>
+        <ms-chart-card
+            class="panel--wide"
+            title="Чистый денежный поток"
+            subtitle="Итоговая разница между доходами и расходами по месяцам."
+            type="line"
+            [labels]="netCashFlowLabels()"
+            [datasets]="netCashFlowDatasets()"
+        ></ms-chart-card>
+    </section>
 
-    <ms-chart-card
-        title="Расходы по месяцам"
-        subtitle="Динамика расходов в выбранном году."
-        type="bar"
-        [labels]="monthlyExpenseLabels()"
-        [datasets]="monthlyExpenseDatasets()"
-    ></ms-chart-card>
+    <section class="analytics-section">
+        <div class="analytics-section__header">
+            <span>Категории</span>
+        </div>
 
-    <ms-chart-card
-        title="Динамика баланса"
-        subtitle="Закрывающий баланс по месяцам выбранного года."
-        type="line"
-        [labels]="balanceDynamicsLabels()"
-        [datasets]="balanceDynamicsDatasets()"
-    ></ms-chart-card>
+        <ms-chart-card
+            title="Расходы по категориям"
+            subtitle="Структура расходов выбранного месяца."
+            type="doughnut"
+            [labels]="expenseCategoryLabels()"
+            [datasets]="expenseCategoryDatasets()"
+        ></ms-chart-card>
 
-    <ms-chart-card
-        title="Расходы по тегам"
-        subtitle="Теги, которые собирают основные траты."
-        type="bar"
-        [labels]="tagExpenseLabels()"
-        [datasets]="tagExpenseDatasets()"
-    ></ms-chart-card>
+        <ms-chart-card
+            title="Доходы по категориям"
+            subtitle="Структура поступлений выбранного месяца."
+            type="doughnut"
+            [labels]="incomeCategoryLabels()"
+            [datasets]="incomeCategoryDatasets()"
+        ></ms-chart-card>
+    </section>
 
-    <ms-chart-card
-        title="Топ расходов"
-        subtitle="Самые затратные категории выбранного месяца."
-        type="bar"
-        [labels]="topExpenseLabels()"
-        [datasets]="topExpenseDatasets()"
-    ></ms-chart-card>
+    <section class="analytics-section">
+        <div class="analytics-section__header">
+            <span>Динамика</span>
+        </div>
 
-    <ms-chart-card
-        class="panel--wide"
-        title="Статистика года"
-        subtitle="Итоги доходов и расходов за выбранный год."
-        type="bar"
-        [labels]="yearStatLabels()"
-        [datasets]="yearStatDatasets()"
-    ></ms-chart-card>
+        <ms-chart-card
+            title="Расходы по месяцам"
+            subtitle="Динамика расходов в выбранном году."
+            type="bar"
+            [labels]="monthlyExpenseLabels()"
+            [datasets]="monthlyExpenseDatasets()"
+        ></ms-chart-card>
+
+        <ms-chart-card
+            title="Динамика баланса"
+            subtitle="Закрывающий баланс по месяцам выбранного года."
+            type="line"
+            [labels]="balanceDynamicsLabels()"
+            [datasets]="balanceDynamicsDatasets()"
+        ></ms-chart-card>
+    </section>
+
+    <section class="tag-chart-section analytics-section analytics-section--wide">
+        <div class="analytics-section__header">
+            <span>Теги и крупные траты</span>
+        </div>
+
+        <ms-chart-card
+            title="Расходы по тегам"
+            subtitle="Теги, которые собирают основные траты."
+            type="bar"
+            [labels]="tagExpenseLabels()"
+            [datasets]="tagExpenseDatasets()"
+        ></ms-chart-card>
+
+        <div class="tag-filter-strip" aria-label="Фильтр расходов по тегам">
+            @for (option of tagExpenseOptions(); track option.value) {
+                <button
+                    type="button"
+                    class="tag-filter-button"
+                    [class.tag-filter-button--active]="selectedTagExpenseId() === option.value"
+                    (click)="selectedTagExpenseId.set(option.value)"
+                >
+                    @if (option.color) {
+                        <i [style.--tag-filter-color]="option.color"></i>
+                    }
+                    <span>{{ option.label }}</span>
+                </button>
+            }
+        </div>
+    </section>
+
+    <section class="analytics-section">
+        <div class="analytics-section__header">
+            <span>Сводка</span>
+        </div>
+
+        <ms-chart-card
+            title="Топ расходов"
+            subtitle="Самые затратные категории выбранного месяца."
+            type="bar"
+            [labels]="topExpenseLabels()"
+            [datasets]="topExpenseDatasets()"
+        ></ms-chart-card>
+
+        <ms-chart-card
+            class="panel--wide"
+            title="Статистика года"
+            subtitle="Итоги доходов и расходов за выбранный год."
+            type="bar"
+            [labels]="yearStatLabels()"
+            [datasets]="yearStatDatasets()"
+        ></ms-chart-card>
+    </section>
 </section>

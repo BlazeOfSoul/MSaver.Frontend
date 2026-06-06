@@ -1,4 +1,5 @@
 import { signal, WritableSignal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -33,6 +34,8 @@ describe('HomePageComponent', () => {
     let authStore: {
         userId: WritableSignal<string | null>;
         clientId: WritableSignal<string | null>;
+        userName: WritableSignal<string | null>;
+        isAuthenticated: WritableSignal<boolean>;
         clearSession: ReturnType<typeof vi.fn>;
     };
     let authService: {
@@ -46,8 +49,11 @@ describe('HomePageComponent', () => {
         getTransactions: ReturnType<typeof vi.fn>;
         getMonthBalance: ReturnType<typeof vi.fn>;
         createAccount: ReturnType<typeof vi.fn>;
+        deleteAccount: ReturnType<typeof vi.fn>;
         createTransaction: ReturnType<typeof vi.fn>;
+        deleteTransaction: ReturnType<typeof vi.fn>;
         createTransfer: ReturnType<typeof vi.fn>;
+        getTransferRate: ReturnType<typeof vi.fn>;
         assignTagCategories: ReturnType<typeof vi.fn>;
     };
     let router: {
@@ -58,6 +64,8 @@ describe('HomePageComponent', () => {
         authStore = {
             userId: signal('user-123'),
             clientId: signal('client-123'),
+            userName: signal('Alex'),
+            isAuthenticated: signal(true),
             clearSession: vi.fn(),
         };
         authService = {
@@ -93,13 +101,22 @@ describe('HomePageComponent', () => {
                 }),
             ),
             createAccount: vi.fn(() => of('account-id')),
+            deleteAccount: vi.fn(() => of('account-id')),
             createTransaction: vi.fn(() => of('transaction-id')),
+            deleteTransaction: vi.fn(() => of('transaction-id')),
             createTransfer: vi.fn(() =>
                 of({
                     expenseTransactionId: 'expense-id',
                     incomeTransactionId: 'income-id',
                     withdrawAmount: 100,
                     depositAmount: 110,
+                    rate: 1.1,
+                    fromCurrencyCode: 'USD',
+                    toCurrencyCode: 'EUR',
+                }),
+            ),
+            getTransferRate: vi.fn(() =>
+                of({
                     rate: 1.1,
                     fromCurrencyCode: 'USD',
                     toCurrencyCode: 'EUR',
@@ -145,6 +162,15 @@ describe('HomePageComponent', () => {
         expect(host.querySelector('ms-main-summary-cards')).not.toBeNull();
         expect(host.querySelector('ms-main-tab-bar')).not.toBeNull();
         expect(host.textContent ?? '').toContain('Транзакции');
+    });
+
+    it('redirects to auth without loading dashboard data when the session is missing', () => {
+        authStore.isAuthenticated.set(false);
+
+        fixture = TestBed.createComponent(HomePageComponent);
+
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/auth');
+        expect(homeApi.getAccounts).not.toHaveBeenCalled();
     });
 
     it('blocks the dashboard with first-login setup until the primary account is created', () => {
@@ -216,6 +242,259 @@ describe('HomePageComponent', () => {
             rate: 1.1,
             description: 'Пополнение резерва',
         });
+    });
+
+    it('hides the delete action for the primary account and refreshes accounts after deleting another account', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'primary-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 100,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'secondary-account',
+                        name: 'Карта',
+                        currencyCode: 'BYN',
+                        currentBalance: 50,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setActiveTab('accounts');
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const deleteButtons = host.querySelectorAll<HTMLElement>('[data-testid="delete-account"]');
+
+        expect(deleteButtons).toHaveLength(1);
+
+        const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
+        deleteButtons[0].click();
+
+        expect(homeApi.deleteAccount).toHaveBeenCalledWith('secondary-account');
+        expect(homeApi.getAccounts.mock.calls.length).toBeGreaterThan(initialAccountCalls);
+    });
+
+    it('prefills the transfer rate from the backend when selected accounts change', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'BYN',
+                        currencyCode: 'BYN',
+                        currentBalance: 100,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'usd-account',
+                        name: 'USD',
+                        currencyCode: 'USD',
+                        currentBalance: 50,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getTransferRate.mockReturnValue(
+            of({ rate: 3.25, fromCurrencyCode: 'USD', toCurrencyCode: 'BYN' }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.getTransferRate.mockClear();
+
+        fixture.componentInstance.updateTransferDraft({
+            fromAccountId: 'usd-account',
+            toAccountId: 'byn-account',
+            amount: 0,
+            rate: null,
+            description: '',
+        });
+
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('usd-account', 'byn-account');
+        expect(fixture.componentInstance.transferDraft().rate).toBe(3.25);
+    });
+
+    it('converts dashboard totals to the primary account currency', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'usd-account',
+                        name: 'USD reserve',
+                        currencyCode: 'USD',
+                        currentBalance: 5,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) =>
+            of({
+                rate: fromAccountId === 'usd-account' && toAccountId === 'byn-account' ? 3 : 1,
+                fromCurrencyCode: fromAccountId === 'usd-account' ? 'USD' : 'BYN',
+                toCurrencyCode: 'BYN',
+            }),
+        );
+        homeApi.getMonthBalance.mockImplementation((accountId: string, year: number, month: number) =>
+            of<MonthBalanceResponse>({
+                accountId,
+                accountName: accountId,
+                currencyCode: accountId === 'usd-account' ? 'USD' : 'BYN',
+                openingBalance: 0,
+                monthChange: 0,
+                closingBalance: accountId === 'usd-account' ? 5 : 10,
+                year,
+                month,
+            }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const balanceCard = fixture
+            .componentInstance.summaryCards()
+            .find((card) => card.id === 'balance');
+
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('usd-account', 'byn-account');
+        expect(balanceCard?.value).toContain('25');
+        expect(balanceCard?.value).toContain('Br');
+    });
+
+    it('keeps dashboard totals in the primary account currency when new account currency changes', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setNewAccountCurrency('USD');
+
+        const balanceCard = fixture
+            .componentInstance.summaryCards()
+            .find((card) => card.id === 'balance');
+
+        expect(balanceCard?.value).toContain('Br');
+        expect(balanceCard?.value).not.toContain('$');
+    });
+
+    it('renders settings as a full tab with only the application currency', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setNewAccountCurrency('USD');
+        fixture.componentInstance.setActiveTab('settings');
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.querySelector('ms-settings-tab')).not.toBeNull();
+        expect(host.textContent ?? '').toContain('BYN');
+        expect(host.textContent ?? '').not.toContain('USD');
+    });
+
+    it('shows backend validation details when account creation fails', () => {
+        const conflictMessage = 'Счёт с таким названием уже существует.';
+
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'main-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.createAccount.mockReturnValue(
+            throwError(
+                () =>
+                    new HttpErrorResponse({
+                        status: 409,
+                        error: {
+                            code: 'Account.NameAlreadyExists',
+                            message: conflictMessage,
+                            details: {
+                                name: [conflictMessage],
+                            },
+                        },
+                    }),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setActiveTab('accounts');
+        fixture.componentInstance.setNewAccountName('Основной счёт');
+        fixture.componentInstance.createNewAccount();
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        expect(host.textContent ?? '').toContain(conflictMessage);
     });
 
     it('sends a backend-ready payload when saving an expense transaction', () => {

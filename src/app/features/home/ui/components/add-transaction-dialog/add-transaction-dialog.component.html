@@ -22,6 +22,7 @@
                     type="button"
                     class="mode-button"
                     [class.mode-button--active]="draft().type === 'income'"
+                    [class.mode-button--income]="draft().type === 'income'"
                     (click)="draftChange.emit({ ...draft(), type: 'income' })"
                 >
                     Доход
@@ -31,6 +32,7 @@
                     type="button"
                     class="mode-button"
                     [class.mode-button--active]="draft().type === 'expense'"
+                    [class.mode-button--expense]="draft().type === 'expense'"
                     (click)="draftChange.emit({ ...draft(), type: 'expense' })"
                 >
                     Расход
@@ -48,16 +50,13 @@
                     ></ms-select>
 
                     <div class="dialog__grid">
-                        <div class="dialog__field">
+                        <div class="dialog__field dialog__amount-card">
                             <span class="dialog__field-label">Сумма</span>
                             <ms-input
-                                [ngModel]="formatMoneyAmount(draft().amount)"
-                                (ngModelChange)="
-                                    draftChange.emit({
-                                        ...draft(),
-                                        amount: parseMoneyAmount($event),
-                                    })
-                                "
+                                [ngModel]="amountText()"
+                                (focused)="onAmountFocus()"
+                                (blurred)="onAmountBlur()"
+                                (ngModelChange)="onAmountInput($event)"
                                 inputMode="decimal"
                                 placeholder="0.00"
                             ></ms-input>
@@ -80,7 +79,7 @@
                             ></ms-input>
                         </div>
 
-                        <div class="dialog__field">
+                        <div class="dialog__field dialog__field--wide">
                             <span class="dialog__field-label">Описание</span>
                             <ms-input
                                 [ngModel]="draft().description"

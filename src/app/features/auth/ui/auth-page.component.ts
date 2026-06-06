@@ -219,12 +219,22 @@ export class AuthPageComponent {
             return;
         }
 
-        this.errorMessage.set(message || 'Не удалось выполнить запрос. Попробуйте снова.');
+        if (this.isNetworkError(error, message)) {
+            this.errorMessage.set('Не удалось подключиться. Проверьте интернет и попробуйте снова.');
+            return;
+        }
+
+        if (message && !this.isTechnicalErrorMessage(message)) {
+            this.errorMessage.set(message);
+            return;
+        }
+
+        this.errorMessage.set('Не удалось выполнить запрос. Попробуйте снова.');
     }
 
     private resolveLoginErrorMessage(error: unknown, message?: string): string {
         if (this.isNetworkError(error, message)) {
-            return 'Не удалось связаться с сервером. Проверьте подключение и попробуйте снова.';
+            return 'Не удалось подключиться. Проверьте интернет и попробуйте снова.';
         }
 
         if (error instanceof HttpErrorResponse && error.status === 401) {

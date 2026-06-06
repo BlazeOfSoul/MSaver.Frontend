@@ -11,7 +11,14 @@
             [attr.aria-expanded]="isOpen()"
             (click)="toggle()"
         >
-            <span class="ms-select__value" [class.ms-select__value--placeholder]="!value()">
+            <span
+                class="ms-select__value"
+                [class.ms-select__value--placeholder]="!value()"
+                [style.--option-color]="selectedOption()?.color || null"
+            >
+                @if (selectedOption()?.color) {
+                    <span class="ms-select__dot" aria-hidden="true"></span>
+                }
                 {{ selectedOption()?.label || placeholder() }}
             </span>
 
@@ -27,9 +34,15 @@
                         type="button"
                         class="ms-select__option"
                         [class.ms-select__option--selected]="option.value === value()"
+                        [style.--option-color]="option.color || null"
                         (click)="selectOption(option)"
                     >
-                        <span>{{ option.label }}</span>
+                        <span class="ms-select__option-label">
+                            @if (option.color) {
+                                <span class="ms-select__dot" aria-hidden="true"></span>
+                            }
+                            <span>{{ option.label }}</span>
+                        </span>
 
                         @if (option.value === value()) {
                             <span class="material-symbols-outlined">check</span>
