@@ -15,6 +15,7 @@ import {
 import { ACCOUNT_COLORS, CATEGORY_COLORS } from './home-page.constants';
 import {
     formatDate,
+    formatDateTime,
     formatMoney,
     formatSignedMoney,
     resolveCurrencyLabel,
@@ -62,6 +63,8 @@ export function mapTransaction(transaction: TransactionResponse): TransactionIte
         accountName,
         date: formatDate(transaction.date),
         dateValue: transaction.date,
+        dateTimeLabel: formatDateTime(transaction.date),
+        timestamp: readTimestamp(transaction.date),
         description,
         amountValue: amount,
         amountLabel: `${tone === 'income' ? '+' : '-'}${formatMoney(
@@ -98,6 +101,7 @@ export function mapCategories(
             color: category.color || CATEGORY_COLORS[0],
             type,
             tone: type === 'income' ? 'good' : resolveExpenseTone(progress),
+            isSystem: !!category.isSystem,
         };
     });
 }
@@ -139,4 +143,10 @@ export function isExpenseCategory(type: CategoryType): boolean {
 
 function resolveExpenseTone(progress: number): 'warning' | 'danger' {
     return progress >= 75 ? 'danger' : 'warning';
+}
+
+function readTimestamp(value: string): number {
+    const timestamp = new Date(value).getTime();
+
+    return Number.isFinite(timestamp) ? timestamp : 0;
 }

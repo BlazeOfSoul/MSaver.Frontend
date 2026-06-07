@@ -24,9 +24,25 @@ export function toIsoDate(value: Date): string {
     ].join('-');
 }
 
+export function toIsoDateTimeLocal(value: Date): string {
+    return `${toIsoDate(value)}T${`${value.getHours()}`.padStart(2, '0')}:${`${value.getMinutes()}`.padStart(2, '0')}`;
+}
+
 export function toApiDate(value: string): string {
     const trimmed = value.trim();
+    const isoDateTimeMatch = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmed);
+    const isoDateTimeWithSecondsMatch = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(
+        trimmed,
+    );
     const isoMatch = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
+
+    if (isoDateTimeMatch) {
+        return `${trimmed}:00`;
+    }
+
+    if (isoDateTimeWithSecondsMatch) {
+        return trimmed;
+    }
 
     if (isoMatch) {
         return trimmed;

@@ -158,8 +158,14 @@
 
 .transactions-table__actions-head,
 .transactions-table__actions {
-    width: 3.5rem;
+    width: 6.5rem;
     text-align: right;
+}
+
+.transactions-table__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
 }
 
 .icon-action {
@@ -183,6 +189,42 @@
 .icon-action--danger:hover:not(:disabled) {
     color: var(--color-ms-danger);
     border-color: rgba(255, 111, 145, 0.25);
+}
+
+.transaction-details-row td {
+    padding-top: 0;
+}
+
+.transaction-details {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.transaction-details div {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.transaction-details span {
+    color: var(--color-ms-light-dark);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.transaction-details strong {
+    color: var(--color-ms-light);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.transaction-details__description {
+    grid-column: 1 / -1;
 }
 
 .pagination {
@@ -254,7 +296,7 @@
 
 @media (min-width: 720px) {
     .overview-toolbar {
-        grid-template-columns: minmax(14rem, 0.35fr) minmax(0, 0.65fr);
+        grid-template-columns: minmax(12rem, 0.28fr) minmax(0, 1fr) minmax(8rem, 0.18fr);
     }
 }
 
@@ -290,7 +332,7 @@
         position: relative;
         display: grid;
         gap: 0.55rem;
-        padding: 0.85rem 3.9rem 0.85rem 0.85rem;
+        padding: 0.85rem;
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 0.5rem;
         background: rgba(255, 255, 255, 0.03);
@@ -317,21 +359,35 @@
     }
 
     .transactions-table__actions {
-        position: absolute;
-        top: 0.85rem;
-        right: 0.85rem;
         display: flex;
-        width: auto;
-        justify-content: flex-end;
+        width: 100%;
+        justify-content: flex-start;
     }
 
     .transactions-table__actions::before {
-        content: '';
+        display: none;
     }
 
     .icon-action {
         width: 2.75rem;
         height: 2.5rem;
+    }
+
+    .transaction-details-row {
+        margin-top: -0.45rem;
+    }
+
+    .transaction-details-row td {
+        display: block;
+    }
+
+    .transaction-details-row td::before {
+        content: none;
+    }
+
+    .transaction-details {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 0.75rem;
     }
 
     .pagination {

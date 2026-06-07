@@ -2,10 +2,27 @@
     display: block;
     min-height: 100dvh;
     background:
-        linear-gradient(120deg, rgba(31, 180, 127, 0.045), rgba(103, 166, 193, 0.03), rgba(199, 125, 255, 0.025)),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 18rem),
-        linear-gradient(145deg, #070b12 0%, #09110f 42%, #050706 100%);
-    background-size: 220% 220%, 100% 100%, 100% 100%;
+        radial-gradient(
+            55% 70% at 18% 22%,
+            rgba(16, 185, 129, 0.085) 0%,
+            rgba(16, 185, 129, 0.04) 34%,
+            transparent 74%
+        ),
+        radial-gradient(
+            48% 68% at 82% 18%,
+            rgba(34, 197, 94, 0.07) 0%,
+            rgba(34, 197, 94, 0.034) 36%,
+            transparent 76%
+        ),
+        radial-gradient(
+            52% 78% at 70% 78%,
+            rgba(20, 184, 166, 0.055) 0%,
+            rgba(20, 184, 166, 0.028) 38%,
+            transparent 78%
+        ),
+        linear-gradient(180deg, rgba(4, 10, 8, 0.18) 0%, rgba(3, 7, 6, 0.42) 100%),
+        linear-gradient(145deg, #020303 0%, #04100c 26%, #061310 56%, #030504 100%);
+    background-size: 220% 220%, 180% 180%, 200% 200%, 100% 100%, 100% 100%;
     animation: home-background-pan 18s ease-in-out infinite;
     overflow-x: hidden;
 }
@@ -240,11 +257,11 @@
 @keyframes home-background-pan {
     0%,
     100% {
-        background-position: 0% 50%, 0 0, 0 0;
+        background-position: 0% 50%, 100% 20%, 50% 100%, 0 0, 0 0;
     }
 
     50% {
-        background-position: 100% 50%, 0 0, 0 0;
+        background-position: 100% 50%, 0% 30%, 70% 70%, 0 0, 0 0;
     }
 }
 

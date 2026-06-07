@@ -15,6 +15,11 @@ describe('AnalyticsTabComponent', () => {
 
         fixture.componentRef.setInput('metrics', []);
         fixture.componentRef.setInput('incomeVsExpense', []);
+        fixture.componentRef.setInput('categoryMonthTable', {
+            months: [],
+            incomeRows: [],
+            expenseRows: [],
+        });
         fixture.componentRef.setInput('expenseCategories', []);
         fixture.componentRef.setInput('incomeCategories', []);
         fixture.componentRef.setInput('monthlyExpenses', []);
@@ -82,6 +87,7 @@ describe('AnalyticsTabComponent', () => {
             category('home-tag', 'Home', 120, '#67a6c1'),
             category('transport-tag', 'Transport', 40, '#23c78b'),
         ]);
+        component.activeView.set('tags');
 
         fixture.detectChanges();
 
@@ -93,6 +99,77 @@ describe('AnalyticsTabComponent', () => {
         expect(filterStrip).not.toBeNull();
         expect(chart!.compareDocumentPosition(filterStrip!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
         expect(host.querySelectorAll('.tag-filter-button')).toHaveLength(3);
+    });
+
+    it('limits long category charts and groups the rest as other', () => {
+        fixture.componentRef.setInput(
+            'expenseCategories',
+            Array.from({ length: 12 }, (_, index) =>
+                category(`category-${index}`, `Category ${index}`, 120 - index, '#23c78b'),
+            ),
+        );
+
+        expect(component.expenseCategoryLabels()).toHaveLength(10);
+        expect(component.expenseCategoryLabels()).toContain('Прочее');
+        expect(component.expenseCategoryDatasets()[0].data.at(-1)).toBe(330);
+    });
+
+    it('renders month-by-category tables in the tables view', () => {
+        fixture.componentRef.setInput('categoryMonthTable', {
+            months: ['янв.', 'фев.'],
+            incomeRows: [
+                {
+                    id: 'salary',
+                    name: 'Salary',
+                    color: '#23c78b',
+                    type: 'income',
+                    cells: [
+                        { label: 'янв.', value: 100, formattedValue: '100 Br' },
+                        { label: 'фев.', value: 120, formattedValue: '120 Br' },
+                    ],
+                    totalValue: 220,
+                    formattedTotal: '220 Br',
+                },
+            ],
+            expenseRows: [
+                {
+                    id: 'food',
+                    name: 'Food',
+                    color: '#ff6f91',
+                    type: 'expense',
+                    cells: [
+                        { label: 'янв.', value: 50, formattedValue: '50 Br' },
+                        { label: 'фев.', value: 40, formattedValue: '40 Br' },
+                    ],
+                    totalValue: 90,
+                    formattedTotal: '90 Br',
+                },
+            ],
+        });
+        component.activeView.set('tables');
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.querySelectorAll('.analytics-table')).toHaveLength(2);
+        expect(host.textContent ?? '').toContain('Расходы по категориям');
+        expect(host.textContent ?? '').toContain('Доходы по категориям');
+        expect(host.textContent ?? '').toContain('Food');
+        expect(host.textContent ?? '').toContain('Salary');
+    });
+
+    it('applies tag chart limit settings', () => {
+        fixture.componentRef.setInput(
+            'tagExpenses',
+            Array.from({ length: 8 }, (_, index) =>
+                category(`tag-${index}`, `Tag ${index}`, 100 - index, '#67a6c1'),
+            ),
+        );
+
+        component.setTagChartLimit('5');
+
+        expect(component.tagExpenseLabels()).toHaveLength(5);
     });
 });
 
@@ -112,5 +189,6 @@ function category(
         color,
         type,
         tone: type === 'income' ? ('good' as const) : ('warning' as const),
+        isSystem: false,
     };
 }

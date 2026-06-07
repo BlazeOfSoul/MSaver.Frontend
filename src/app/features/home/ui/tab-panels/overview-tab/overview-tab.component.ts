@@ -18,8 +18,6 @@ import { TransactionItem } from '../../home-page.models';
 type TransactionSortKey = 'date' | 'title' | 'account' | 'category' | 'amount';
 type SortDirection = 'asc' | 'desc';
 
-const PAGE_SIZE = 5;
-
 @Component({
     selector: 'ms-overview-tab',
     standalone: true,
@@ -35,16 +33,19 @@ export class OverviewTabComponent implements OnInit {
     searchControl = input.required<FormControl<string>>();
     accountOptions = input.required<ReadonlyArray<MsSelectOption>>();
     selectedAccountId = input.required<string>();
+    pageSize = input(25);
+    pageSizeOptions = input<ReadonlyArray<MsSelectOption>>([]);
     saving = input(false);
 
     deleteTransaction = output<string>();
     accountChange = output<string>();
+    pageSizeChange = output<number>();
 
     readonly sortKey = signal<TransactionSortKey>('date');
     readonly sortDirection = signal<SortDirection>('desc');
     readonly pageIndex = signal(0);
     readonly searchQuery = signal('');
-    readonly pageSize = PAGE_SIZE;
+    readonly expandedTransactionId = signal<string | null>(null);
 
     readonly sortedTransactions = computed(() => {
         const direction = this.sortDirection() === 'asc' ? 1 : -1;
@@ -62,15 +63,16 @@ export class OverviewTabComponent implements OnInit {
     });
 
     readonly totalPages = computed(() =>
-        Math.max(1, Math.ceil(this.sortedTransactions().length / this.pageSize)),
+        Math.max(1, Math.ceil(this.sortedTransactions().length / this.pageSize())),
     );
     readonly currentPageIndex = computed(() =>
         Math.min(this.pageIndex(), Math.max(0, this.totalPages() - 1)),
     );
     readonly pagedTransactions = computed(() => {
-        const start = this.currentPageIndex() * this.pageSize;
+        const pageSize = this.pageSize();
+        const start = this.currentPageIndex() * pageSize;
 
-        return this.sortedTransactions().slice(start, start + this.pageSize);
+        return this.sortedTransactions().slice(start, start + pageSize);
     });
     readonly pageLabel = computed(() => `${this.currentPageIndex() + 1} / ${this.totalPages()}`);
 
@@ -102,6 +104,27 @@ export class OverviewTabComponent implements OnInit {
         this.pageIndex.update((page) => Math.min(this.totalPages() - 1, page + 1));
     }
 
+    toggleTransactionDetails(transactionId: string): void {
+        this.expandedTransactionId.update((current) =>
+            current === transactionId ? null : transactionId,
+        );
+    }
+
+    isTransactionExpanded(transactionId: string): boolean {
+        return this.expandedTransactionId() === transactionId;
+    }
+
+    onPageSizeChange(value: string): void {
+        const nextSize = Number(value);
+
+        if (!Number.isFinite(nextSize) || nextSize <= 0) {
+            return;
+        }
+
+        this.pageIndex.set(0);
+        this.pageSizeChange.emit(nextSize);
+    }
+
     sortIcon(key: TransactionSortKey): string {
         if (this.sortKey() !== key) {
             return 'unfold_more';
@@ -124,7 +147,7 @@ function compareTransactions(
 ): number {
     switch (key) {
         case 'date':
-            return left.dateValue.localeCompare(right.dateValue);
+            return left.timestamp - right.timestamp;
         case 'title':
             return left.title.localeCompare(right.title, 'ru');
         case 'account':

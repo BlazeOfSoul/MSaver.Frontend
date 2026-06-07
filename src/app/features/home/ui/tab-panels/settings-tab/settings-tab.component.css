@@ -63,7 +63,7 @@
 
 @media (min-width: 760px) {
     .settings-hero {
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) minmax(12rem, auto) minmax(14rem, 0.35fr);
         align-items: center;
     }
 }

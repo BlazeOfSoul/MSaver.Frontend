@@ -5,6 +5,7 @@ import {
     AccountResponse,
     CategoryResponse,
     CategoryType,
+    CurrentUserResponse,
     MonthBalanceResponse,
     PagedResponse,
     TagDetailsResponse,
@@ -16,6 +17,8 @@ import { MsSelectOption } from '../../../shared/ui/select/select';
 import {
     AccountBalanceItem,
     AnalyticsMetricCard,
+    AnalyticsCategoryMonthRow,
+    AnalyticsCategoryMonthTable,
     AnalyticsSeriesPoint,
     AnalyticsStackedPoint,
     CategoryBreakdownItem,
@@ -39,6 +42,7 @@ import {
     startOfYear,
     toApiDate,
     toIsoDate,
+    toIsoDateTimeLocal,
 } from './home-date.utils';
 import { formatMoney } from './home-formatters';
 import {
@@ -53,9 +57,12 @@ import {
 const FRIENDLY_LOAD_ERROR_MESSAGE =
     'Не получилось загрузить данные. Проверьте подключение и попробуйте ещё раз.';
 const PRIMARY_ACCOUNT_NAME = 'Основной счёт';
+const TRANSACTION_PAGE_SIZE_STORAGE_KEY = 'msaver:overview-transaction-count';
+const TRANSACTION_PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 interface DashboardPayload {
     accounts: AccountResponse[];
+    currentUser: CurrentUserResponse;
     categories: CategoryResponse[];
     tags: TagDetailsResponse[];
     transactions: TransactionResponse[];
@@ -63,6 +70,14 @@ interface DashboardPayload {
     yearBalances: MonthBalanceResponse[];
     exchangeRatesByAccountId: Map<string, number>;
 }
+
+interface DebtSummary {
+    owedByMe: number;
+    owedToMe: number;
+    balanceAfterClosing: number;
+}
+
+type DebtCategoryKind = 'taken' | 'returned' | 'given' | 'received';
 
 @Injectable()
 export class HomeDashboardStore {
@@ -83,6 +98,12 @@ export class HomeDashboardStore {
     readonly accountNameError = signal('');
     readonly transferRateError = signal('');
     readonly isTransactionDialogOpen = signal(false);
+    readonly transactionPageSize = signal(this.readStoredTransactionPageSize());
+    readonly transactionPageSizeOptions: ReadonlyArray<MsSelectOption> =
+        TRANSACTION_PAGE_SIZE_OPTIONS.map((size) => ({
+            value: size.toString(),
+            label: size.toString(),
+        }));
     readonly newAccountName = signal('');
     readonly newAccountCurrency = signal('BYN');
     readonly newIncomeCategory = signal('');
@@ -106,11 +127,10 @@ export class HomeDashboardStore {
     private readonly yearTransactionResponses = signal<TransactionResponse[]>([]);
     private readonly yearBalanceResponses = signal<MonthBalanceResponse[]>([]);
     private readonly exchangeRatesByAccountId = signal(new Map<string, number>());
+    private readonly applicationCurrencyCodeSignal = signal('BYN');
 
     readonly monthLabel = computed(() => monthLabel(this.selectedMonth()));
-    readonly applicationCurrencyCode = computed(() =>
-        this.resolveApplicationCurrencyCode(this.accountResponses()),
-    );
+    readonly applicationCurrencyCode = computed(() => this.applicationCurrencyCodeSignal());
     readonly isServerEmpty = computed(() => !!this.errorMessage() && !this.hasLoaded());
     readonly needsAccountSetup = computed(
         () => this.hasLoaded() && !this.errorMessage() && this.accountResponses().length === 0,
@@ -237,6 +257,33 @@ export class HomeDashboardStore {
             .filter((item) => isExpenseCategory(item.category.type))
             .reduce((sum, item) => sum + Math.abs(this.convertTransactionAmount(item)), 0),
     );
+    readonly debtSummary = computed<DebtSummary>(() => {
+        const totals = new Map<DebtCategoryKind, number>([
+            ['taken', 0],
+            ['returned', 0],
+            ['given', 0],
+            ['received', 0],
+        ]);
+
+        this.yearTransactionResponses().forEach((transaction) => {
+            const kind = this.resolveDebtCategoryKind(transaction.category.name);
+
+            if (!kind) {
+                return;
+            }
+
+            totals.set(kind, (totals.get(kind) ?? 0) + Math.abs(this.convertTransactionAmount(transaction)));
+        });
+
+        const owedByMe = Math.max(0, (totals.get('taken') ?? 0) - (totals.get('returned') ?? 0));
+        const owedToMe = Math.max(0, (totals.get('given') ?? 0) - (totals.get('received') ?? 0));
+
+        return {
+            owedByMe,
+            owedToMe,
+            balanceAfterClosing: this.totalBalance() - owedByMe + owedToMe,
+        };
+    });
     readonly incomeVsExpense = computed<ReadonlyArray<AnalyticsStackedPoint>>(() =>
         this.monthsForSelectedYear().map((month) => {
             const transactions = this.transactionsForMonth(month);
@@ -252,6 +299,15 @@ export class HomeDashboardStore {
             };
         }),
     );
+    readonly categoryMonthTable = computed<AnalyticsCategoryMonthTable>(() => {
+        const months = this.monthsForSelectedYear();
+
+        return {
+            months: months.map((month) => compactMonthLabel(month)),
+            incomeRows: this.buildCategoryMonthRows(months, 'income'),
+            expenseRows: this.buildCategoryMonthRows(months, 'expense'),
+        };
+    });
     readonly monthlyExpensesChart = computed<ReadonlyArray<AnalyticsSeriesPoint>>(() =>
         this.incomeVsExpense().map((item) => ({ label: item.label, value: item.expense })),
     );
@@ -308,6 +364,7 @@ export class HomeDashboardStore {
                     color: tag.color,
                     type: 'expense' as const,
                     tone: 'warning' as const,
+                    isSystem: false,
                 };
             })
             .filter((item) => item.amountValue > 0);
@@ -374,6 +431,14 @@ export class HomeDashboardStore {
             helper: 'Сводный баланс',
             tone: 'primary',
             icon: 'account_balance_wallet',
+        },
+        {
+            id: 'debt-balance',
+            label: 'После долгов',
+            value: formatMoney(this.debtSummary().balanceAfterClosing, this.applicationCurrencyCode()),
+            helper: `Мои: ${formatMoney(this.debtSummary().owedByMe, this.applicationCurrencyCode())}, мне: ${formatMoney(this.debtSummary().owedToMe, this.applicationCurrencyCode())}`,
+            tone: 'neutral',
+            icon: 'balance',
         },
         {
             id: 'income',
@@ -478,6 +543,47 @@ export class HomeDashboardStore {
     setAccountFilter(accountId: string): void {
         this.selectedAccountId.set(accountId);
         this.loadDashboard(false);
+    }
+
+    setTransactionPageSize(size: number): void {
+        const nextSize = this.normalizeTransactionPageSize(size);
+
+        if (nextSize === this.transactionPageSize()) {
+            return;
+        }
+
+        this.transactionPageSize.set(nextSize);
+        this.writeStoredTransactionPageSize(nextSize);
+
+        this.loadTransactionPage(this.transactionQuery(), nextSize)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+                next: (transactions) => this.transactionResponses.set(transactions),
+                error: (error) =>
+                    this.errorMessage.set(
+                        toFriendlyApiError(
+                            error,
+                            'Не удалось обновить список транзакций. Проверьте подключение и попробуйте ещё раз.',
+                        ),
+                    ),
+            });
+    }
+
+    setApplicationCurrencyCode(currencyCode: string): void {
+        const nextCode = currencyCode.trim().toUpperCase();
+
+        if (!nextCode || nextCode === this.applicationCurrencyCode() || this.isSaving()) {
+            return;
+        }
+
+        this.runMutation(
+            this.homeApi.updateApplicationCurrency({ applicationCurrencyCode: nextCode }),
+            'Не удалось обновить валюту приложения.',
+            (currentUser) => {
+                this.applicationCurrencyCodeSignal.set(currentUser.applicationCurrencyCode);
+                this.loadDashboard(false);
+            },
+        );
     }
 
     goToPreviousMonth(): void {
@@ -743,15 +849,28 @@ export class HomeDashboardStore {
     }
 
     private loadDashboardPayload() {
-        return this.loadAccounts().pipe(
-            switchMap((accounts) => {
+        return forkJoin({
+            accounts: this.loadAccounts(),
+            currentUser: this.homeApi.getCurrentUser(),
+        }).pipe(
+            switchMap(({ accounts, currentUser }) => {
                 const yearMonths = this.monthsForSelectedYear();
+                const applicationCurrencyCode = this.resolvePayloadApplicationCurrencyCode(
+                    currentUser,
+                    accounts,
+                );
 
                 return forkJoin({
-                    exchangeRatesByAccountId: this.loadApplicationExchangeRates(accounts),
+                    exchangeRatesByAccountId: this.loadApplicationExchangeRates(
+                        accounts,
+                        applicationCurrencyCode,
+                    ),
                     categories: this.loadCategories(),
                     tagDetails: this.loadTagDetails(),
-                    transactions: this.loadTransactions(this.transactionQuery()),
+                    transactions: this.loadTransactionPage(
+                        this.transactionQuery(),
+                        this.transactionPageSize(),
+                    ),
                     yearTransactions: this.loadTransactions(this.yearTransactionQuery()),
                     yearBalances: this.loadMonthBalances(accounts, yearMonths),
                 }).pipe(
@@ -765,6 +884,10 @@ export class HomeDashboardStore {
                             yearBalances,
                         }): DashboardPayload => ({
                             accounts,
+                            currentUser: {
+                                ...currentUser,
+                                applicationCurrencyCode,
+                            },
                             categories,
                             tags: tagDetails,
                             transactions,
@@ -804,8 +927,20 @@ export class HomeDashboardStore {
         );
     }
 
-    private loadApplicationExchangeRates(accounts: AccountResponse[]) {
-        const applicationAccount = this.resolveApplicationAccount(accounts);
+    private loadTransactionPage(
+        query: { accountId?: string; fromDate: string; toDate: string },
+        size: number,
+    ): Observable<TransactionResponse[]> {
+        return this.homeApi
+            .getTransactions({ ...query, page: 1, size })
+            .pipe(map((response) => response.items));
+    }
+
+    private loadApplicationExchangeRates(
+        accounts: AccountResponse[],
+        applicationCurrencyCode: string,
+    ) {
+        const applicationAccount = this.resolveApplicationAccount(accounts, applicationCurrencyCode);
 
         if (!applicationAccount) {
             return of(new Map<string, number>());
@@ -864,6 +999,7 @@ export class HomeDashboardStore {
 
     private setPayload(payload: DashboardPayload): void {
         this.accountResponses.set(payload.accounts);
+        this.applicationCurrencyCodeSignal.set(payload.currentUser.applicationCurrencyCode);
         this.exchangeRatesByAccountId.set(payload.exchangeRatesByAccountId);
         this.categoryResponses.set(payload.categories);
         this.tagDetailsResponses.set(payload.tags);
@@ -937,7 +1073,7 @@ export class HomeDashboardStore {
     private runMutation<T>(
         request$: Observable<T>,
         errorMessage: string,
-        onSuccess: () => void,
+        onSuccess: (response: T) => void,
         onError?: (error: unknown) => void,
     ): void {
         if (this.isSaving()) {
@@ -1025,12 +1161,81 @@ export class HomeDashboardStore {
         return amount * rate;
     }
 
-    private resolveApplicationAccount(accounts: AccountResponse[]): AccountResponse | undefined {
-        return this.sortAccounts(accounts)[0];
+    private resolveDebtCategoryKind(categoryName: string): DebtCategoryKind | null {
+        const normalized = categoryName.trim().toLowerCase();
+
+        if (normalized.includes('взято в долг')) {
+            return 'taken';
+        }
+
+        if (normalized.includes('возвращено по долгу')) {
+            return 'returned';
+        }
+
+        if (normalized.includes('дано в долг')) {
+            return 'given';
+        }
+
+        if (
+            normalized.includes('отдано по долгу') ||
+            normalized.includes('получено по долгу') ||
+            normalized.includes('вернули долг')
+        ) {
+            return 'received';
+        }
+
+        return null;
     }
 
-    private resolveApplicationCurrencyCode(accounts: AccountResponse[]): string {
-        return this.resolveApplicationAccount(accounts)?.currencyCode ?? 'BYN';
+    private resolveApplicationAccount(
+        accounts: AccountResponse[],
+        applicationCurrencyCode: string,
+    ): AccountResponse | undefined {
+        const sortedAccounts = this.sortAccounts(accounts);
+
+        return (
+            sortedAccounts.find((account) => account.currencyCode === applicationCurrencyCode) ??
+            sortedAccounts[0]
+        );
+    }
+
+    private resolvePayloadApplicationCurrencyCode(
+        currentUser: CurrentUserResponse,
+        accounts: AccountResponse[],
+    ): string {
+        return (
+            currentUser.applicationCurrencyCode?.trim().toUpperCase() ||
+            this.sortAccounts(accounts)[0]?.currencyCode ||
+            'BYN'
+        );
+    }
+
+    private readStoredTransactionPageSize(): number {
+        try {
+            const storedValue = globalThis.localStorage?.getItem(
+                TRANSACTION_PAGE_SIZE_STORAGE_KEY,
+            );
+
+            return this.normalizeTransactionPageSize(Number(storedValue));
+        } catch {
+            return TRANSACTION_PAGE_SIZE_OPTIONS[1];
+        }
+    }
+
+    private writeStoredTransactionPageSize(size: number): void {
+        try {
+            globalThis.localStorage?.setItem(TRANSACTION_PAGE_SIZE_STORAGE_KEY, size.toString());
+        } catch {
+            return;
+        }
+    }
+
+    private normalizeTransactionPageSize(size: number): number {
+        return TRANSACTION_PAGE_SIZE_OPTIONS.includes(
+            size as (typeof TRANSACTION_PAGE_SIZE_OPTIONS)[number],
+        )
+            ? size
+            : TRANSACTION_PAGE_SIZE_OPTIONS[1];
     }
 
     private sortAccounts(accounts: ReadonlyArray<AccountResponse>): AccountResponse[] {
@@ -1121,6 +1326,53 @@ export class HomeDashboardStore {
         );
     }
 
+    private buildCategoryMonthRows(
+        months: Date[],
+        type: 'income' | 'expense',
+    ): AnalyticsCategoryMonthRow[] {
+        const monthKeys = months.map((month) => monthKey(month));
+        const categories = this.categoryResponses().filter((category) => {
+            const isExpense = isExpenseCategory(category.type);
+
+            return type === 'expense' ? isExpense : !isExpense;
+        });
+
+        return categories
+            .map((category) => {
+                const cells = monthKeys.map((key, index) => {
+                    const value = this.yearTransactionResponses()
+                        .filter((transaction) => transaction.category.id === category.id)
+                        .filter((transaction) => monthKey(new Date(transaction.date)) === key)
+                        .reduce(
+                            (sum, transaction) =>
+                                sum + Math.abs(this.convertTransactionAmount(transaction)),
+                            0,
+                        );
+
+                    return {
+                        label: compactMonthLabel(months[index]),
+                        value,
+                        formattedValue: value
+                            ? formatMoney(value, this.applicationCurrencyCode())
+                            : '—',
+                    };
+                });
+                const totalValue = cells.reduce((sum, cell) => sum + cell.value, 0);
+
+                return {
+                    id: category.id,
+                    name: category.name,
+                    color: category.color,
+                    type,
+                    cells,
+                    totalValue,
+                    formattedTotal: formatMoney(totalValue, this.applicationCurrencyCode()),
+                };
+            })
+            .filter((row) => row.totalValue > 0)
+            .sort((left, right) => right.totalValue - left.totalValue);
+    }
+
     private transactionQuery(): { accountId?: string; fromDate: string; toDate: string } {
         const monthStart = this.selectedMonth();
         const nextMonthStart = addMonths(monthStart, 1);
@@ -1173,7 +1425,7 @@ export class HomeDashboardStore {
             accountId: '',
             categoryId: '',
             amount: 0,
-            date: toIsoDate(new Date()),
+            date: toIsoDateTimeLocal(new Date()),
             description: '',
         };
     }
@@ -1186,9 +1438,12 @@ export class HomeDashboardStore {
             selectedMonth.getFullYear() === today.getFullYear() &&
             selectedMonth.getMonth() === today.getMonth()
         ) {
-            return toIsoDate(today);
+            return toIsoDateTimeLocal(today);
         }
 
-        return toIsoDate(selectedMonth);
+        const selectedMonthWithCurrentTime = new Date(selectedMonth);
+        selectedMonthWithCurrentTime.setHours(today.getHours(), today.getMinutes(), 0, 0);
+
+        return toIsoDateTimeLocal(selectedMonthWithCurrentTime);
     }
 }

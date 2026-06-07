@@ -38,7 +38,12 @@
     border: 1px solid rgba(121, 224, 181, 0.3);
     border-radius: 0.5rem;
     background:
-        linear-gradient(135deg, rgba(121, 224, 181, 0.16), rgba(103, 166, 193, 0.1), rgba(199, 125, 255, 0.1)),
+        linear-gradient(
+            135deg,
+            rgba(121, 224, 181, 0.16),
+            rgba(103, 166, 193, 0.1),
+            rgba(199, 125, 255, 0.1)
+        ),
         color-mix(in oklab, var(--color-ms-surface-raised), transparent 12%);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.1),
@@ -51,7 +56,13 @@
     position: absolute;
     inset: -35%;
     z-index: -1;
-    background: conic-gradient(from 90deg, rgba(35, 199, 139, 0), rgba(121, 224, 181, 0.34), rgba(103, 166, 193, 0.24), rgba(35, 199, 139, 0));
+    background: conic-gradient(
+        from 90deg,
+        rgba(35, 199, 139, 0),
+        rgba(121, 224, 181, 0.34),
+        rgba(103, 166, 193, 0.24),
+        rgba(35, 199, 139, 0)
+    );
     animation: brand-mark-shimmer 6s linear infinite;
 }
 

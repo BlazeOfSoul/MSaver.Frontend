@@ -3,8 +3,7 @@
         <div>
             <h2>Валюта приложения</h2>
             <p>
-                Основная валюта берётся из основного счёта и используется для баланса,
-                аналитики, переводов и сводных графиков.
+                Основная валюта используется для баланса, аналитики, переводов и сводных графиков.
             </p>
         </div>
 
@@ -19,5 +18,13 @@
                 }
             </span>
         </div>
+
+        <ms-select
+            label="Валюта"
+            [options]="currencyOptions()"
+            [value]="applicationCurrencyCode()"
+            [disabled]="saving()"
+            (valueChange)="updateApplicationCurrency($event)"
+        ></ms-select>
     </article>
 </section>

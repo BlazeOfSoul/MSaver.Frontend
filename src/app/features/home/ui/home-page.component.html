@@ -112,8 +112,11 @@
                                     [searchControl]="searchControl"
                                     [accountOptions]="toolbarAccountOptions()"
                                     [selectedAccountId]="selectedAccountId()"
+                                    [pageSize]="transactionPageSize()"
+                                    [pageSizeOptions]="transactionPageSizeOptions"
                                     [saving]="isSaving()"
                                     (accountChange)="setAccountFilter($event)"
+                                    (pageSizeChange)="setTransactionPageSize($event)"
                                     (deleteTransaction)="deleteTransaction($event)"
                                 ></ms-overview-tab>
                             }
@@ -148,6 +151,7 @@
                                 <ms-analytics-tab
                                     [metrics]="analyticsMetrics()"
                                     [incomeVsExpense]="incomeVsExpense()"
+                                    [categoryMonthTable]="categoryMonthTable()"
                                     [expenseCategories]="expenseCategories()"
                                     [incomeCategories]="incomeCategories()"
                                     [monthlyExpenses]="monthlyExpensesChart()"
@@ -192,7 +196,10 @@
                             @case ('settings') {
                                 <ms-settings-tab
                                     [applicationCurrencyCode]="applicationCurrencyCode()"
+                                    [currencyOptions]="currencyOptions"
                                     [accounts]="accounts()"
+                                    [saving]="isSaving()"
+                                    (applicationCurrencyChange)="updateApplicationCurrency($event)"
                                 ></ms-settings-tab>
                             }
                         }

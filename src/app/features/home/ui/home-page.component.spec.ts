@@ -8,6 +8,7 @@ import { AuthStore } from '../../auth/data-access/auth.store';
 import {
     AccountResponse,
     CategoryResponse,
+    CurrentUserResponse,
     MonthBalanceResponse,
     PagedResponse,
     TagResponse,
@@ -29,6 +30,33 @@ function page<T>(items: T[]): PagedResponse<T> {
     };
 }
 
+function transaction(
+    id: string,
+    account: AccountResponse,
+    category: CategoryResponse,
+    amount: number,
+): TransactionResponse {
+    return {
+        id,
+        account: {
+            id: account.id,
+            name: account.name,
+            color: account.color,
+            currencyCode: account.currencyCode,
+            isArchived: account.isArchived,
+        },
+        category: {
+            id: category.id,
+            name: category.name,
+            color: category.color,
+            type: category.type,
+        },
+        amount,
+        date: '2026-06-05T12:00:00',
+        description: category.name,
+    };
+}
+
 describe('HomePageComponent', () => {
     let fixture: ComponentFixture<HomePageComponent>;
     let authStore: {
@@ -43,6 +71,8 @@ describe('HomePageComponent', () => {
     };
     let homeApi: {
         getAccounts: ReturnType<typeof vi.fn>;
+        getCurrentUser: ReturnType<typeof vi.fn>;
+        updateApplicationCurrency: ReturnType<typeof vi.fn>;
         getCategories: ReturnType<typeof vi.fn>;
         getTags: ReturnType<typeof vi.fn>;
         getTagById: ReturnType<typeof vi.fn>;
@@ -61,6 +91,8 @@ describe('HomePageComponent', () => {
     };
 
     beforeEach(async () => {
+        window.localStorage.clear();
+
         authStore = {
             userId: signal('user-123'),
             clientId: signal('client-123'),
@@ -76,6 +108,22 @@ describe('HomePageComponent', () => {
         };
         homeApi = {
             getAccounts: vi.fn(() => of(page<AccountResponse>([]))),
+            getCurrentUser: vi.fn(() =>
+                of<CurrentUserResponse>({
+                    id: 'user-123',
+                    username: 'Alex',
+                    email: 'alex@example.com',
+                    applicationCurrencyCode: 'BYN',
+                }),
+            ),
+            updateApplicationCurrency: vi.fn((payload: { applicationCurrencyCode: string }) =>
+                of<CurrentUserResponse>({
+                    id: 'user-123',
+                    username: 'Alex',
+                    email: 'alex@example.com',
+                    applicationCurrencyCode: payload.applicationCurrencyCode,
+                }),
+            ),
             getCategories: vi.fn(() => of(page<CategoryResponse>([]))),
             getTags: vi.fn(() => of(page<TagResponse>([]))),
             getTagById: vi.fn(() =>
@@ -242,6 +290,39 @@ describe('HomePageComponent', () => {
             rate: 1.1,
             description: 'Пополнение резерва',
         });
+    });
+
+    it('loads 25 latest transactions by default for the overview journal', () => {
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({ page: 1, size: 25 }),
+        );
+    });
+
+    it('loads the remembered transaction count for the overview journal', () => {
+        window.localStorage.setItem('msaver:overview-transaction-count', '50');
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({ page: 1, size: 50 }),
+        );
+    });
+
+    it('persists transaction count changes and reloads the overview journal', () => {
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.getTransactions.mockClear();
+
+        fixture.componentInstance.setTransactionPageSize(100);
+
+        expect(window.localStorage.getItem('msaver:overview-transaction-count')).toBe('100');
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({ page: 1, size: 100 }),
+        );
     });
 
     it('hides the delete action for the primary account and refreshes accounts after deleting another account', () => {
@@ -420,6 +501,179 @@ describe('HomePageComponent', () => {
         expect(balanceCard?.value).not.toContain('$');
     });
 
+    it('shows balance after closing debt categories in summary cards', () => {
+        const account: AccountResponse = {
+            id: 'main-account',
+            name: 'Основной счёт',
+            currencyCode: 'BYN',
+            currentBalance: 1000,
+            color: '#23c78b',
+            isArchived: false,
+            isPrimary: true,
+        };
+        const categories: CategoryResponse[] = [
+            {
+                id: 'debt-taken',
+                name: 'Взято в долг (+)',
+                type: 'Credit',
+                color: '#23c78b',
+                isSystem: true,
+            },
+            {
+                id: 'debt-returned',
+                name: 'Возвращено по долгу (-)',
+                type: 'Debit',
+                color: '#ff6f91',
+                isSystem: true,
+            },
+            {
+                id: 'debt-given',
+                name: 'Дано в долг (-)',
+                type: 'Debit',
+                color: '#e8b45d',
+                isSystem: true,
+            },
+            {
+                id: 'debt-paid-back',
+                name: 'Отдано по долгу (+)',
+                type: 'Credit',
+                color: '#67a6c1',
+                isSystem: true,
+            },
+        ];
+        const transactions = [
+            transaction('taken', account, categories[0], 300),
+            transaction('returned', account, categories[1], -100),
+            transaction('given', account, categories[2], -200),
+            transaction('paid-back', account, categories[3], 50),
+        ];
+
+        homeApi.getAccounts.mockReturnValue(of(page([account])));
+        homeApi.getCategories.mockReturnValue(of(page(categories)));
+        homeApi.getTransactions.mockReturnValue(of(page(transactions)));
+        homeApi.getMonthBalance.mockImplementation((accountId: string, year: number, month: number) =>
+            of<MonthBalanceResponse>({
+                accountId,
+                accountName: 'Основной счёт',
+                currencyCode: 'BYN',
+                openingBalance: 0,
+                monthChange: 0,
+                closingBalance: 1000,
+                year,
+                month,
+            }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const debtCard = fixture
+            .componentInstance.summaryCards()
+            .find((card) => card.id === 'debt-balance');
+
+        expect(debtCard?.value).toContain('950');
+        expect(debtCard?.value).toContain('Br');
+    });
+
+    it('loads the application currency from the current user and converts through a matching account', () => {
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'EUR',
+            }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'eur-account',
+                        name: 'EUR reserve',
+                        currencyCode: 'EUR',
+                        currentBalance: 5,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) =>
+            of({
+                rate: fromAccountId === 'byn-account' && toAccountId === 'eur-account' ? 0.25 : 1,
+                fromCurrencyCode: fromAccountId === 'byn-account' ? 'BYN' : 'EUR',
+                toCurrencyCode: 'EUR',
+            }),
+        );
+        homeApi.getMonthBalance.mockImplementation((accountId: string, year: number, month: number) =>
+            of<MonthBalanceResponse>({
+                accountId,
+                accountName: accountId,
+                currencyCode: accountId === 'eur-account' ? 'EUR' : 'BYN',
+                openingBalance: 0,
+                monthChange: 0,
+                closingBalance: accountId === 'eur-account' ? 5 : 10,
+                year,
+                month,
+            }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const balanceCard = fixture
+            .componentInstance.summaryCards()
+            .find((card) => card.id === 'balance');
+
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('byn-account', 'eur-account');
+        expect(balanceCard?.value).toContain('7,50');
+        expect(balanceCard?.value).toContain('€');
+    });
+
+    it('saves application currency changes from settings and reloads dashboard data', () => {
+        homeApi.getCurrentUser
+            .mockReturnValueOnce(
+                of<CurrentUserResponse>({
+                    id: 'user-123',
+                    username: 'Alex',
+                    email: 'alex@example.com',
+                    applicationCurrencyCode: 'BYN',
+                }),
+            )
+            .mockReturnValue(
+                of<CurrentUserResponse>({
+                    id: 'user-123',
+                    username: 'Alex',
+                    email: 'alex@example.com',
+                    applicationCurrencyCode: 'JPY',
+                }),
+            );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const initialUserCalls = homeApi.getCurrentUser.mock.calls.length;
+
+        fixture.componentInstance.updateApplicationCurrency('JPY');
+
+        expect(homeApi.updateApplicationCurrency).toHaveBeenCalledWith({
+            applicationCurrencyCode: 'JPY',
+        });
+        expect(homeApi.getCurrentUser.mock.calls.length).toBeGreaterThan(initialUserCalls);
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('JPY');
+    });
+
     it('renders settings as a full tab with only the application currency', () => {
         homeApi.getAccounts.mockReturnValue(
             of(
@@ -553,6 +807,54 @@ describe('HomePageComponent', () => {
             date: '2026-06-05',
             description: 'Lunch',
         });
+    });
+
+    it('preserves transaction time when saving a transaction', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'income-category',
+                        name: 'Salary',
+                        type: 'Credit',
+                        color: '#23c78b',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.updateTransactionDraft({
+            type: 'income',
+            accountId: 'main-account',
+            categoryId: 'income-category',
+            amount: 100,
+            date: '2026-06-05T14:37',
+            description: 'Bonus',
+        });
+        fixture.componentInstance.saveTransaction();
+
+        expect(homeApi.createTransaction).toHaveBeenCalledWith(
+            expect.objectContaining({
+                date: '2026-06-05T14:37:00',
+            }),
+        );
     });
 
     it('lets the user dismiss a loading error after a short closing animation', () => {

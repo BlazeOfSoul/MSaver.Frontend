@@ -13,7 +13,7 @@ export function formatMoney(
     }
 
     const symbol = resolveCurrencySymbol(currencyCode);
-    const precision = currencyCode === 'RUB' ? 0 : 2;
+    const precision = resolveCurrencyPrecision(currencyCode);
     const amount = new Intl.NumberFormat('ru-RU', {
         minimumFractionDigits: precision,
         maximumFractionDigits: precision,
@@ -49,6 +49,26 @@ export function formatDate(value: string | null | undefined): string {
     return new Intl.DateTimeFormat('ru-RU').format(date);
 }
 
+export function formatDateTime(value: string | null | undefined): string {
+    if (!value) {
+        return 'Дата не указана';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return 'Дата не распознана';
+    }
+
+    return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(date);
+}
+
 export function resolveCurrencyLabel(currencyCode: string | null | undefined): string {
     switch (currencyCode) {
         case 'BYN':
@@ -59,6 +79,56 @@ export function resolveCurrencyLabel(currencyCode: string | null | undefined): s
             return 'Евро';
         case 'RUB':
             return 'Российский рубль';
+        case 'GBP':
+            return 'Британский фунт';
+        case 'CHF':
+            return 'Швейцарский франк';
+        case 'PLN':
+            return 'Польский злотый';
+        case 'CZK':
+            return 'Чешская крона';
+        case 'SEK':
+            return 'Шведская крона';
+        case 'NOK':
+            return 'Норвежская крона';
+        case 'DKK':
+            return 'Датская крона';
+        case 'CNY':
+            return 'Китайский юань';
+        case 'JPY':
+            return 'Японская иена';
+        case 'KRW':
+            return 'Южнокорейская вона';
+        case 'INR':
+            return 'Индийская рупия';
+        case 'SGD':
+            return 'Сингапурский доллар';
+        case 'HKD':
+            return 'Гонконгский доллар';
+        case 'THB':
+            return 'Тайский бат';
+        case 'KZT':
+            return 'Казахстанский тенге';
+        case 'UAH':
+            return 'Украинская гривна';
+        case 'GEL':
+            return 'Грузинский лари';
+        case 'AMD':
+            return 'Армянский драм';
+        case 'AZN':
+            return 'Азербайджанский манат';
+        case 'BRL':
+            return 'Бразильский реал';
+        case 'ARS':
+            return 'Аргентинское песо';
+        case 'CLP':
+            return 'Чилийское песо';
+        case 'COP':
+            return 'Колумбийское песо';
+        case 'PEN':
+            return 'Перуанский соль';
+        case 'UYU':
+            return 'Уругвайское песо';
         default:
             return currencyCode || 'Валюта не указана';
     }
@@ -74,7 +144,63 @@ export function resolveCurrencySymbol(currencyCode: string | null | undefined): 
             return '€';
         case 'RUB':
             return '₽';
+        case 'GBP':
+            return '£';
+        case 'CHF':
+            return 'CHF';
+        case 'PLN':
+            return 'zł';
+        case 'CZK':
+            return 'Kč';
+        case 'SEK':
+        case 'NOK':
+        case 'DKK':
+            return 'kr';
+        case 'CNY':
+        case 'JPY':
+            return '¥';
+        case 'KRW':
+            return '₩';
+        case 'INR':
+            return '₹';
+        case 'SGD':
+            return 'S$';
+        case 'HKD':
+            return 'HK$';
+        case 'THB':
+            return '฿';
+        case 'KZT':
+            return '₸';
+        case 'UAH':
+            return '₴';
+        case 'GEL':
+            return '₾';
+        case 'AMD':
+            return '֏';
+        case 'AZN':
+            return '₼';
+        case 'BRL':
+            return 'R$';
+        case 'ARS':
+        case 'CLP':
+        case 'COP':
+            return '$';
+        case 'PEN':
+            return 'S/';
+        case 'UYU':
+            return '$U';
         default:
             return currencyCode || '';
+    }
+}
+
+function resolveCurrencyPrecision(currencyCode: string | null | undefined): number {
+    switch (currencyCode) {
+        case 'JPY':
+        case 'KRW':
+        case 'CLP':
+            return 0;
+        default:
+            return 2;
     }
 }

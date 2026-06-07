@@ -12,12 +12,14 @@ import {
     CreateTransactionRequest,
     CreateTransferResponse,
     CreateTransferRequest,
+    CurrentUserResponse,
     MonthBalanceResponse,
     PagedResponse,
     TagDetailsResponse,
     TagResponse,
     TransactionResponse,
     TransferRateResponse,
+    UpdateApplicationCurrencyRequest,
 } from './home-api.models';
 
 const LIST_SIZE = 100;
@@ -33,6 +35,19 @@ interface ListRequestParams {
 export class HomeApiService {
     private readonly http = inject(HttpClient);
     private readonly baseUrl = environment.apiUrl;
+
+    getCurrentUser(): Observable<CurrentUserResponse> {
+        return this.http.get<CurrentUserResponse>(`${this.baseUrl}/Users/me`);
+    }
+
+    updateApplicationCurrency(
+        payload: UpdateApplicationCurrencyRequest,
+    ): Observable<CurrentUserResponse> {
+        return this.http.patch<CurrentUserResponse>(
+            `${this.baseUrl}/Users/me/application-currency`,
+            payload,
+        );
+    }
 
     getAccounts(request: ListRequestParams = {}): Observable<PagedResponse<AccountResponse>> {
         const params = new HttpParams()

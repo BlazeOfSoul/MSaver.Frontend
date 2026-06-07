@@ -2,12 +2,17 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 import { ChartCardComponent } from '../../components/chart-card/chart-card.component';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import {
+    AnalyticsCategoryMonthTable,
     HomeChartDataset,
+    HomeChartType,
     AnalyticsMetricCard,
     AnalyticsSeriesPoint,
     AnalyticsStackedPoint,
     CategoryBreakdownItem,
 } from '../../home-page.models';
+
+type AnalyticsView = 'monthly' | 'yearly' | 'tables' | 'tags';
+type TagChartLimit = '5' | '10' | '15' | 'all';
 
 @Component({
     selector: 'ms-analytics-tab',
@@ -20,6 +25,7 @@ import {
 export class AnalyticsTabComponent {
     metrics = input.required<ReadonlyArray<AnalyticsMetricCard>>();
     incomeVsExpense = input.required<ReadonlyArray<AnalyticsStackedPoint>>();
+    categoryMonthTable = input.required<AnalyticsCategoryMonthTable>();
     expenseCategories = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     incomeCategories = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     monthlyExpenses = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
@@ -31,7 +37,27 @@ export class AnalyticsTabComponent {
     selectedAccountId = input.required<string>();
 
     accountChange = output<string>();
+    readonly activeView = signal<AnalyticsView>('monthly');
     readonly selectedTagExpenseId = signal('all');
+    readonly tagChartType = signal<HomeChartType>('bar');
+    readonly tagChartLimit = signal<TagChartLimit>('10');
+
+    readonly analyticsViews: ReadonlyArray<{ id: AnalyticsView; label: string }> = [
+        { id: 'monthly', label: 'Месячные' },
+        { id: 'yearly', label: 'Годовые' },
+        { id: 'tables', label: 'Таблицы' },
+        { id: 'tags', label: 'Теги' },
+    ];
+    readonly tagChartTypeOptions: ReadonlyArray<MsSelectOption> = [
+        { value: 'bar', label: 'Столбцы' },
+        { value: 'doughnut', label: 'Кольцо' },
+    ];
+    readonly tagChartLimitOptions: ReadonlyArray<MsSelectOption> = [
+        { value: '5', label: 'Топ 5' },
+        { value: '10', label: 'Топ 10' },
+        { value: '15', label: 'Топ 15' },
+        { value: 'all', label: 'Все' },
+    ];
 
     readonly incomeVsExpenseLabels = computed(() =>
         this.incomeVsExpense().map((item) => item.label),
@@ -49,29 +75,35 @@ export class AnalyticsTabComponent {
         },
     ]);
 
+    readonly visibleExpenseCategories = computed(() =>
+        this.limitCategoryChartItems(this.expenseCategories()),
+    );
     readonly expenseCategoryLabels = computed(() =>
-        this.expenseCategories().map((item) => item.name),
+        this.visibleExpenseCategories().map((item) => item.name),
     );
     readonly expenseCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Расходы',
-            data: this.expenseCategories().map((item) => item.amountValue),
+            data: this.visibleExpenseCategories().map((item) => item.amountValue),
             color: '#ff6f91',
-            colors: this.expenseCategories().map(
+            colors: this.visibleExpenseCategories().map(
                 (item, index) => item.color || this.pickColor(index),
             ),
         },
     ]);
 
+    readonly visibleIncomeCategories = computed(() =>
+        this.limitCategoryChartItems(this.incomeCategories()),
+    );
     readonly incomeCategoryLabels = computed(() =>
-        this.incomeCategories().map((item) => item.name),
+        this.visibleIncomeCategories().map((item) => item.name),
     );
     readonly incomeCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Доходы',
-            data: this.incomeCategories().map((item) => item.amountValue),
+            data: this.visibleIncomeCategories().map((item) => item.amountValue),
             color: '#23c78b',
-            colors: this.incomeCategories().map(
+            colors: this.visibleIncomeCategories().map(
                 (item, index) => item.color || this.pickColor(index),
             ),
         },
@@ -122,21 +154,33 @@ export class AnalyticsTabComponent {
     ]);
     readonly selectedTagExpenses = computed(() => {
         const selectedTagId = this.selectedTagExpenseId();
+        const tags = [...this.tagExpenses()].sort((left, right) => right.amountValue - left.amountValue);
 
         if (selectedTagId === 'all') {
-            return this.tagExpenses();
+            return tags;
         }
 
-        return this.tagExpenses().filter((item) => item.id === selectedTagId);
+        return tags.filter((item) => item.id === selectedTagId);
+    });
+    readonly visibleTagExpenses = computed(() => {
+        const selected = this.selectedTagExpenses();
+        const limit = this.tagChartLimit();
+
+        if (limit === 'all') {
+            return selected;
+        }
+
+        return selected.slice(0, Number(limit));
     });
     readonly tagExpenseLabels = computed(() =>
-        this.selectedTagExpenses().map((item) => item.name),
+        this.visibleTagExpenses().map((item) => item.name),
     );
     readonly tagExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Теги',
-            data: this.selectedTagExpenses().map((item) => item.amountValue),
+            data: this.visibleTagExpenses().map((item) => item.amountValue),
             color: '#23c78b',
+            colors: this.visibleTagExpenses().map((item, index) => item.color || this.pickColor(index)),
         },
     ]);
 
@@ -158,9 +202,50 @@ export class AnalyticsTabComponent {
         },
     ]);
 
+    setTagChartType(value: string): void {
+        if (value === 'bar' || value === 'doughnut') {
+            this.tagChartType.set(value);
+        }
+    }
+
+    setTagChartLimit(value: string): void {
+        if (value === '5' || value === '10' || value === '15' || value === 'all') {
+            this.tagChartLimit.set(value);
+        }
+    }
+
     private pickColor(index: number): string {
         const colors = ['#23c78b', '#67a6c1', '#ff6f91', '#e8b45d', '#c77dff', '#79e0b5'];
         return colors[index % colors.length];
+    }
+
+    private limitCategoryChartItems(
+        items: ReadonlyArray<CategoryBreakdownItem>,
+    ): CategoryBreakdownItem[] {
+        const sorted = [...items].sort((left, right) => right.amountValue - left.amountValue);
+
+        if (sorted.length <= 10) {
+            return sorted;
+        }
+
+        const visible = sorted.slice(0, 9);
+        const rest = sorted.slice(9);
+        const amountValue = rest.reduce((sum, item) => sum + item.amountValue, 0);
+
+        return [
+            ...visible,
+            {
+                id: 'other',
+                name: 'Прочее',
+                amount: '',
+                amountValue,
+                progress: 0,
+                color: '#8aa39a',
+                type: visible[0]?.type ?? 'expense',
+                tone: 'warning',
+                isSystem: false,
+            },
+        ];
     }
 
     private readAmount(value: string): number {

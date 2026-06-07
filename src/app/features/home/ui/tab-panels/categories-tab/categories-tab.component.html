@@ -12,32 +12,13 @@
                 <h2>Доходы</h2>
                 <p>Категории поступлений для быстрых операций и отчётов.</p>
             </div>
-        </div>
-
-        <div class="create-form">
-            <ms-input
-                [ngModel]="newIncomeCategory()"
-                (ngModelChange)="newIncomeCategoryChange.emit($event)"
-                placeholder="Новая категория..."
-            ></ms-input>
-
-            <label class="color-field">
-                <span>Цвет</span>
-                <input
-                    type="color"
-                    data-testid="income-color-picker"
-                    [value]="newIncomeCategoryColor()"
-                    [disabled]="saving()"
-                    (input)="newIncomeCategoryColorChange.emit(readColor($event))"
-                />
-                <strong>{{ newIncomeCategoryColor() }}</strong>
-            </label>
 
             <button
                 type="button"
                 class="round-action"
+                data-testid="open-income-category-dialog"
                 [disabled]="saving()"
-                (click)="addIncomeCategory.emit()"
+                (click)="openCategoryDialog('income')"
                 aria-label="Добавить категорию доходов"
             >
                 <span class="material-symbols-outlined">add</span>
@@ -52,15 +33,17 @@
                         [style.--category-color]="category.color"
                     >
                         <span>{{ category.name }}</span>
-                        <button
-                            type="button"
-                            class="category-chip__action"
-                            [disabled]="saving()"
-                            (click)="deleteCategory.emit(category.id)"
-                            aria-label="Удалить категорию"
-                        >
-                            <span class="material-symbols-outlined">close</span>
-                        </button>
+                        @if (!category.isSystem) {
+                            <button
+                                type="button"
+                                class="category-chip__action"
+                                [disabled]="saving()"
+                                (click)="deleteCategory.emit(category.id)"
+                                aria-label="Удалить категорию"
+                            >
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        }
                     </span>
                 }
             </div>
@@ -75,32 +58,13 @@
                 <h2>Расходы</h2>
                 <p>Статьи затрат для операций, бюджета и аналитики.</p>
             </div>
-        </div>
-
-        <div class="create-form">
-            <ms-input
-                [ngModel]="newExpenseCategory()"
-                (ngModelChange)="newExpenseCategoryChange.emit($event)"
-                placeholder="Новая категория..."
-            ></ms-input>
-
-            <label class="color-field">
-                <span>Цвет</span>
-                <input
-                    type="color"
-                    data-testid="expense-color-picker"
-                    [value]="newExpenseCategoryColor()"
-                    [disabled]="saving()"
-                    (input)="newExpenseCategoryColorChange.emit(readColor($event))"
-                />
-                <strong>{{ newExpenseCategoryColor() }}</strong>
-            </label>
 
             <button
                 type="button"
                 class="round-action"
+                data-testid="open-expense-category-dialog"
                 [disabled]="saving()"
-                (click)="addExpenseCategory.emit()"
+                (click)="openCategoryDialog('expense')"
                 aria-label="Добавить категорию расходов"
             >
                 <span class="material-symbols-outlined">add</span>
@@ -115,15 +79,17 @@
                         [style.--category-color]="category.color"
                     >
                         <span>{{ category.name }}</span>
-                        <button
-                            type="button"
-                            class="category-chip__action"
-                            [disabled]="saving()"
-                            (click)="deleteCategory.emit(category.id)"
-                            aria-label="Удалить категорию"
-                        >
-                            <span class="material-symbols-outlined">close</span>
-                        </button>
+                        @if (!category.isSystem) {
+                            <button
+                                type="button"
+                                class="category-chip__action"
+                                [disabled]="saving()"
+                                (click)="deleteCategory.emit(category.id)"
+                                aria-label="Удалить категорию"
+                            >
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        }
                     </span>
                 }
             </div>
@@ -234,3 +200,66 @@
         }
     </article>
 </section>
+
+@if (isCategoryDialogOpen()) {
+    <div class="category-dialog-backdrop" (click)="onCategoryDialogBackdropClick($event)">
+        <section class="category-dialog" (click)="$event.stopPropagation()">
+            <header class="category-dialog__header">
+                <div>
+                    <h2>{{ categoryDialogTitle() }}</h2>
+                    <p>Выберите название и цвет для операций и аналитики.</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="icon-action"
+                    (click)="closeCategoryDialog()"
+                    aria-label="Закрыть диалог"
+                >
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </header>
+
+            <div class="category-dialog__body">
+                <ms-input
+                    [ngModel]="categoryDialogName()"
+                    (ngModelChange)="setCategoryDialogName($event)"
+                    placeholder="Название категории"
+                ></ms-input>
+
+                <label class="color-field">
+                    <span>Цвет</span>
+                    <input
+                        type="color"
+                        data-testid="income-color-picker"
+                        [value]="categoryDialogColor()"
+                        [disabled]="saving()"
+                        (input)="setCategoryDialogColor(readColor($event))"
+                    />
+                    <strong>{{ categoryDialogColor() }}</strong>
+                </label>
+            </div>
+
+            <footer class="category-dialog__footer">
+                <button
+                    type="button"
+                    class="ghost-action"
+                    [disabled]="saving()"
+                    (click)="closeCategoryDialog()"
+                >
+                    Отмена
+                </button>
+
+                <button
+                    type="button"
+                    class="primary-action"
+                    data-testid="submit-category-dialog"
+                    [disabled]="saving() || !categoryDialogName().trim()"
+                    (click)="submitCategoryDialog()"
+                >
+                    Создать
+                </button>
+            </footer>
+        </section>
+    </div>
+}

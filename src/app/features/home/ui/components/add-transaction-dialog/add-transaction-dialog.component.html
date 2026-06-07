@@ -71,12 +71,13 @@
                         ></ms-select>
 
                         <div class="dialog__field">
-                            <span class="dialog__field-label">Дата</span>
-                            <ms-input
+                            <span class="dialog__field-label">Дата и время</span>
+                            <input
+                                class="dialog__native-input"
+                                type="datetime-local"
                                 [ngModel]="draft().date"
                                 (ngModelChange)="draftChange.emit({ ...draft(), date: $event })"
-                                placeholder="2026-06-04"
-                            ></ms-input>
+                            />
                         </div>
 
                         <div class="dialog__field dialog__field--wide">

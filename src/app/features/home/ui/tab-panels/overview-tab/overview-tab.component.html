@@ -17,6 +17,13 @@
             [formControl]="searchControl()"
             placeholder="Поиск по описанию, категории или счёту"
         ></ms-input>
+
+        <ms-select
+            label="Показывать"
+            [options]="pageSizeOptions()"
+            [value]="pageSize().toString()"
+            (valueChange)="onPageSizeChange($event)"
+        ></ms-select>
     </div>
 
     @if (transactions().length) {
@@ -75,7 +82,7 @@
                     @for (item of pagedTransactions(); track item.id) {
                         <tr>
                             <td data-label="Дата">
-                                <span class="transaction-date">{{ item.date }}</span>
+                                <span class="transaction-date">{{ item.dateTimeLabel }}</span>
                             </td>
                             <td data-label="Операция">
                                 <div class="transaction-name">
@@ -86,9 +93,6 @@
                                     </span>
                                     <div>
                                         <strong>{{ item.title }}</strong>
-                                        @if (item.description && item.description !== item.title) {
-                                            <span>{{ item.description }}</span>
-                                        }
                                     </div>
                                 </div>
                             </td>
@@ -104,7 +108,24 @@
                             <td data-label="Сумма" class="transactions-table__amount">
                                 <strong [attr.data-tone]="item.tone">{{ item.amountLabel }}</strong>
                             </td>
-                            <td class="transactions-table__actions">
+                            <td data-label="Действия" class="transactions-table__actions">
+                                <button
+                                    type="button"
+                                    class="icon-action"
+                                    data-testid="toggle-transaction-details"
+                                    (click)="toggleTransactionDetails(item.id)"
+                                    [attr.aria-expanded]="isTransactionExpanded(item.id)"
+                                    aria-label="Показать подробности транзакции"
+                                >
+                                    <span class="material-symbols-outlined">
+                                        {{
+                                            isTransactionExpanded(item.id)
+                                                ? 'expand_less'
+                                                : 'expand_more'
+                                        }}
+                                    </span>
+                                </button>
+
                                 <button
                                     type="button"
                                     class="icon-action icon-action--danger"
@@ -116,6 +137,36 @@
                                 </button>
                             </td>
                         </tr>
+
+                        @if (isTransactionExpanded(item.id)) {
+                            <tr class="transaction-details-row">
+                                <td colspan="6">
+                                    <div class="transaction-details">
+                                        <div>
+                                            <span>Дата и время</span>
+                                            <strong>{{ item.dateTimeLabel }}</strong>
+                                        </div>
+                                        <div>
+                                            <span>Счёт</span>
+                                            <strong>{{ item.accountName }}</strong>
+                                        </div>
+                                        <div>
+                                            <span>Категория</span>
+                                            <strong>{{ item.category }}</strong>
+                                        </div>
+                                        <div class="transaction-details__description">
+                                            <span>Описание</span>
+                                            <strong>
+                                                {{
+                                                    item.description ||
+                                                        'Описание не указано'
+                                                }}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>

@@ -134,6 +134,23 @@
     color: rgba(255, 255, 255, 0.66);
 }
 
+.dialog__native-input {
+    width: 100%;
+    min-height: 3rem;
+    padding: 0 0.9rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    color: var(--color-ms-light);
+    background: rgba(255, 255, 255, 0.04);
+    font: inherit;
+    color-scheme: dark;
+}
+
+.dialog__native-input:focus {
+    outline: 2px solid color-mix(in oklab, var(--color-ms-primary), transparent 56%);
+    outline-offset: 2px;
+}
+
 .dialog__footer {
     position: sticky;
     bottom: -1.5rem;

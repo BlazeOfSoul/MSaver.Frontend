@@ -24,126 +24,233 @@
                 </article>
             }
         </div>
-    </article>
 
-    <section class="analytics-section analytics-section--wide">
-        <div class="analytics-section__header">
-            <span>Денежный поток</span>
-        </div>
-
-        <ms-chart-card
-            class="panel--wide"
-            title="Доходы и расходы"
-            subtitle="Сравнение денежных потоков по месяцам выбранного года."
-            type="bar"
-            [labels]="incomeVsExpenseLabels()"
-            [datasets]="incomeVsExpenseDatasets()"
-        ></ms-chart-card>
-
-        <ms-chart-card
-            class="panel--wide"
-            title="Чистый денежный поток"
-            subtitle="Итоговая разница между доходами и расходами по месяцам."
-            type="line"
-            [labels]="netCashFlowLabels()"
-            [datasets]="netCashFlowDatasets()"
-        ></ms-chart-card>
-    </section>
-
-    <section class="analytics-section">
-        <div class="analytics-section__header">
-            <span>Категории</span>
-        </div>
-
-        <ms-chart-card
-            title="Расходы по категориям"
-            subtitle="Структура расходов выбранного месяца."
-            type="doughnut"
-            [labels]="expenseCategoryLabels()"
-            [datasets]="expenseCategoryDatasets()"
-        ></ms-chart-card>
-
-        <ms-chart-card
-            title="Доходы по категориям"
-            subtitle="Структура поступлений выбранного месяца."
-            type="doughnut"
-            [labels]="incomeCategoryLabels()"
-            [datasets]="incomeCategoryDatasets()"
-        ></ms-chart-card>
-    </section>
-
-    <section class="analytics-section">
-        <div class="analytics-section__header">
-            <span>Динамика</span>
-        </div>
-
-        <ms-chart-card
-            title="Расходы по месяцам"
-            subtitle="Динамика расходов в выбранном году."
-            type="bar"
-            [labels]="monthlyExpenseLabels()"
-            [datasets]="monthlyExpenseDatasets()"
-        ></ms-chart-card>
-
-        <ms-chart-card
-            title="Динамика баланса"
-            subtitle="Закрывающий баланс по месяцам выбранного года."
-            type="line"
-            [labels]="balanceDynamicsLabels()"
-            [datasets]="balanceDynamicsDatasets()"
-        ></ms-chart-card>
-    </section>
-
-    <section class="tag-chart-section analytics-section analytics-section--wide">
-        <div class="analytics-section__header">
-            <span>Теги и крупные траты</span>
-        </div>
-
-        <ms-chart-card
-            title="Расходы по тегам"
-            subtitle="Теги, которые собирают основные траты."
-            type="bar"
-            [labels]="tagExpenseLabels()"
-            [datasets]="tagExpenseDatasets()"
-        ></ms-chart-card>
-
-        <div class="tag-filter-strip" aria-label="Фильтр расходов по тегам">
-            @for (option of tagExpenseOptions(); track option.value) {
+        <nav class="analytics-view-tabs" aria-label="Разделы аналитики">
+            @for (view of analyticsViews; track view.id) {
                 <button
                     type="button"
-                    class="tag-filter-button"
-                    [class.tag-filter-button--active]="selectedTagExpenseId() === option.value"
-                    (click)="selectedTagExpenseId.set(option.value)"
+                    class="analytics-view-tabs__button"
+                    [class.analytics-view-tabs__button--active]="activeView() === view.id"
+                    (click)="activeView.set(view.id)"
                 >
-                    @if (option.color) {
-                        <i [style.--tag-filter-color]="option.color"></i>
-                    }
-                    <span>{{ option.label }}</span>
+                    {{ view.label }}
                 </button>
             }
-        </div>
-    </section>
+        </nav>
+    </article>
 
-    <section class="analytics-section">
-        <div class="analytics-section__header">
-            <span>Сводка</span>
-        </div>
+    @switch (activeView()) {
+        @case ('monthly') {
+            <section class="analytics-section">
+                <div class="analytics-section__header">
+                    <span>Месячные срезы</span>
+                </div>
 
-        <ms-chart-card
-            title="Топ расходов"
-            subtitle="Самые затратные категории выбранного месяца."
-            type="bar"
-            [labels]="topExpenseLabels()"
-            [datasets]="topExpenseDatasets()"
-        ></ms-chart-card>
+                <ms-chart-card
+                    title="Расходы по категориям"
+                    subtitle="Структура расходов выбранного месяца."
+                    type="doughnut"
+                    [labels]="expenseCategoryLabels()"
+                    [datasets]="expenseCategoryDatasets()"
+                ></ms-chart-card>
 
-        <ms-chart-card
-            class="panel--wide"
-            title="Статистика года"
-            subtitle="Итоги доходов и расходов за выбранный год."
-            type="bar"
-            [labels]="yearStatLabels()"
-            [datasets]="yearStatDatasets()"
-        ></ms-chart-card>
-    </section>
+                <ms-chart-card
+                    title="Доходы по категориям"
+                    subtitle="Структура поступлений выбранного месяца."
+                    type="doughnut"
+                    [labels]="incomeCategoryLabels()"
+                    [datasets]="incomeCategoryDatasets()"
+                ></ms-chart-card>
+
+                <ms-chart-card
+                    title="Топ расходов"
+                    subtitle="Самые затратные категории выбранного месяца."
+                    type="bar"
+                    [labels]="topExpenseLabels()"
+                    [datasets]="topExpenseDatasets()"
+                ></ms-chart-card>
+            </section>
+        }
+
+        @case ('yearly') {
+            <section class="analytics-section analytics-section--wide">
+                <div class="analytics-section__header">
+                    <span>Годовое движение</span>
+                </div>
+
+                <ms-chart-card
+                    title="Доходы и расходы"
+                    subtitle="Сравнение денежных потоков по месяцам выбранного года."
+                    type="bar"
+                    [labels]="incomeVsExpenseLabels()"
+                    [datasets]="incomeVsExpenseDatasets()"
+                ></ms-chart-card>
+
+                <ms-chart-card
+                    title="Чистый денежный поток"
+                    subtitle="Итоговая разница между доходами и расходами по месяцам."
+                    type="line"
+                    [labels]="netCashFlowLabels()"
+                    [datasets]="netCashFlowDatasets()"
+                ></ms-chart-card>
+
+                <ms-chart-card
+                    title="Расходы по месяцам"
+                    subtitle="Динамика расходов в выбранном году."
+                    type="bar"
+                    [labels]="monthlyExpenseLabels()"
+                    [datasets]="monthlyExpenseDatasets()"
+                ></ms-chart-card>
+
+                <ms-chart-card
+                    title="Динамика баланса"
+                    subtitle="Закрывающий баланс по месяцам выбранного года."
+                    type="line"
+                    [labels]="balanceDynamicsLabels()"
+                    [datasets]="balanceDynamicsDatasets()"
+                ></ms-chart-card>
+
+                <ms-chart-card
+                    title="Статистика года"
+                    subtitle="Итоги доходов и расходов за выбранный год."
+                    type="bar"
+                    [labels]="yearStatLabels()"
+                    [datasets]="yearStatDatasets()"
+                ></ms-chart-card>
+            </section>
+        }
+
+        @case ('tables') {
+            <section class="analytics-section analytics-section--wide">
+                <div class="analytics-section__header">
+                    <span>Таблицы по месяцам</span>
+                </div>
+
+                <article class="analytics-table-card">
+                    <h3>Расходы по категориям</h3>
+
+                    @if (categoryMonthTable().expenseRows.length) {
+                        <div class="analytics-table-shell">
+                            <table class="analytics-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Категория</th>
+                                        @for (month of categoryMonthTable().months; track month) {
+                                            <th scope="col">{{ month }}</th>
+                                        }
+                                        <th scope="col">Итого</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (row of categoryMonthTable().expenseRows; track row.id) {
+                                        <tr>
+                                            <th scope="row">
+                                                <i [style.background]="row.color"></i>
+                                                <span>{{ row.name }}</span>
+                                            </th>
+                                            @for (cell of row.cells; track cell.label) {
+                                                <td>{{ cell.formattedValue }}</td>
+                                            }
+                                            <td>
+                                                <strong>{{ row.formattedTotal }}</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    } @else {
+                        <div class="analytics-empty">Расходов за выбранный год пока нет.</div>
+                    }
+                </article>
+
+                <article class="analytics-table-card">
+                    <h3>Доходы по категориям</h3>
+
+                    @if (categoryMonthTable().incomeRows.length) {
+                        <div class="analytics-table-shell">
+                            <table class="analytics-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Категория</th>
+                                        @for (month of categoryMonthTable().months; track month) {
+                                            <th scope="col">{{ month }}</th>
+                                        }
+                                        <th scope="col">Итого</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (row of categoryMonthTable().incomeRows; track row.id) {
+                                        <tr>
+                                            <th scope="row">
+                                                <i [style.background]="row.color"></i>
+                                                <span>{{ row.name }}</span>
+                                            </th>
+                                            @for (cell of row.cells; track cell.label) {
+                                                <td>{{ cell.formattedValue }}</td>
+                                            }
+                                            <td>
+                                                <strong>{{ row.formattedTotal }}</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    } @else {
+                        <div class="analytics-empty">Доходов за выбранный год пока нет.</div>
+                    }
+                </article>
+            </section>
+        }
+
+        @case ('tags') {
+            <section class="tag-chart-section analytics-section analytics-section--wide">
+                <div class="analytics-section__header">
+                    <span>Теги</span>
+                </div>
+
+                <div class="tag-chart-controls">
+                    <ms-select
+                        label="Вид"
+                        [options]="tagChartTypeOptions"
+                        [value]="tagChartType()"
+                        (valueChange)="setTagChartType($event)"
+                    ></ms-select>
+
+                    <ms-select
+                        label="Лимит"
+                        [options]="tagChartLimitOptions"
+                        [value]="tagChartLimit()"
+                        (valueChange)="setTagChartLimit($event)"
+                    ></ms-select>
+                </div>
+
+                <ms-chart-card
+                    title="Расходы по тегам"
+                    subtitle="Теги, которые собирают основные траты."
+                    [type]="tagChartType()"
+                    [labels]="tagExpenseLabels()"
+                    [datasets]="tagExpenseDatasets()"
+                    [height]="280"
+                ></ms-chart-card>
+
+                <div class="tag-filter-strip" aria-label="Фильтр расходов по тегам">
+                    @for (option of tagExpenseOptions(); track option.value) {
+                        <button
+                            type="button"
+                            class="tag-filter-button"
+                            [class.tag-filter-button--active]="selectedTagExpenseId() === option.value"
+                            (click)="selectedTagExpenseId.set(option.value)"
+                        >
+                            @if (option.color) {
+                                <i [style.--tag-filter-color]="option.color"></i>
+                            }
+                            <span>{{ option.label }}</span>
+                        </button>
+                    }
+                </div>
+            </section>
+        }
+    }
 </section>

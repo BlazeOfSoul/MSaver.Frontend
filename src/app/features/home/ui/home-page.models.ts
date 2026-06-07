@@ -26,6 +26,8 @@ export interface TransactionItem {
     accountName: string;
     date: string;
     dateValue: string;
+    dateTimeLabel: string;
+    timestamp: number;
     description: string;
     amountLabel: string;
     amountValue: number;
@@ -81,6 +83,28 @@ export interface AnalyticsStackedPoint {
     expense: number;
 }
 
+export interface AnalyticsCategoryMonthCell {
+    label: string;
+    value: number;
+    formattedValue: string;
+}
+
+export interface AnalyticsCategoryMonthRow {
+    id: string;
+    name: string;
+    color: string;
+    type: 'income' | 'expense';
+    cells: ReadonlyArray<AnalyticsCategoryMonthCell>;
+    totalValue: number;
+    formattedTotal: string;
+}
+
+export interface AnalyticsCategoryMonthTable {
+    months: ReadonlyArray<string>;
+    incomeRows: ReadonlyArray<AnalyticsCategoryMonthRow>;
+    expenseRows: ReadonlyArray<AnalyticsCategoryMonthRow>;
+}
+
 export interface CategoryBreakdownItem {
     id: string;
     name: string;
@@ -90,6 +114,7 @@ export interface CategoryBreakdownItem {
     color: string;
     type: 'income' | 'expense';
     tone: 'good' | 'warning' | 'danger';
+    isSystem: boolean;
 }
 
 export interface TagGroupItem {

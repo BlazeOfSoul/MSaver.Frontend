@@ -20,6 +20,17 @@ export interface AccountResponse {
     isPrimary?: boolean;
 }
 
+export interface CurrentUserResponse {
+    id: string;
+    username: string;
+    email: string;
+    applicationCurrencyCode: string;
+}
+
+export interface UpdateApplicationCurrencyRequest {
+    applicationCurrencyCode: string;
+}
+
 export interface MonthBalanceResponse {
     accountId: string;
     accountName: string;
@@ -42,6 +53,7 @@ export interface CategoryResponse {
     name: string;
     type: CategoryType;
     color: string;
+    isSystem?: boolean;
 }
 
 export interface CreateCategoryRequest {

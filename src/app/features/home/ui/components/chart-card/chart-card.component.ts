@@ -152,6 +152,10 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
                               x: {
                                   ticks: {
                                       color: 'rgba(255,255,255,0.44)',
+                                      autoSkip: true,
+                                      maxRotation: 0,
+                                      minRotation: 0,
+                                      callback: (value) => this.truncateAxisLabel(Number(value)),
                                   },
                                   grid: {
                                       display: false,
@@ -164,6 +168,7 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
                                   beginAtZero: true,
                                   ticks: {
                                       color: 'rgba(255,255,255,0.38)',
+                                      maxTicksLimit: 6,
                                   },
                                   grid: {
                                       color: 'rgba(255,255,255,0.06)',
@@ -186,5 +191,11 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
             firstDataset?.color ??
             '#23c78b'
         );
+    }
+
+    private truncateAxisLabel(index: number): string {
+        const label = this.labels()[index] ?? '';
+
+        return label.length > 12 ? `${label.slice(0, 11)}…` : label;
     }
 }

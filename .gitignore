@@ -40,6 +40,7 @@ devserver*.log
 testem.log
 /typings
 __screenshots__/
+.superpowers/
 
 # System files
 .DS_Store

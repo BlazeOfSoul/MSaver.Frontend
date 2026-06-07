@@ -77,6 +77,8 @@ export class HomePageComponent {
     readonly newTagGroup = this.dashboard.newTagGroup;
     readonly transferDraft = this.dashboard.transferDraft;
     readonly transactionDraft = this.dashboard.transactionDraft;
+    readonly transactionPageSize = this.dashboard.transactionPageSize;
+    readonly transactionPageSizeOptions = this.dashboard.transactionPageSizeOptions;
     readonly accounts = this.dashboard.accounts;
     readonly accountList = this.dashboard.accountList;
     readonly visibleAccounts = this.dashboard.visibleAccounts;
@@ -95,6 +97,7 @@ export class HomePageComponent {
     readonly expenseCategoryOptions = this.dashboard.expenseCategoryOptions;
     readonly monthLabel = this.dashboard.monthLabel;
     readonly incomeVsExpense = this.dashboard.incomeVsExpense;
+    readonly categoryMonthTable = this.dashboard.categoryMonthTable;
     readonly monthlyExpensesChart = this.dashboard.monthlyExpensesChart;
     readonly balanceDynamicsChart = this.dashboard.balanceDynamicsChart;
     readonly tagExpensesChart = this.dashboard.tagExpensesChart;
@@ -154,6 +157,10 @@ export class HomePageComponent {
         this.dashboard.setAccountFilter(accountId);
     }
 
+    setTransactionPageSize(size: number): void {
+        this.dashboard.setTransactionPageSize(size);
+    }
+
     goToPreviousMonth(): void {
         this.dashboard.goToPreviousMonth();
     }
@@ -196,6 +203,10 @@ export class HomePageComponent {
 
     setNewAccountCurrency(value: string): void {
         this.dashboard.setNewAccountCurrency(value);
+    }
+
+    updateApplicationCurrency(value: string): void {
+        this.dashboard.setApplicationCurrencyCode(value);
     }
 
     createNewAccount(): void {

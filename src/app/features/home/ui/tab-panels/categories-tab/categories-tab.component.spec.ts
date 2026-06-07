@@ -13,6 +13,7 @@ function category(overrides: Partial<CategoryBreakdownItem>): CategoryBreakdownI
         color: '#23c78b',
         type: 'income',
         tone: 'good',
+        isSystem: false,
         ...overrides,
     };
 }
@@ -92,6 +93,9 @@ describe('CategoriesTabComponent', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
+        host.querySelector<HTMLButtonElement>('[data-testid="open-income-category-dialog"]')?.click();
+        fixture.detectChanges();
+
         const colorPicker = host.querySelector<HTMLInputElement>(
             '[data-testid="income-color-picker"]',
         );
@@ -102,6 +106,58 @@ describe('CategoriesTabComponent', () => {
         colorPicker!.dispatchEvent(new Event('input'));
 
         expect(emitSpy).toHaveBeenCalledWith('#67a6c1');
+    });
+
+    it('creates categories from a modal dialog', () => {
+        const addSpy = vi.fn();
+        const nameSpy = vi.fn();
+        component.addIncomeCategory.subscribe(addSpy);
+        component.newIncomeCategoryChange.subscribe(nameSpy);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.querySelector('.create-form')).toBeNull();
+
+        host.querySelector<HTMLButtonElement>('[data-testid="open-income-category-dialog"]')?.click();
+        fixture.detectChanges();
+
+        const dialog = host.querySelector<HTMLElement>('.category-dialog');
+        const input = dialog?.querySelector<HTMLInputElement>('input');
+
+        expect(dialog).not.toBeNull();
+        expect(dialog?.textContent ?? '').toContain('Новая категория доходов');
+
+        input!.value = 'Премия';
+        input!.dispatchEvent(new Event('input'));
+        fixture.componentRef.setInput('newIncomeCategory', 'Премия');
+        fixture.detectChanges();
+
+        host.querySelector<HTMLButtonElement>('[data-testid="submit-category-dialog"]')?.click();
+
+        expect(nameSpy).toHaveBeenCalledWith('Премия');
+        expect(addSpy).toHaveBeenCalledOnce();
+    });
+
+    it('does not render delete actions for system categories', () => {
+        fixture.componentRef.setInput('incomeCategories', [
+            category({ id: 'salary-id', name: 'Зарплата', isSystem: false }),
+            category({ id: 'debt-id', name: 'Взято в долг (+)', isSystem: true }),
+        ]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const salaryChip = Array.from(host.querySelectorAll<HTMLElement>('.category-chip')).find(
+            (chip) => chip.textContent?.includes('Зарплата'),
+        );
+        const debtChip = Array.from(host.querySelectorAll<HTMLElement>('.category-chip')).find(
+            (chip) => chip.textContent?.includes('Взято в долг (+)'),
+        );
+
+        expect(salaryChip?.querySelector('.category-chip__action')).not.toBeNull();
+        expect(debtChip?.querySelector('.category-chip__action')).toBeNull();
     });
 
     it('filters out categories already assigned to a tag', () => {
