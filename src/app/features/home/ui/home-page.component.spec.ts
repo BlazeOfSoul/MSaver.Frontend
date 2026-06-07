@@ -81,6 +81,7 @@ describe('HomePageComponent', () => {
         createAccount: ReturnType<typeof vi.fn>;
         deleteAccount: ReturnType<typeof vi.fn>;
         createTransaction: ReturnType<typeof vi.fn>;
+        updateTransaction: ReturnType<typeof vi.fn>;
         deleteTransaction: ReturnType<typeof vi.fn>;
         createTransfer: ReturnType<typeof vi.fn>;
         getTransferRate: ReturnType<typeof vi.fn>;
@@ -151,6 +152,7 @@ describe('HomePageComponent', () => {
             createAccount: vi.fn(() => of('account-id')),
             deleteAccount: vi.fn(() => of('account-id')),
             createTransaction: vi.fn(() => of('transaction-id')),
+            updateTransaction: vi.fn(() => of('transaction-id')),
             deleteTransaction: vi.fn(() => of('transaction-id')),
             createTransfer: vi.fn(() =>
                 of({
@@ -855,6 +857,119 @@ describe('HomePageComponent', () => {
                 date: '2026-06-05T14:37:00',
             }),
         );
+    });
+
+    it('prefills and updates an existing expense transaction', () => {
+        const account: AccountResponse = {
+            id: 'main-account',
+            name: 'Main account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+        };
+        const incomeCategory: CategoryResponse = {
+            id: 'income-category',
+            name: 'Salary',
+            type: 'Credit',
+            color: '#23c78b',
+        };
+        const expenseCategory: CategoryResponse = {
+            id: 'expense-category',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff8fab',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account])));
+        homeApi.getCategories.mockReturnValue(
+            of(page<CategoryResponse>([incomeCategory, expenseCategory])),
+        );
+        homeApi.getTransactions.mockReturnValue(
+            of(
+                page<TransactionResponse>([
+                    transaction('expense-transaction', account, expenseCategory, -25),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.startEditingTransaction(component.filteredTransactions()[0]);
+
+        expect(component.transactionDraft()).toEqual({
+            type: 'expense',
+            accountId: 'main-account',
+            categoryId: 'expense-category',
+            amount: 25,
+            date: '2026-06-05T12:00',
+            description: 'Food',
+        });
+
+        component.updateTransactionDraft({
+            ...component.transactionDraft(),
+            amount: 30,
+            date: '2026-06-06T14:30',
+            description: '  Updated lunch  ',
+        });
+        component.saveTransaction();
+
+        expect(homeApi.updateTransaction).toHaveBeenCalledWith('expense-transaction', {
+            categoryId: 'expense-category',
+            amount: -30,
+            date: '2026-06-06T14:30:00',
+            description: 'Updated lunch',
+        });
+        expect(homeApi.createTransaction).not.toHaveBeenCalled();
+    });
+
+    it('opens the edit dialog from the rendered transaction action', () => {
+        const account: AccountResponse = {
+            id: 'main-account',
+            name: 'Main account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+        };
+        const expenseCategory: CategoryResponse = {
+            id: 'expense-category',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff8fab',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([expenseCategory])));
+        homeApi.getTransactions.mockReturnValue(
+            of(
+                page<TransactionResponse>([
+                    transaction('expense-transaction', account, expenseCategory, -25),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>('[data-testid="edit-transaction"]')?.click();
+        fixture.detectChanges();
+
+        expect(host.querySelector('.dialog')).not.toBeNull();
+        expect(host.textContent ?? '').toContain('Редактировать транзакцию');
+        expect(fixture.componentInstance.transactionDraft()).toEqual({
+            type: 'expense',
+            accountId: 'main-account',
+            categoryId: 'expense-category',
+            amount: 25,
+            date: '2026-06-05T12:00',
+            description: 'Food',
+        });
     });
 
     it('lets the user dismiss a loading error after a short closing animation', () => {

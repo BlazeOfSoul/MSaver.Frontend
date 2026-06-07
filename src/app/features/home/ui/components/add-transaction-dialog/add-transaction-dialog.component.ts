@@ -24,6 +24,7 @@ import { TransactionDraft } from '../../home-page.models';
 export class AddTransactionDialogComponent {
     open = input<boolean>(false);
     saving = input<boolean>(false);
+    mode = input<'create' | 'edit'>('create');
     draft = input.required<TransactionDraft>();
     accountOptions = input.required<ReadonlyArray<MsSelectOption>>();
     incomeCategoryOptions = input.required<ReadonlyArray<MsSelectOption>>();
@@ -35,8 +36,21 @@ export class AddTransactionDialogComponent {
 
     readonly amountText = signal('0.00');
     private readonly amountEditing = signal(false);
+    private backdropPointerDownStartedOnBackdrop = false;
 
     readonly hasAccounts = computed(() => this.accountOptions().length > 0);
+    readonly isEditMode = computed(() => this.mode() === 'edit');
+    readonly dialogTitle = computed(() =>
+        this.isEditMode() ? 'Редактировать транзакцию' : 'Новая транзакция',
+    );
+    readonly dialogDescription = computed(() =>
+        this.isEditMode()
+            ? 'Измените сумму, категорию, дату или описание операции.'
+            : 'Добавьте доход или расход в выбранный месяц.',
+    );
+    readonly saveLabel = computed(() =>
+        this.isEditMode() ? 'Сохранить транзакцию' : 'Добавить транзакцию',
+    );
     readonly categoryOptions = computed(() =>
         this.draft().type === 'income'
             ? this.incomeCategoryOptions()
@@ -61,10 +75,16 @@ export class AddTransactionDialogComponent {
         });
     }
 
+    onBackdropPointerDown(event: PointerEvent): void {
+        this.backdropPointerDownStartedOnBackdrop = event.target === event.currentTarget;
+    }
+
     onBackdropClick(event: MouseEvent): void {
-        if (event.target === event.currentTarget) {
+        if (event.target === event.currentTarget && this.backdropPointerDownStartedOnBackdrop) {
             this.close.emit();
         }
+
+        this.backdropPointerDownStartedOnBackdrop = false;
     }
 
     formatMoneyAmount(value: number): string {

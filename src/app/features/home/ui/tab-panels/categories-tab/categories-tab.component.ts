@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Button } from '../../../../../shared/ui/button/button';
 import { InputComponent } from '../../../../../shared/ui/input/input';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import { CategoryBreakdownItem, TagGroupItem } from '../../home-page.models';
@@ -9,7 +10,7 @@ type CategoryDialogType = 'income' | 'expense';
 @Component({
     selector: 'ms-categories-tab',
     standalone: true,
-    imports: [FormsModule, ReactiveFormsModule, InputComponent, SelectComponent],
+    imports: [FormsModule, ReactiveFormsModule, Button, InputComponent, SelectComponent],
     templateUrl: './categories-tab.component.html',
     styleUrl: './categories-tab.component.css',
     changeDetection: ChangeDetectionStrategy.OnPush,

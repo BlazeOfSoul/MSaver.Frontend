@@ -27,14 +27,14 @@
 
         <nav class="analytics-view-tabs" aria-label="Разделы аналитики">
             @for (view of analyticsViews; track view.id) {
-                <button
-                    type="button"
-                    class="analytics-view-tabs__button"
-                    [class.analytics-view-tabs__button--active]="activeView() === view.id"
-                    (click)="activeView.set(view.id)"
+                <ms-button
+                    appearance="tab"
+                    variant="neutral"
+                    [active]="activeView() === view.id"
+                    (onClick)="activeView.set(view.id)"
                 >
                     {{ view.label }}
-                </button>
+                </ms-button>
             }
         </nav>
     </article>
@@ -237,17 +237,18 @@
 
                 <div class="tag-filter-strip" aria-label="Фильтр расходов по тегам">
                     @for (option of tagExpenseOptions(); track option.value) {
-                        <button
-                            type="button"
+                        <ms-button
+                            appearance="chip"
+                            variant="primary"
                             class="tag-filter-button"
-                            [class.tag-filter-button--active]="selectedTagExpenseId() === option.value"
-                            (click)="selectedTagExpenseId.set(option.value)"
+                            [active]="selectedTagExpenseId() === option.value"
+                            (onClick)="selectedTagExpenseId.set(option.value)"
                         >
                             @if (option.color) {
                                 <i [style.--tag-filter-color]="option.color"></i>
                             }
                             <span>{{ option.label }}</span>
-                        </button>
+                        </ms-button>
                     }
                 </div>
             </section>

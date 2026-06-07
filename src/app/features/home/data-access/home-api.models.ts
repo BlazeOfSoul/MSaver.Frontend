@@ -125,6 +125,13 @@ export interface CreateTransactionRequest {
     date: string;
 }
 
+export interface UpdateTransactionRequest {
+    categoryId: string;
+    description: string;
+    amount: number;
+    date: string;
+}
+
 export interface CreateTransferRequest {
     fromAccountId: string;
     toAccountId: string;

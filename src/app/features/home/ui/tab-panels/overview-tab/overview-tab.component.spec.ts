@@ -140,6 +140,61 @@ describe('OverviewTabComponent', () => {
         expect(host.textContent ?? '').toContain('Food');
     });
 
+    it('emits the selected transaction item when editing starts', () => {
+        const editSpy = vi.fn();
+        const editable = transaction({
+            id: 'editable',
+            title: 'Market',
+        });
+        fixture.componentRef.setInput('transactions', [
+            editable,
+        ]);
+        fixture.componentInstance.editTransaction.subscribe(editSpy);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>('[data-testid="edit-transaction"]')?.click();
+
+        expect(editSpy).toHaveBeenCalledWith(editable);
+    });
+
+    it('renders edit as a readable action instead of a pencil-only icon', () => {
+        fixture.componentRef.setInput('transactions', [
+            transaction({
+                id: 'editable',
+                title: 'Market',
+            }),
+        ]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const editButton = host.querySelector<HTMLButtonElement>('[data-testid="edit-transaction"]');
+
+        expect(editButton?.textContent ?? '').toContain('Изменить');
+        expect(editButton?.querySelector('.material-symbols-outlined')?.textContent?.trim()).toBe(
+            'tune',
+        );
+    });
+
+    it('does not render edit action for transfer transaction rows', () => {
+        fixture.componentRef.setInput('transactions', [
+            transaction({
+                id: 'transfer',
+                categoryType: 'TransferExpense',
+                title: 'Transfer',
+            }),
+        ]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.querySelector('[data-testid="edit-transaction"]')).toBeNull();
+    });
+
     it('paginates transactions in compact pages', () => {
         fixture.componentRef.setInput('pageSize', 5);
         fixture.componentRef.setInput(

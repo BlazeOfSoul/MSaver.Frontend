@@ -17,7 +17,7 @@ import { AnalyticsTabComponent } from './tab-panels/analytics-tab/analytics-tab.
 import { CategoriesTabComponent } from './tab-panels/categories-tab/categories-tab.component';
 import { OverviewTabComponent } from './tab-panels/overview-tab/overview-tab.component';
 import { SettingsTabComponent } from './tab-panels/settings-tab/settings-tab.component';
-import { HomeTabId, TransactionDraft, TransferDraft } from './home-page.models';
+import { HomeTabId, TransactionDraft, TransactionItem, TransferDraft } from './home-page.models';
 import { CURRENCY_OPTIONS, HOME_TABS } from './home-page.constants';
 import { HomeDashboardStore } from './home-dashboard.store';
 
@@ -68,6 +68,7 @@ export class HomePageComponent {
     readonly isServerEmpty = this.dashboard.isServerEmpty;
     readonly needsAccountSetup = this.dashboard.needsAccountSetup;
     readonly isTransactionDialogOpen = this.dashboard.isTransactionDialogOpen;
+    readonly isEditingTransaction = this.dashboard.isEditingTransaction;
     readonly newAccountName = this.dashboard.newAccountName;
     readonly newAccountCurrency = this.dashboard.newAccountCurrency;
     readonly newIncomeCategory = this.dashboard.newIncomeCategory;
@@ -171,6 +172,10 @@ export class HomePageComponent {
 
     startAddingTransaction(): void {
         this.dashboard.startAddingTransaction();
+    }
+
+    startEditingTransaction(transaction: TransactionItem): void {
+        this.dashboard.startEditingTransaction(transaction);
     }
 
     closeTransactionDialog(): void {

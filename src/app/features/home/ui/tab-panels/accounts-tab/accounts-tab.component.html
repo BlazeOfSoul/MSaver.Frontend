@@ -33,16 +33,17 @@
                             <strong>{{ account.name }}</strong>
 
                             @if (!account.isPrimary) {
-                                <button
-                                    type="button"
-                                    class="icon-action icon-action--danger"
+                                <ms-button
+                                    appearance="icon"
+                                    variant="danger"
+                                    size="sm"
                                     data-testid="delete-account"
                                     [disabled]="saving()"
-                                    (click)="deleteAccount.emit(account.id)"
+                                    (onClick)="deleteAccount.emit(account.id)"
                                     aria-label="Удалить счёт"
                                 >
                                     <span class="material-symbols-outlined">delete</span>
-                                </button>
+                                </ms-button>
                             } @else {
                                 <span class="account-card__badge">Основной</span>
                             }
@@ -94,15 +95,16 @@
                 ></ms-select>
             </div>
 
-            <button
-                type="button"
-                class="round-action"
+            <ms-button
+                appearance="icon"
+                variant="primary"
+                size="lg"
                 [disabled]="saving()"
-                (click)="createAccount.emit()"
+                (onClick)="createAccount.emit()"
                 aria-label="Добавить счёт"
             >
                 <span class="material-symbols-outlined">add</span>
-            </button>
+            </ms-button>
         </div>
     </article>
 

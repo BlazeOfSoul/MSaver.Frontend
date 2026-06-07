@@ -32,46 +32,58 @@
                 <thead>
                     <tr>
                         <th scope="col">
-                            <button type="button" class="table-sort" (click)="changeSort('date')">
+                            <ms-button
+                                appearance="sort"
+                                variant="neutral"
+                                (onClick)="changeSort('date')"
+                            >
                                 Дата
                                 <span class="material-symbols-outlined">{{ sortIcon('date') }}</span>
-                            </button>
+                            </ms-button>
                         </th>
                         <th scope="col">
-                            <button type="button" class="table-sort" (click)="changeSort('title')">
+                            <ms-button
+                                appearance="sort"
+                                variant="neutral"
+                                (onClick)="changeSort('title')"
+                            >
                                 Операция
                                 <span class="material-symbols-outlined">{{ sortIcon('title') }}</span>
-                            </button>
+                            </ms-button>
                         </th>
                         <th scope="col">
-                            <button
-                                type="button"
-                                class="table-sort"
-                                (click)="changeSort('category')"
+                            <ms-button
+                                appearance="sort"
+                                variant="neutral"
+                                (onClick)="changeSort('category')"
                             >
                                 Категория
                                 <span class="material-symbols-outlined">
                                     {{ sortIcon('category') }}
                                 </span>
-                            </button>
+                            </ms-button>
                         </th>
                         <th scope="col">
-                            <button
-                                type="button"
-                                class="table-sort"
-                                (click)="changeSort('account')"
+                            <ms-button
+                                appearance="sort"
+                                variant="neutral"
+                                (onClick)="changeSort('account')"
                             >
                                 Счёт
                                 <span class="material-symbols-outlined">
                                     {{ sortIcon('account') }}
                                 </span>
-                            </button>
+                            </ms-button>
                         </th>
                         <th scope="col" class="transactions-table__amount-head">
-                            <button type="button" class="table-sort" (click)="changeSort('amount')">
+                            <ms-button
+                                appearance="sort"
+                                variant="neutral"
+                                (onClick)="changeSort('amount')"
+                            >
                                 Сумма
                                 <span class="material-symbols-outlined">{{ sortIcon('amount') }}</span>
-                            </button>
+                            </ms-button>
                         </th>
                         <th scope="col" class="transactions-table__actions-head">
                             <span class="sr-only">Действия</span>
@@ -109,11 +121,12 @@
                                 <strong [attr.data-tone]="item.tone">{{ item.amountLabel }}</strong>
                             </td>
                             <td data-label="Действия" class="transactions-table__actions">
-                                <button
-                                    type="button"
-                                    class="icon-action"
+                                <ms-button
+                                    appearance="icon"
+                                    variant="neutral"
+                                    size="sm"
                                     data-testid="toggle-transaction-details"
-                                    (click)="toggleTransactionDetails(item.id)"
+                                    (onClick)="toggleTransactionDetails(item.id)"
                                     [attr.aria-expanded]="isTransactionExpanded(item.id)"
                                     aria-label="Показать подробности транзакции"
                                 >
@@ -124,17 +137,34 @@
                                                 : 'expand_more'
                                         }}
                                     </span>
-                                </button>
+                                </ms-button>
 
-                                <button
-                                    type="button"
-                                    class="icon-action icon-action--danger"
+                                @if (isTransactionEditable(item)) {
+                                    <ms-button
+                                        appearance="ghost"
+                                        variant="neutral"
+                                        size="sm"
+                                        class="transaction-edit-action"
+                                        data-testid="edit-transaction"
+                                        [disabled]="saving()"
+                                        (onClick)="editTransaction.emit(item)"
+                                        aria-label="Редактировать транзакцию"
+                                    >
+                                        <span class="material-symbols-outlined">tune</span>
+                                        <span class="transaction-edit-action__label">Изменить</span>
+                                    </ms-button>
+                                }
+
+                                <ms-button
+                                    appearance="icon"
+                                    variant="danger"
+                                    size="sm"
                                     [disabled]="saving()"
-                                    (click)="deleteTransaction.emit(item.id)"
+                                    (onClick)="deleteTransaction.emit(item.id)"
                                     aria-label="Удалить транзакцию"
                                 >
                                     <span class="material-symbols-outlined">delete</span>
-                                </button>
+                                </ms-button>
                             </td>
                         </tr>
 
@@ -174,27 +204,29 @@
 
         @if (totalPages() > 1) {
             <nav class="pagination" aria-label="Страницы транзакций">
-                <button
-                    type="button"
-                    class="pagination__button"
+                <ms-button
+                    appearance="icon"
+                    variant="neutral"
+                    size="sm"
                     [disabled]="currentPageIndex() === 0"
-                    (click)="goToPreviousPage()"
+                    (onClick)="goToPreviousPage()"
                     data-testid="previous-transactions-page"
                     aria-label="Предыдущая страница"
                 >
                     <span class="material-symbols-outlined">chevron_left</span>
-                </button>
+                </ms-button>
                 <span class="pagination__meta">{{ pageLabel() }}</span>
-                <button
-                    type="button"
-                    class="pagination__button"
+                <ms-button
+                    appearance="icon"
+                    variant="neutral"
+                    size="sm"
                     [disabled]="currentPageIndex() >= totalPages() - 1"
-                    (click)="goToNextPage()"
+                    (onClick)="goToNextPage()"
                     data-testid="next-transactions-page"
                     aria-label="Следующая страница"
                 >
                     <span class="material-symbols-outlined">chevron_right</span>
-                </button>
+                </ms-button>
             </nav>
         }
     } @else {

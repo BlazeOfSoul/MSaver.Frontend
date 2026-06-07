@@ -53,53 +53,11 @@
     color: var(--color-ms-light-dark);
 }
 
-.icon-button {
-    display: inline-flex;
-    width: 2.5rem;
-    height: 2.5rem;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.5rem;
-    color: var(--color-ms-light);
-    background: rgba(255, 255, 255, 0.03);
-    cursor: pointer;
-}
-
 .dialog__mode {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 0.25rem;
     border-radius: 0.5rem;
     background: rgba(255, 255, 255, 0.06);
-}
-
-.mode-button {
-    min-height: 2.75rem;
-    border: 0;
-    border-radius: 0.5rem;
-    color: rgba(255, 255, 255, 0.66);
-    background: transparent;
-    cursor: pointer;
-}
-
-.mode-button--active {
-    color: #04120d;
-}
-
-.mode-button--income {
-    background: linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--color-ms-primary-soft), transparent 8%),
-        color-mix(in oklab, var(--color-ms-primary), #0f6f57 18%)
-    );
-}
-
-.mode-button--expense {
-    background: linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--color-ms-danger), white 38%),
-        color-mix(in oklab, var(--color-ms-danger), #5f1730 18%)
-    );
 }
 
 .dialog__field,

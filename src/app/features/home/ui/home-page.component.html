@@ -62,13 +62,14 @@
                         </div>
 
                         @if (errorMessage()) {
-                            <button
-                                type="button"
-                                class="content-header__retry"
-                                (click)="reloadDashboard()"
+                            <ms-button
+                                appearance="ghost"
+                                variant="neutral"
+                                size="sm"
+                                (onClick)="reloadDashboard()"
                             >
                                 Обновить
-                            </button>
+                            </ms-button>
                         }
                     </header>
 
@@ -80,15 +81,16 @@
                         >
                             <span class="material-symbols-outlined">error</span>
                             <span>{{ errorMessage() }}</span>
-                            <button
-                                type="button"
-                                class="home-alert__close"
+                            <ms-button
+                                appearance="icon"
+                                variant="danger"
+                                size="sm"
                                 data-testid="dismiss-error"
                                 aria-label="Закрыть сообщение"
-                                (click)="dismissError()"
+                                (onClick)="dismissError()"
                             >
                                 <span class="material-symbols-outlined">close</span>
-                            </button>
+                            </ms-button>
                         </div>
                     }
 
@@ -117,6 +119,7 @@
                                     [saving]="isSaving()"
                                     (accountChange)="setAccountFilter($event)"
                                     (pageSizeChange)="setTransactionPageSize($event)"
+                                    (editTransaction)="startEditingTransaction($event)"
                                     (deleteTransaction)="deleteTransaction($event)"
                                 ></ms-overview-tab>
                             }
@@ -212,6 +215,7 @@
     <ms-add-transaction-dialog
         [open]="isTransactionDialogOpen()"
         [saving]="isSaving()"
+        [mode]="isEditingTransaction() ? 'edit' : 'create'"
         [draft]="transactionDraft()"
         [accountOptions]="accountOptions()"
         [incomeCategoryOptions]="incomeCategoryOptions()"

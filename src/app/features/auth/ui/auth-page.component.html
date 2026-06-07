@@ -92,25 +92,29 @@
                         role="tablist"
                         aria-label="Режим авторизации"
                     >
-                        <button
-                            type="button"
+                        <ms-button
+                            appearance="tab"
+                            variant="neutral"
+                            size="sm"
                             role="tab"
                             [attr.aria-selected]="isLogin()"
-                            [class.auth-mode-tabs__item--active]="isLogin()"
-                            (click)="setMode('login')"
+                            [active]="isLogin()"
+                            (onClick)="setMode('login')"
                         >
                             Вход
-                        </button>
+                        </ms-button>
 
-                        <button
-                            type="button"
+                        <ms-button
+                            appearance="tab"
+                            variant="neutral"
+                            size="sm"
                             role="tab"
                             [attr.aria-selected]="!isLogin()"
-                            [class.auth-mode-tabs__item--active]="!isLogin()"
-                            (click)="setMode('register')"
+                            [active]="!isLogin()"
+                            (onClick)="setMode('register')"
                         >
                             Регистрация
-                        </button>
+                        </ms-button>
                     </div>
 
                     <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
@@ -247,9 +251,14 @@
 
                     <p class="auth-footnote">
                         {{ isLogin() ? 'Нет аккаунта?' : 'Уже есть аккаунт?' }}
-                        <button type="button" class="switch-btn" (click)="toggleMode()">
+                        <ms-button
+                            appearance="plain"
+                            variant="primary"
+                            size="xs"
+                            (onClick)="toggleMode()"
+                        >
                             {{ isLogin() ? 'Создать' : 'Войти' }}
-                        </button>
+                        </ms-button>
                     </p>
                 </div>
 

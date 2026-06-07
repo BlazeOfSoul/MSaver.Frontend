@@ -20,6 +20,7 @@ import {
     TransactionResponse,
     TransferRateResponse,
     UpdateApplicationCurrencyRequest,
+    UpdateTransactionRequest,
 } from './home-api.models';
 
 const LIST_SIZE = 100;
@@ -162,6 +163,10 @@ export class HomeApiService {
 
     createTransaction(payload: CreateTransactionRequest): Observable<string> {
         return this.http.post<string>(`${this.baseUrl}/Transactions`, payload);
+    }
+
+    updateTransaction(transactionId: string, payload: UpdateTransactionRequest): Observable<string> {
+        return this.http.put<string>(`${this.baseUrl}/Transactions/${transactionId}`, payload);
     }
 
     deleteTransaction(transactionId: string): Observable<string> {

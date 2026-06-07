@@ -181,48 +181,6 @@
     line-height: 1.35;
 }
 
-.round-action {
-    display: inline-flex;
-    width: 3rem;
-    height: 3rem;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    border-radius: 0.5rem;
-    color: #06130f;
-    background: color-mix(in oklab, var(--color-ms-primary), #0f6f57 24%);
-    box-shadow: 0 12px 24px rgba(35, 199, 139, 0.16);
-    cursor: pointer;
-}
-
-.round-action:disabled {
-    cursor: progress;
-    opacity: 0.55;
-}
-
-.icon-action {
-    display: inline-flex;
-    width: 2.35rem;
-    height: 2.35rem;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 0.5rem;
-    color: var(--color-ms-light-dark);
-    background: rgba(255, 255, 255, 0.04);
-    cursor: pointer;
-}
-
-.icon-action:disabled {
-    cursor: progress;
-    opacity: 0.55;
-}
-
-.icon-action--danger:hover:not(:disabled) {
-    color: var(--color-ms-danger);
-    border-color: rgba(255, 111, 145, 0.25);
-}
-
 @media (min-width: 720px) {
     .accounts-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -263,7 +221,7 @@
         padding: 0.9rem;
     }
 
-    .round-action {
+    .account-create ms-button {
         width: 100%;
     }
 }

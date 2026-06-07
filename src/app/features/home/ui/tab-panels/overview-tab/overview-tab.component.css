@@ -66,23 +66,6 @@
     background: rgba(255, 255, 255, 0.025);
 }
 
-.table-sort {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0;
-    border: 0;
-    color: inherit;
-    background: transparent;
-    font: inherit;
-    text-transform: inherit;
-    cursor: pointer;
-}
-
-.table-sort .material-symbols-outlined {
-    font-size: 1rem;
-}
-
 .transaction-date,
 .transactions-table td {
     color: var(--color-ms-light-dark);
@@ -97,20 +80,30 @@
 }
 
 .transaction-name__icon {
+    --operation-color: var(--color-ms-primary);
     display: inline-grid;
     width: 2.25rem;
     height: 2.25rem;
     place-items: center;
+    border: 1px solid color-mix(in oklab, var(--operation-color), transparent 62%);
     border-radius: 0.5rem;
-    background: rgba(255, 255, 255, 0.045);
+    color: color-mix(in oklab, var(--operation-color), white 18%);
+    background:
+        linear-gradient(
+            135deg,
+            color-mix(in oklab, var(--operation-color), transparent 72%),
+            color-mix(in oklab, var(--operation-color), transparent 88%)
+        ),
+        rgba(255, 255, 255, 0.035);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--operation-color), transparent 84%);
 }
 
 .transaction-name__icon[data-tone='income'] {
-    color: var(--color-ms-success);
+    --operation-color: var(--color-ms-success);
 }
 
 .transaction-name__icon[data-tone='expense'] {
-    color: var(--color-ms-danger);
+    --operation-color: var(--color-ms-danger);
 }
 
 .transaction-name strong {
@@ -138,7 +131,7 @@
     overflow-wrap: anywhere;
 }
 
-.transactions-table__amount-head .table-sort,
+.transactions-table__amount-head ms-button,
 .transactions-table__amount {
     justify-content: flex-end;
     text-align: right;
@@ -158,7 +151,7 @@
 
 .transactions-table__actions-head,
 .transactions-table__actions {
-    width: 6.5rem;
+    width: 12.5rem;
     text-align: right;
 }
 
@@ -168,27 +161,13 @@
     gap: 0.4rem;
 }
 
-.icon-action {
-    display: inline-flex;
-    width: 2.25rem;
-    height: 2.25rem;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.5rem;
-    color: var(--color-ms-light-dark);
-    background: rgba(255, 255, 255, 0.04);
-    cursor: pointer;
+ms-button.transaction-edit-action {
+    min-width: 6.75rem;
 }
 
-.icon-action:disabled {
-    cursor: progress;
-    opacity: 0.55;
-}
-
-.icon-action--danger:hover:not(:disabled) {
-    color: var(--color-ms-danger);
-    border-color: rgba(255, 111, 145, 0.25);
+.transaction-edit-action__label {
+    font-size: 0.78rem;
+    font-weight: 700;
 }
 
 .transaction-details-row td {
@@ -232,23 +211,6 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0.5rem;
-}
-
-.pagination__button {
-    display: inline-grid;
-    width: 2.35rem;
-    height: 2.35rem;
-    place-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.5rem;
-    color: var(--color-ms-light);
-    background: rgba(255, 255, 255, 0.045);
-    cursor: pointer;
-}
-
-.pagination__button:disabled {
-    cursor: default;
-    opacity: 0.4;
 }
 
 .pagination__meta {
@@ -297,6 +259,11 @@
 @media (min-width: 720px) {
     .overview-toolbar {
         grid-template-columns: minmax(12rem, 0.28fr) minmax(0, 1fr) minmax(8rem, 0.18fr);
+        align-items: end;
+    }
+
+    .overview-toolbar ms-select:last-of-type {
+        align-self: end;
     }
 }
 
@@ -368,9 +335,14 @@
         display: none;
     }
 
-    .icon-action {
+    .transactions-table__actions ms-button {
         width: 2.75rem;
         height: 2.5rem;
+    }
+
+    ms-button.transaction-edit-action {
+        width: auto;
+        min-width: 7rem;
     }
 
     .transaction-details-row {

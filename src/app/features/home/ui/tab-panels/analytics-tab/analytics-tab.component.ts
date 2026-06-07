@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { ChartCardComponent } from '../../components/chart-card/chart-card.component';
+import { Button } from '../../../../../shared/ui/button/button';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import {
     AnalyticsCategoryMonthTable,
@@ -17,7 +18,7 @@ type TagChartLimit = '5' | '10' | '15' | 'all';
 @Component({
     selector: 'ms-analytics-tab',
     standalone: true,
-    imports: [ChartCardComponent, SelectComponent],
+    imports: [Button, ChartCardComponent, SelectComponent],
     templateUrl: './analytics-tab.component.html',
     styleUrl: './analytics-tab.component.css',
     changeDetection: ChangeDetectionStrategy.OnPush,

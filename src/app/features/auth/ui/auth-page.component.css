@@ -34,11 +34,6 @@
     box-sizing: border-box;
 }
 
-button,
-input {
-    font: inherit;
-}
-
 img,
 svg {
     display: block;
@@ -219,39 +214,13 @@ svg {
     transform: translateX(calc(100% + 6px));
 }
 
-.auth-mode-tabs button {
+.auth-mode-tabs ms-button {
     position: relative;
     z-index: 1;
     min-width: 0;
-    min-height: 42px;
-    border: 0;
-    border-radius: var(--radius-ms-md);
-    color: var(--color-ms-light-dark);
-    background: transparent;
-    font-size: 14px;
-    font-weight: 800;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    cursor: pointer;
-    transition:
-        color 0.18s ease,
-        background-color 0.18s ease,
-        box-shadow 0.18s ease;
-}
-
-.auth-mode-tabs button:hover,
-.auth-mode-tabs button:focus-visible {
-    color: var(--color-ms-light);
-}
-
-.auth-mode-tabs button:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(35, 199, 139, 0.16);
-}
-
-.auth-mode-tabs__item--active {
-    color: var(--color-ms-light) !important;
 }
 
 .auth-form {
@@ -324,19 +293,6 @@ svg {
     font-size: 14px;
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.42);
-}
-
-.switch-btn {
-    border: 0;
-    background: transparent;
-    padding-left: 4px;
-    color: var(--color-ms-primary);
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.switch-btn:hover {
-    color: var(--color-ms-primary-soft);
 }
 
 .security-note {

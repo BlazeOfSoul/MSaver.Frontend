@@ -54,21 +54,8 @@
     scrollbar-width: thin;
 }
 
-.analytics-view-tabs__button {
-    min-height: 2.4rem;
+.analytics-view-tabs ms-button {
     flex: 0 0 auto;
-    padding: 0 0.85rem;
-    border: 0;
-    border-radius: 0.5rem;
-    color: var(--color-ms-light-dark);
-    background: transparent;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.analytics-view-tabs__button--active {
-    color: #06130f;
-    background: var(--color-ms-primary);
 }
 
 .analytics-section,
@@ -110,32 +97,17 @@
     gap: 0.75rem;
 }
 
-.tag-filter-button {
-    display: inline-flex;
-    min-height: 2.45rem;
-    align-items: center;
-    gap: 0.45rem;
+.tag-filter-strip ms-button {
     white-space: nowrap;
-    border: 1px solid var(--color-ms-border);
-    border-radius: 999px;
-    padding: 0 0.85rem;
-    color: var(--color-ms-light-dark);
-    background: rgba(255, 255, 255, 0.035);
-    cursor: pointer;
 }
 
-.tag-filter-button i {
+.tag-filter-strip ms-button i {
     width: 0.6rem;
     height: 0.6rem;
+    flex: 0 0 auto;
     border-radius: 999px;
     background: var(--tag-filter-color);
     box-shadow: 0 0 0 0.2rem color-mix(in oklab, var(--tag-filter-color), transparent 76%);
-}
-
-.tag-filter-button--active {
-    color: var(--color-ms-light);
-    border-color: color-mix(in oklab, var(--color-ms-primary), transparent 52%);
-    background: color-mix(in oklab, var(--color-ms-primary), transparent 86%);
 }
 
 .metric-grid--years {

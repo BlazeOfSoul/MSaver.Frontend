@@ -1,42 +1,45 @@
 @if (open()) {
-    <div class="dialog-backdrop" (click)="onBackdropClick($event)">
+    <div
+        class="dialog-backdrop"
+        (pointerdown)="onBackdropPointerDown($event)"
+        (click)="onBackdropClick($event)"
+    >
         <section class="dialog" (click)="$event.stopPropagation()">
             <header class="dialog__header">
                 <div>
-                    <h2>Новая транзакция</h2>
-                    <p>Добавьте доход или расход в выбранный месяц.</p>
+                    <h2>{{ dialogTitle() }}</h2>
+                    <p>{{ dialogDescription() }}</p>
                 </div>
 
-                <button
-                    type="button"
-                    class="icon-button"
-                    (click)="close.emit()"
+                <ms-button
+                    appearance="icon"
+                    variant="neutral"
+                    size="md"
+                    (onClick)="close.emit()"
                     aria-label="Закрыть диалог"
                 >
                     <span class="material-symbols-outlined">close</span>
-                </button>
+                </ms-button>
             </header>
 
             <div class="dialog__mode">
-                <button
-                    type="button"
-                    class="mode-button"
-                    [class.mode-button--active]="draft().type === 'income'"
-                    [class.mode-button--income]="draft().type === 'income'"
-                    (click)="draftChange.emit({ ...draft(), type: 'income' })"
+                <ms-button
+                    appearance="tab"
+                    variant="success"
+                    [active]="draft().type === 'income'"
+                    (onClick)="draftChange.emit({ ...draft(), type: 'income' })"
                 >
                     Доход
-                </button>
+                </ms-button>
 
-                <button
-                    type="button"
-                    class="mode-button"
-                    [class.mode-button--active]="draft().type === 'expense'"
-                    [class.mode-button--expense]="draft().type === 'expense'"
-                    (click)="draftChange.emit({ ...draft(), type: 'expense' })"
+                <ms-button
+                    appearance="tab"
+                    variant="danger"
+                    [active]="draft().type === 'expense'"
+                    (onClick)="draftChange.emit({ ...draft(), type: 'expense' })"
                 >
                     Расход
-                </button>
+                </ms-button>
             </div>
 
             <div class="dialog__fields">
@@ -45,6 +48,7 @@
                         label="Счёт"
                         [options]="accountOptions()"
                         [value]="draft().accountId"
+                        [disabled]="isEditMode()"
                         placeholder="Выберите счёт"
                         (valueChange)="draftChange.emit({ ...draft(), accountId: $event })"
                     ></ms-select>
@@ -115,7 +119,7 @@
                     [disabled]="!canSave()"
                     (onClick)="save.emit()"
                 >
-                    Добавить транзакцию
+                    {{ saveLabel() }}
                 </ms-button>
             </div>
         </section>

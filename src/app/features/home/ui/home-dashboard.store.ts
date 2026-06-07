@@ -98,6 +98,8 @@ export class HomeDashboardStore {
     readonly accountNameError = signal('');
     readonly transferRateError = signal('');
     readonly isTransactionDialogOpen = signal(false);
+    readonly editingTransactionId = signal<string | null>(null);
+    readonly isEditingTransaction = computed(() => this.editingTransactionId() !== null);
     readonly transactionPageSize = signal(this.readStoredTransactionPageSize());
     readonly transactionPageSizeOptions: ReadonlyArray<MsSelectOption> =
         TRANSACTION_PAGE_SIZE_OPTIONS.map((size) => ({
@@ -598,12 +600,31 @@ export class HomeDashboardStore {
 
     startAddingTransaction(): void {
         this.activeTab.set('overview');
+        this.editingTransactionId.set(null);
         this.transactionDraft.set(this.getDefaultTransactionDraft());
+        this.isTransactionDialogOpen.set(true);
+    }
+
+    startEditingTransaction(transaction: TransactionItem | string): void {
+        const draft =
+            typeof transaction === 'string'
+                ? this.findTransactionDraft(transaction)
+                : this.transactionItemToDraft(transaction);
+        const transactionId = typeof transaction === 'string' ? transaction : transaction.id;
+
+        if (!draft) {
+            return;
+        }
+
+        this.activeTab.set('overview');
+        this.editingTransactionId.set(transactionId);
+        this.transactionDraft.set(draft);
         this.isTransactionDialogOpen.set(true);
     }
 
     closeTransactionDialog(): void {
         this.isTransactionDialogOpen.set(false);
+        this.editingTransactionId.set(null);
     }
 
     updateTransactionDraft(draft: TransactionDraft): void {
@@ -619,22 +640,42 @@ export class HomeDashboardStore {
 
     saveTransaction(): void {
         const draft = this.transactionDraft();
+        const editingTransactionId = this.editingTransactionId();
 
         if (!draft.accountId || !draft.categoryId || !draft.amount || this.isSaving()) {
+            return;
+        }
+
+        const payload = {
+            categoryId: draft.categoryId,
+            amount: draft.type === 'income' ? Math.abs(draft.amount) : -Math.abs(draft.amount),
+            date: toApiDate(draft.date),
+            description: draft.description.trim(),
+        };
+
+        if (editingTransactionId) {
+            this.runMutation(
+                this.homeApi.updateTransaction(editingTransactionId, payload),
+                'Не удалось обновить транзакцию.',
+                () => {
+                    this.isTransactionDialogOpen.set(false);
+                    this.editingTransactionId.set(null);
+                    this.transactionDraft.set(this.getDefaultTransactionDraft());
+                    this.loadDashboard(false);
+                },
+            );
             return;
         }
 
         this.runMutation(
             this.homeApi.createTransaction({
                 accountId: draft.accountId,
-                categoryId: draft.categoryId,
-                amount: draft.type === 'income' ? Math.abs(draft.amount) : -Math.abs(draft.amount),
-                date: toApiDate(draft.date),
-                description: draft.description.trim(),
+                ...payload,
             }),
             'Не удалось добавить транзакцию.',
             () => {
                 this.isTransactionDialogOpen.set(false);
+                this.editingTransactionId.set(null);
                 this.transactionDraft.set(this.getDefaultTransactionDraft());
                 this.loadDashboard(false);
             },
@@ -1403,6 +1444,63 @@ export class HomeDashboardStore {
 
     private monthsForSelectedYear(): Date[] {
         return getYearMonths(this.selectedMonth());
+    }
+
+    private findTransactionDraft(transactionId: string): TransactionDraft | null {
+        const transaction = this.transactionResponses().find((item) => item.id === transactionId);
+
+        if (!transaction || this.isTransferTransaction(transaction)) {
+            return null;
+        }
+
+        return this.transactionToDraft(transaction);
+    }
+
+    private transactionToDraft(transaction: TransactionResponse): TransactionDraft {
+        return {
+            type: isExpenseCategory(transaction.category.type) ? 'expense' : 'income',
+            accountId: transaction.account.id,
+            categoryId: transaction.category.id,
+            amount: Math.abs(transaction.amount),
+            date: this.toDraftDate(transaction.date),
+            description: transaction.description ?? '',
+        };
+    }
+
+    private transactionItemToDraft(transaction: TransactionItem): TransactionDraft {
+        return {
+            type: transaction.tone,
+            accountId: transaction.accountId,
+            categoryId: transaction.categoryId,
+            amount: transaction.amountValue,
+            date: this.toDraftDate(transaction.dateValue),
+            description: transaction.description,
+        };
+    }
+
+    private isTransferTransaction(transaction: TransactionResponse): boolean {
+        return (
+            transaction.category.type === 'TransferIncome' ||
+            transaction.category.type === 'TransferExpense'
+        );
+    }
+
+    private toDraftDate(value: string): string {
+        const trimmed = value.trim();
+
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) {
+            return trimmed.slice(0, 16);
+        }
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+            return `${trimmed}T00:00`;
+        }
+
+        const date = new Date(trimmed);
+
+        return Number.isFinite(date.getTime())
+            ? toIsoDateTimeLocal(date)
+            : this.defaultDateForSelectedMonth();
     }
 
     private getDefaultTransactionDraft(): TransactionDraft {

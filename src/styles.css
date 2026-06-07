@@ -151,6 +151,7 @@ ms-button.ms-btn .ms-btn__content {
     min-height: 100%;
     align-items: center;
     justify-content: center;
+    gap: 0.4rem;
     text-align: center;
     line-height: 1;
 }
@@ -191,6 +192,84 @@ ms-button.ms-btn.ms-btn-outline {
         0 0 0 1px color-mix(in oklab, var(--border-color), white 5%);
 }
 
+ms-button.ms-btn.ms-btn-ghost,
+ms-button.ms-btn.ms-btn-tab,
+ms-button.ms-btn.ms-btn-chip,
+ms-button.ms-btn.ms-btn-icon {
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    text-shadow: none;
+}
+
+ms-button.ms-btn.ms-btn-ghost {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+ms-button.ms-btn.ms-btn-plain,
+ms-button.ms-btn.ms-btn-sort {
+    min-height: auto;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    box-shadow: none;
+    font: inherit;
+    text-shadow: none;
+    backdrop-filter: none;
+}
+
+ms-button.ms-btn.ms-btn-plain {
+    color: var(--accent-color);
+}
+
+ms-button.ms-btn.ms-btn-tab {
+    min-height: 2.5rem;
+    padding: 0.65rem 0.9rem;
+    border-color: transparent;
+    color: var(--color-ms-light-dark);
+    font-size: 0.9rem;
+    font-weight: 800;
+    background: transparent;
+    box-shadow: none;
+}
+
+ms-button.ms-btn.ms-btn-chip {
+    min-height: 2.45rem;
+    padding: 0 0.85rem;
+    border-radius: 999px;
+    color: var(--color-ms-light-dark);
+}
+
+ms-button.ms-btn.ms-btn-icon {
+    width: 2.4rem;
+    min-width: 2.4rem;
+    height: 2.4rem;
+    min-height: 2.4rem;
+    padding: 0;
+}
+
+ms-button.ms-btn.ms-btn-sort {
+    display: inline-flex;
+    align-items: center;
+    color: inherit;
+    text-transform: inherit;
+}
+
+ms-button.ms-btn.ms-btn-sort .ms-btn__content {
+    width: auto;
+    gap: 0.25rem;
+    text-align: inherit;
+}
+
+ms-button.ms-btn.ms-btn-plain::after,
+ms-button.ms-btn.ms-btn-ghost::after,
+ms-button.ms-btn.ms-btn-tab::after,
+ms-button.ms-btn.ms-btn-chip::after,
+ms-button.ms-btn.ms-btn-icon::after,
+ms-button.ms-btn.ms-btn-sort::after {
+    opacity: 0;
+}
+
 @media (hover: hover) {
     ms-button.ms-btn:hover {
         transform: translateY(-1px);
@@ -202,6 +281,21 @@ ms-button.ms-btn.ms-btn-outline {
             0 0 0 1px color-mix(in oklab, var(--border-color), white 6%),
             inset 0 1px 0 rgba(255, 255, 255, 0.18);
     }
+
+    ms-button.ms-btn.ms-btn-plain:hover,
+    ms-button.ms-btn.ms-btn-sort:hover {
+        transform: none;
+        color: var(--accent-color);
+        border-color: transparent;
+        box-shadow: none;
+    }
+
+    ms-button.ms-btn.ms-btn-tab:hover {
+        color: var(--color-ms-light);
+        border-color: transparent;
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: none;
+    }
 }
 
 ms-button.ms-btn:active {
@@ -212,6 +306,12 @@ ms-button.ms-btn:active {
         0 8px 18px color-mix(in oklab, var(--glow-color), transparent 62%),
         0 0 12px color-mix(in oklab, var(--glow-color), transparent 74%),
         inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+ms-button.ms-btn.ms-btn-plain:active,
+ms-button.ms-btn.ms-btn-sort:active {
+    transform: none;
+    box-shadow: none;
 }
 
 ms-button.ms-btn:focus-visible {
@@ -250,6 +350,30 @@ ms-button.ms-btn.ms-btn-primary.ms-btn-outline {
     --border-color: color-mix(in oklab, var(--color-ms-primary), white 12%);
 }
 
+ms-button.ms-btn.ms-btn-neutral {
+    --bg-color: rgba(255, 255, 255, 0.08);
+    --text-color: var(--color-ms-light);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --accent-color: var(--color-ms-light);
+    --glow-color: rgba(255, 255, 255, 0.08);
+}
+
+ms-button.ms-btn.ms-btn-success {
+    --bg-color: var(--color-ms-success);
+    --text-color: #04120d;
+    --border-color: color-mix(in oklab, var(--color-ms-success), white 20%);
+    --accent-color: var(--color-ms-primary-soft);
+    --glow-color: rgba(35, 199, 139, 0.2);
+}
+
+ms-button.ms-btn.ms-btn-danger {
+    --bg-color: var(--color-ms-danger);
+    --text-color: #fff7fb;
+    --border-color: color-mix(in oklab, var(--color-ms-danger), white 18%);
+    --accent-color: #ffb5c7;
+    --glow-color: rgba(255, 111, 145, 0.2);
+}
+
 ms-button.ms-btn.ms-btn-secondary {
     --bg-color: var(--color-ms-surface-raised);
     --text-color: var(--color-ms-light);
@@ -261,6 +385,78 @@ ms-button.ms-btn.ms-btn-secondary {
 ms-button.ms-btn.ms-btn-secondary.ms-btn-outline {
     --text-color: var(--color-ms-light);
     --border-color: color-mix(in oklab, var(--color-ms-info), var(--color-ms-border) 65%);
+}
+
+ms-button.ms-btn.ms-btn-active {
+    color: var(--text-color);
+    border-color: color-mix(in oklab, var(--border-color), white 16%);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+        color-mix(in oklab, var(--bg-color), transparent 18%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 0 0 1px color-mix(in oklab, var(--border-color), transparent 12%);
+}
+
+ms-button.ms-btn.ms-btn-tab.ms-btn-active {
+    color: var(--color-ms-light);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+ms-button.ms-btn.ms-btn-chip.ms-btn-active {
+    color: var(--color-ms-light);
+    border-color: color-mix(in oklab, var(--accent-color), transparent 48%);
+    background: color-mix(in oklab, var(--bg-color), transparent 84%);
+}
+
+ms-button.ms-btn.ms-btn-xs {
+    min-height: 1.45rem;
+    padding: 0 0.45rem;
+    font-size: 0.75rem;
+}
+
+ms-button.ms-btn.ms-btn-sm {
+    min-height: 2.35rem;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+}
+
+ms-button.ms-btn.ms-btn-lg {
+    min-height: 3.6rem;
+    padding: 0.9rem 1.5rem;
+}
+
+ms-button.ms-btn.ms-btn-icon.ms-btn-xs {
+    width: 1.45rem;
+    min-width: 1.45rem;
+    height: 1.45rem;
+    min-height: 1.45rem;
+    padding: 0;
+}
+
+ms-button.ms-btn.ms-btn-icon.ms-btn-sm {
+    width: 2.35rem;
+    min-width: 2.35rem;
+    height: 2.35rem;
+    min-height: 2.35rem;
+    padding: 0;
+}
+
+ms-button.ms-btn.ms-btn-icon.ms-btn-lg {
+    width: 3rem;
+    min-width: 3rem;
+    height: 3rem;
+    min-height: 3rem;
+    padding: 0;
+}
+
+ms-button.ms-btn.ms-btn-icon.ms-btn-xs .material-symbols-outlined {
+    font-size: 1rem;
+}
+
+ms-button.ms-btn.ms-btn-icon.ms-btn-sm .material-symbols-outlined,
+ms-button.ms-btn.ms-btn-sort .material-symbols-outlined {
+    font-size: 1rem;
 }
 
 ms-button.ms-btn.ms-btn-full-width {

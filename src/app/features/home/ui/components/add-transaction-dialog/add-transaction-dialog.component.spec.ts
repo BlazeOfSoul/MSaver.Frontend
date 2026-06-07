@@ -49,12 +49,35 @@ describe('AddTransactionDialogComponent', () => {
 
         expect(closeSpy).not.toHaveBeenCalled();
 
+        component.onBackdropPointerDown({
+            target: backdrop,
+            currentTarget: backdrop,
+        } as unknown as PointerEvent);
         component.onBackdropClick({
             target: backdrop,
             currentTarget: backdrop,
         } as unknown as MouseEvent);
 
         expect(closeSpy).toHaveBeenCalledOnce();
+    });
+
+    it('keeps the dialog open when pointer selection starts inside and ends on the backdrop', () => {
+        const closeSpy = vi.fn();
+        const backdrop = document.createElement('div');
+        const dialog = document.createElement('section');
+
+        component.close.subscribe(closeSpy);
+
+        component.onBackdropPointerDown({
+            target: dialog,
+            currentTarget: backdrop,
+        } as unknown as PointerEvent);
+        component.onBackdropClick({
+            target: backdrop,
+            currentTarget: backdrop,
+        } as unknown as MouseEvent);
+
+        expect(closeSpy).not.toHaveBeenCalled();
     });
 
     it('keeps money values in two-decimal format and parses decimal input safely', () => {

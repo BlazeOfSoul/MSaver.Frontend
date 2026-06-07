@@ -18,52 +18,57 @@
         </div>
 
         <div class="main-header__actions">
-            <button
-                type="button"
-                class="header-icon-button"
+            <ms-button
+                appearance="icon"
+                variant="neutral"
+                size="md"
                 data-testid="settings-button"
-                (click)="settings.emit()"
+                (onClick)="settings.emit()"
                 aria-label="Настройки"
             >
                 <span class="material-symbols-outlined">settings</span>
-            </button>
+            </ms-button>
 
-            <button
-                type="button"
+            <ms-button
+                appearance="ghost"
+                variant="neutral"
+                size="sm"
                 class="logout-button"
                 data-testid="logout-button"
-                (click)="logout.emit()"
+                (onClick)="logout.emit()"
                 aria-label="Выйти"
             >
                 <span class="material-symbols-outlined">logout</span>
                 <span>Выйти</span>
-            </button>
+            </ms-button>
         </div>
     </div>
 
     <div class="main-header__bottom">
         <div class="period-switcher">
-            <button
-                type="button"
-                class="icon-button"
-                (click)="previousMonth.emit()"
+            <ms-button
+                appearance="icon"
+                variant="neutral"
+                size="md"
+                (onClick)="previousMonth.emit()"
                 aria-label="Предыдущий месяц"
             >
                 <span class="material-symbols-outlined">chevron_left</span>
-            </button>
+            </ms-button>
 
             <div class="period-copy">
                 <span class="period-label">{{ monthLabel() }}</span>
             </div>
 
-            <button
-                type="button"
-                class="icon-button"
-                (click)="nextMonth.emit()"
+            <ms-button
+                appearance="icon"
+                variant="neutral"
+                size="md"
+                (onClick)="nextMonth.emit()"
                 aria-label="Следующий месяц"
             >
                 <span class="material-symbols-outlined">chevron_right</span>
-            </button>
+            </ms-button>
         </div>
 
         <ms-button variant="primary" (onClick)="addTransaction.emit()">

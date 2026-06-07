@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Button } from '../../../../../shared/ui/button/button';
 import { InputComponent } from '../../../../../shared/ui/input/input';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import { TransactionItem } from '../../home-page.models';
@@ -21,7 +22,7 @@ type SortDirection = 'asc' | 'desc';
 @Component({
     selector: 'ms-overview-tab',
     standalone: true,
-    imports: [ReactiveFormsModule, InputComponent, SelectComponent],
+    imports: [ReactiveFormsModule, Button, InputComponent, SelectComponent],
     templateUrl: './overview-tab.component.html',
     styleUrl: './overview-tab.component.css',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,6 +38,7 @@ export class OverviewTabComponent implements OnInit {
     pageSizeOptions = input<ReadonlyArray<MsSelectOption>>([]);
     saving = input(false);
 
+    editTransaction = output<TransactionItem>();
     deleteTransaction = output<string>();
     accountChange = output<string>();
     pageSizeChange = output<number>();
@@ -112,6 +114,10 @@ export class OverviewTabComponent implements OnInit {
 
     isTransactionExpanded(transactionId: string): boolean {
         return this.expandedTransactionId() === transactionId;
+    }
+
+    isTransactionEditable(transaction: TransactionItem): boolean {
+        return transaction.categoryType === 'Credit' || transaction.categoryType === 'Debit';
     }
 
     onPageSizeChange(value: string): void {
