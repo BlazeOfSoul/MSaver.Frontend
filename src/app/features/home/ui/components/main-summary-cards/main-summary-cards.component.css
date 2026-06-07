@@ -60,6 +60,11 @@
     font-size: 0.875rem;
 }
 
+.summary-card__helper--stack {
+    display: grid;
+    gap: 0.18rem;
+}
+
 .summary-card[data-tone='primary'] .summary-card__icon,
 .summary-card[data-tone='primary'] .summary-card__value {
     color: var(--color-ms-primary);

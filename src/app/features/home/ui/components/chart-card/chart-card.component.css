@@ -1,10 +1,15 @@
 :host {
     display: block;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .chart-card {
     display: grid;
     gap: 1rem;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
     padding: 1.125rem;
     border: 1px solid var(--color-ms-border);
     border-radius: 0.5rem;
@@ -28,10 +33,13 @@
 
 .chart-card__body {
     position: relative;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .chart-card__body canvas {
     width: 100%;
+    max-width: 100%;
     height: 100%;
 }
 
@@ -90,7 +98,7 @@
     font-size: 0.9rem;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 767px) {
     .chart-card {
         gap: 0.85rem;
         padding: 0.95rem;
@@ -103,7 +111,8 @@
     }
 
     .chart-card__body {
-        min-height: 220px;
+        height: clamp(210px, 64vw, 260px) !important;
+        min-height: 0;
     }
 
     .chart-card__legend {

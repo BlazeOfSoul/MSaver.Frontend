@@ -104,21 +104,14 @@
                 <h2>Теги аналитики</h2>
                 <p>Группы категорий для понятных срезов расходов и доходов.</p>
             </div>
-        </div>
-
-        <div class="create-row">
-            <ms-input
-                [ngModel]="newTagGroup()"
-                (ngModelChange)="newTagGroupChange.emit($event)"
-                placeholder="Новый тег..."
-            ></ms-input>
 
             <ms-button
                 appearance="icon"
                 variant="primary"
                 size="lg"
+                data-testid="open-tag-dialog"
                 [disabled]="saving()"
-                (onClick)="addTagGroup.emit()"
+                (onClick)="openTagDialog()"
                 aria-label="Добавить тег"
             >
                 <span class="material-symbols-outlined">add</span>
@@ -130,7 +123,10 @@
                 @for (group of tagGroups(); track group.id) {
                     <article class="tag-group-card" [style.--tag-color]="group.color">
                         <div class="tag-group-card__header">
-                            <strong># {{ group.name }}</strong>
+                            <strong class="tag-group-card__title">
+                                <i aria-hidden="true"></i>
+                                <span># {{ group.name }}</span>
+                            </strong>
                             <ms-button
                                 appearance="icon"
                                 variant="danger"
@@ -273,6 +269,7 @@
                 <ms-button
                     appearance="ghost"
                     variant="neutral"
+                    [fullWidth]="true"
                     [disabled]="saving()"
                     (onClick)="closeCategoryDialog()"
                 >
@@ -282,8 +279,106 @@
                 <ms-button
                     variant="primary"
                     data-testid="submit-category-dialog"
+                    [fullWidth]="true"
                     [disabled]="saving() || !categoryDialogName().trim()"
                     (onClick)="submitCategoryDialog()"
+                >
+                    Создать
+                </ms-button>
+            </footer>
+        </section>
+    </div>
+}
+
+@if (isTagDialogOpen()) {
+    <div
+        class="category-dialog-backdrop"
+        (pointerdown)="onTagDialogBackdropPointerDown($event)"
+        (click)="onTagDialogBackdropClick($event)"
+    >
+        <section
+            class="category-dialog tag-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tag-dialog-title"
+            aria-describedby="tag-dialog-description"
+            (click)="$event.stopPropagation()"
+        >
+            <header class="category-dialog__header">
+                <div class="category-dialog__heading">
+                    <h2 id="tag-dialog-title">Новый тег</h2>
+
+                    <p id="tag-dialog-description">
+                        Выберите название и цвет для группы категорий.
+                    </p>
+                </div>
+
+                <ms-button
+                    appearance="icon"
+                    variant="neutral"
+                    size="sm"
+                    class="category-dialog__close"
+                    (onClick)="closeTagDialog()"
+                    aria-label="Закрыть диалог"
+                >
+                    <span class="material-symbols-outlined">close</span>
+                </ms-button>
+            </header>
+
+            <div class="category-dialog__body">
+                <div class="category-dialog__field">
+                    <ms-input
+                        [ngModel]="tagDialogName()"
+                        (ngModelChange)="setTagDialogName($event)"
+                        placeholder="Например: Дом"
+                    ></ms-input>
+                </div>
+
+                <label class="color-field">
+                    <span>Цвет</span>
+
+                    <input
+                        type="color"
+                        data-testid="tag-color-picker"
+                        [value]="tagDialogColor()"
+                        [disabled]="saving()"
+                        (input)="setTagDialogColor(readColor($event))"
+                    />
+
+                    <strong>{{ tagDialogColor() }}</strong>
+                </label>
+
+                <div class="category-dialog__preview">
+                    <span class="category-dialog__preview-label">Предпросмотр</span>
+
+                    <span
+                        class="tag-category-pill tag-preview"
+                        [style.--category-color]="tagDialogColor()"
+                        [style.--tag-color]="tagDialogColor()"
+                    >
+                        <i aria-hidden="true"></i>
+                        <span># {{ tagDialogName().trim() || 'Новый тег' }}</span>
+                    </span>
+                </div>
+            </div>
+
+            <footer class="category-dialog__footer">
+                <ms-button
+                    appearance="ghost"
+                    variant="neutral"
+                    [fullWidth]="true"
+                    [disabled]="saving()"
+                    (onClick)="closeTagDialog()"
+                >
+                    Отмена
+                </ms-button>
+
+                <ms-button
+                    variant="primary"
+                    data-testid="submit-tag-dialog"
+                    [fullWidth]="true"
+                    [disabled]="saving() || !tagDialogName().trim()"
+                    (onClick)="submitTagDialog()"
                 >
                     Создать
                 </ms-button>

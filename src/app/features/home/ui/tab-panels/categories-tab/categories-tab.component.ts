@@ -22,6 +22,7 @@ export class CategoriesTabComponent {
     newIncomeCategory = input.required<string>();
     newExpenseCategory = input.required<string>();
     newTagGroup = input.required<string>();
+    newTagGroupColor = input.required<string>();
     newIncomeCategoryColor = input.required<string>();
     newExpenseCategoryColor = input.required<string>();
     categoryOptions = input.required<ReadonlyArray<MsSelectOption>>();
@@ -31,6 +32,7 @@ export class CategoriesTabComponent {
     newIncomeCategoryChange = output<string>();
     newExpenseCategoryChange = output<string>();
     newTagGroupChange = output<string>();
+    newTagGroupColorChange = output<string>();
     newIncomeCategoryColorChange = output<string>();
     newExpenseCategoryColorChange = output<string>();
     addIncomeCategory = output<void>();
@@ -42,7 +44,9 @@ export class CategoriesTabComponent {
     removeCategoryFromTag = output<{ tagId: string; categoryId: string }>();
 
     readonly isCategoryDialogOpen = signal(false);
+    readonly isTagDialogOpen = signal(false);
     readonly categoryDialogType = signal<CategoryDialogType>('income');
+    private tagBackdropPointerDownStartedOnBackdrop = false;
     readonly categoryDialogTitle = computed(() =>
         this.categoryDialogType() === 'income'
             ? 'Новая категория доходов'
@@ -59,6 +63,9 @@ export class CategoriesTabComponent {
             : this.newExpenseCategoryColor(),
     );
 
+    readonly tagDialogName = computed(() => this.newTagGroup());
+    readonly tagDialogColor = computed(() => this.newTagGroupColor());
+
     openCategoryDialog(type: CategoryDialogType): void {
         this.categoryDialogType.set(type);
         this.isCategoryDialogOpen.set(true);
@@ -68,10 +75,32 @@ export class CategoriesTabComponent {
         this.isCategoryDialogOpen.set(false);
     }
 
+    openTagDialog(): void {
+        this.tagBackdropPointerDownStartedOnBackdrop = false;
+        this.isTagDialogOpen.set(true);
+    }
+
+    closeTagDialog(): void {
+        this.tagBackdropPointerDownStartedOnBackdrop = false;
+        this.isTagDialogOpen.set(false);
+    }
+
     onCategoryDialogBackdropClick(event: MouseEvent): void {
         if (event.target === event.currentTarget) {
             this.closeCategoryDialog();
         }
+    }
+
+    onTagDialogBackdropClick(event: MouseEvent): void {
+        if (event.target === event.currentTarget && this.tagBackdropPointerDownStartedOnBackdrop) {
+            this.closeTagDialog();
+        }
+
+        this.tagBackdropPointerDownStartedOnBackdrop = false;
+    }
+
+    onTagDialogBackdropPointerDown(event: PointerEvent): void {
+        this.tagBackdropPointerDownStartedOnBackdrop = event.target === event.currentTarget;
     }
 
     setCategoryDialogName(value: string): void {
@@ -90,6 +119,14 @@ export class CategoriesTabComponent {
         }
     }
 
+    setTagDialogName(value: string): void {
+        this.newTagGroupChange.emit(value);
+    }
+
+    setTagDialogColor(value: string): void {
+        this.newTagGroupColorChange.emit(value);
+    }
+
     submitCategoryDialog(): void {
         if (!this.categoryDialogName().trim() || this.saving()) {
             return;
@@ -102,6 +139,15 @@ export class CategoriesTabComponent {
         }
 
         this.closeCategoryDialog();
+    }
+
+    submitTagDialog(): void {
+        if (!this.tagDialogName().trim() || this.saving()) {
+            return;
+        }
+
+        this.addTagGroup.emit();
+        this.closeTagDialog();
     }
 
     categoryOptionsForTag(group: TagGroupItem): ReadonlyArray<MsSelectOption> {

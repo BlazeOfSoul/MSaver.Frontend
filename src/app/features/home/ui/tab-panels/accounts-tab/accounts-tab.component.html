@@ -112,74 +112,140 @@
         <div class="panel__header">
             <div>
                 <h2>Перевод между счетами</h2>
-                <p>Курс подставляется автоматически для выбранной пары валют, но его можно поправить вручную.</p>
+                <p>
+                    Курс подставляется автоматически для выбранной пары валют, но его можно
+                    поправить вручную.
+                </p>
             </div>
         </div>
 
         @if (accountOptions().length > 1) {
-            <div class="transfer-grid">
-                <ms-select
-                    label="Откуда"
-                    [options]="accountOptions()"
-                    [value]="transferDraft().fromAccountId"
-                    (valueChange)="
-                        transferDraftChange.emit({ ...transferDraft(), fromAccountId: $event })
-                    "
-                ></ms-select>
+            <div class="transfer-form">
+                <div class="transfer-flow">
+                    <section class="transfer-panel transfer-panel--from" aria-label="Списание">
+                        <div class="transfer-panel__heading">
+                            <span class="material-symbols-outlined" aria-hidden="true">
+                                call_made
+                            </span>
+                            <div>
+                                <strong>К списанию</strong>
+                                <small>Счёт и сумма, которые уменьшатся</small>
+                            </div>
+                        </div>
 
-                <ms-select
-                    label="Куда"
-                    [options]="accountOptions()"
-                    [value]="transferDraft().toAccountId"
-                    (valueChange)="
-                        transferDraftChange.emit({ ...transferDraft(), toAccountId: $event })
-                    "
-                ></ms-select>
+                        <ms-select
+                            label="Счёт списания"
+                            [options]="accountOptions()"
+                            [value]="transferDraft().fromAccountId"
+                            (valueChange)="
+                                transferDraftChange.emit({
+                                    ...transferDraft(),
+                                    fromAccountId: $event,
+                                })
+                            "
+                        ></ms-select>
 
-                <ms-input
-                    [ngModel]="transferAmountText()"
-                    (focused)="onTransferAmountFocus()"
-                    (blurred)="onTransferAmountBlur()"
-                    (ngModelChange)="onTransferAmountInput($event)"
-                    placeholder="Сумма списания"
-                    inputMode="decimal"
-                    type="text"
-                ></ms-input>
+                        <div class="transfer-field transfer-field--amount transfer-amount-card transfer-amount-card--withdraw">
+                            <span class="transfer-amount-card__label">Будет списано</span>
+                            <ms-input
+                                [ngModel]="transferAmountText()"
+                                (focused)="onTransferAmountFocus()"
+                                (blurred)="onTransferAmountBlur()"
+                                (ngModelChange)="onTransferAmountInput($event)"
+                                placeholder="0.00"
+                                inputMode="decimal"
+                                type="text"
+                            ></ms-input>
+                            <small>{{ fromAccount()?.currencyCode || 'Валюта списания' }}</small>
+                        </div>
+                    </section>
+
+                    <div class="transfer-direction" aria-hidden="true">
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                    </div>
+
+                    <section class="transfer-panel transfer-panel--to" aria-label="Зачисление">
+                        <div class="transfer-panel__heading">
+                            <span class="material-symbols-outlined" aria-hidden="true">
+                                call_received
+                            </span>
+                            <div>
+                                <strong>К зачислению</strong>
+                                <small>Счёт, который получит деньги</small>
+                            </div>
+                        </div>
+
+                        <ms-select
+                            label="Счёт зачисления"
+                            [options]="accountOptions()"
+                            [value]="transferDraft().toAccountId"
+                            (valueChange)="
+                                transferDraftChange.emit({ ...transferDraft(), toAccountId: $event })
+                            "
+                        ></ms-select>
+
+                        <div class="transfer-field transfer-amount-card transfer-amount-card--deposit">
+                            <span class="transfer-amount-card__label">Будет зачислено</span>
+                            <ms-input
+                                [ngModel]="transferReceiveAmountText()"
+                                (focused)="onTransferReceiveAmountFocus()"
+                                (blurred)="onTransferReceiveAmountBlur()"
+                                (ngModelChange)="onTransferReceiveAmountInput($event)"
+                                placeholder="0.00"
+                                inputMode="decimal"
+                                type="text"
+                            ></ms-input>
+                            @if (usesDifferentCurrencies()) {
+                                <small>{{ toAccount()?.currencyCode }} · пересчёт по курсу ниже.</small>
+                            } @else {
+                                <small>Валюта совпадает, сумма не меняется.</small>
+                            }
+                        </div>
+                    </section>
+                </div>
 
                 @if (usesDifferentCurrencies()) {
-                    <div class="transfer-rate">
-                        <span class="transfer-rate__label">
-                            Курс {{ bankRatePairLabel() }}
-                        </span>
-                        <ms-input
-                            [ngModel]="displayTransferRate()"
-                            (ngModelChange)="onTransferRateInput($event)"
-                            placeholder="Например, 2.89"
-                            inputMode="decimal"
-                            type="text"
-                        ></ms-input>
-                        <span class="transfer-rate__hint">
-                            @if (rateLoading()) {
-                                Получаем актуальный курс...
-                            } @else {
-                                {{ bankRateHint() }}
+                    <div class="transfer-conversion-card">
+                        <div class="transfer-conversion-card__copy">
+                            <span>Курс пересчёта</span>
+                            <strong>{{ bankRatePairLabel() }}</strong>
+                            <small>Автоматический курс можно поправить для этого перевода.</small>
+                        </div>
+
+                        <div class="transfer-rate">
+                            <span class="transfer-rate__label">Курс {{ bankRatePairLabel() }}</span>
+                            <ms-input
+                                [ngModel]="displayTransferRate()"
+                                (ngModelChange)="onTransferRateInput($event)"
+                                placeholder="Например, 2.89"
+                                inputMode="decimal"
+                                type="text"
+                            ></ms-input>
+                            <span class="transfer-rate__hint">
+                                @if (rateLoading()) {
+                                    Получаем актуальный курс...
+                                } @else {
+                                    {{ bankRateHint() }}
+                                }
+                            </span>
+                            @if (transferRateError()) {
+                                <span class="field-error">{{ transferRateError() }}</span>
                             }
-                        </span>
-                        @if (transferRateError()) {
-                            <span class="field-error">{{ transferRateError() }}</span>
-                        }
+                        </div>
                     </div>
                 }
 
-                <ms-input
-                    class="transfer-description"
-                    [ngModel]="transferDraft().description"
-                    (ngModelChange)="
-                        transferDraftChange.emit({ ...transferDraft(), description: $event })
-                    "
-                    placeholder="Комментарий к переводу"
-                    type="text"
-                ></ms-input>
+                <div class="transfer-field transfer-description">
+                    <span class="transfer-field__label">Комментарий</span>
+                    <ms-input
+                        [ngModel]="transferDraft().description"
+                        (ngModelChange)="
+                            transferDraftChange.emit({ ...transferDraft(), description: $event })
+                        "
+                        placeholder="Необязательно"
+                        type="text"
+                    ></ms-input>
+                </div>
             </div>
         } @else {
             <div class="accounts-empty accounts-empty--compact">

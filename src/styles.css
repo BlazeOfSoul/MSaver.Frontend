@@ -82,6 +82,26 @@ svg {
     max-width: 100%;
 }
 
+.material-symbols-outlined {
+    display: inline-flex;
+    width: 1em;
+    height: 1em;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: 'Material Symbols Outlined';
+    font-size: 1.25rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+    direction: ltr;
+    font-feature-settings: 'liga';
+    -webkit-font-feature-settings: 'liga';
+}
+
 ::selection {
     color: var(--color-ms-light);
     background: rgba(35, 199, 139, 0.28);
@@ -478,11 +498,15 @@ ms-button.ms-btn.ms-btn-action-row .ms-btn__content {
 
 ms-input {
     display: block;
+    min-width: 0;
+    max-width: 100%;
 }
 
 ms-input .ms-input-shell {
     position: relative;
     display: flex;
+    min-width: 0;
+    max-width: 100%;
     min-height: 54px;
     align-items: center;
     overflow: hidden;
@@ -595,6 +619,7 @@ ms-input .ms-input-action img {
 }
 
 ms-input input {
+    min-width: 0;
     min-height: 52px;
     width: 100%;
     flex-grow: 1;

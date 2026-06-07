@@ -10,6 +10,8 @@
 .ms-select {
     display: grid;
     gap: 0.4rem;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .ms-select__label {
@@ -21,6 +23,9 @@
 .ms-select__shell {
     position: relative;
     display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
     border: 1px solid var(--color-ms-border);
     border-radius: 0.5rem;
     background:
@@ -43,6 +48,7 @@
 }
 
 .ms-select__shell--open {
+    overflow: visible;
     border-color: color-mix(in oklab, var(--color-ms-primary), white 14%);
     box-shadow:
         0 0 0 4px rgba(35, 199, 139, 0.11),
@@ -53,7 +59,8 @@
 .ms-select__trigger {
     display: flex;
     width: 100%;
-    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     min-height: 52px;
     align-items: center;
     justify-content: space-between;
@@ -75,7 +82,9 @@
 .ms-select__value {
     --option-color: var(--color-ms-primary);
     display: inline-flex;
+    flex: 1 1 auto;
     min-width: 0;
+    max-width: 100%;
     align-items: center;
     gap: 0.45rem;
     overflow: hidden;
@@ -150,6 +159,7 @@
 
 .ms-select__option-label {
     display: inline-flex;
+    flex: 1 1 auto;
     min-width: 0;
     align-items: center;
     gap: 0.5rem;

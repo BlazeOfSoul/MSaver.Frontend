@@ -136,8 +136,8 @@ describe('AccountsTabComponent', () => {
         const rateLabel = host.querySelector('.transfer-rate__label');
 
         expect(rateLabel?.textContent).toContain('USD → BYN');
-        expect(component.displayTransferRate()).toBe('2,702703');
-        expect(component.bankRateHint()).toBe('1 USD = 2,702703 BYN');
+        expect(component.displayTransferRate()).toBe('2,703');
+        expect(component.bankRateHint()).toBe('1 USD = 2,703 BYN');
 
         component.onTransferRateInput('2.5');
 
@@ -158,8 +158,82 @@ describe('AccountsTabComponent', () => {
         expect(fieldStack?.querySelector('.field-error')?.textContent).toContain(
             'Name already exists',
         );
+        expect(host.querySelector('.account-create__fields > .field-error')).toBeNull();
+    });
+
+    it('renders transfer as a clear withdraw to deposit flow when the rate is visible', () => {
+        fixture.componentRef.setInput('allAccounts', [
+            account({ id: 'account-id', name: 'BYN account', currencyCode: 'BYN' }),
+            account({
+                id: 'second-account',
+                name: 'USD account',
+                currencyCode: 'USD',
+                currencyLabel: 'US dollar',
+                balanceLabel: '100,00 $',
+                color: '#67a6c1',
+                isPrimary: false,
+            }),
+        ]);
+        fixture.componentRef.setInput('transferDraft', {
+            ...transferDraft,
+            amount: 100,
+            rate: 0.37,
+        });
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.querySelector('.transfer-grid')).toBeNull();
+        expect(host.querySelector('.transfer-flow')).not.toBeNull();
+        expect(host.querySelector('.transfer-panel--from')).not.toBeNull();
+        expect(host.querySelector('.transfer-panel--to')).not.toBeNull();
+        expect(host.querySelector('.transfer-direction')).not.toBeNull();
+        expect(host.querySelector('.transfer-conversion-card')).not.toBeNull();
+        expect(host.querySelector('.transfer-description.transfer-field')).not.toBeNull();
+        expect(host.querySelector('.transfer-amount-card--withdraw')).not.toBeNull();
+        expect(host.querySelector('.transfer-amount-card--deposit')).not.toBeNull();
         expect(
-            host.querySelector('.account-create__fields > .field-error'),
-        ).toBeNull();
+            getComputedStyle(host.querySelector<HTMLElement>('.transfer-conversion-card')!)
+                .alignItems,
+        ).toBe('center');
+        expect(host.textContent ?? '').toContain('К списанию');
+        expect(host.textContent ?? '').toContain('К зачислению');
+        expect(host.textContent ?? '').toContain('Будет списано');
+        expect(host.textContent ?? '').toContain('Будет зачислено');
+        expect(component.transferReceiveAmountLabel()).toBe('37.00 USD');
+    });
+
+    it('recalculates the withdrawal amount when the deposit amount is typed', () => {
+        const draftSpy = vi.fn();
+        component.transferDraftChange.subscribe(draftSpy);
+        fixture.componentRef.setInput('allAccounts', [
+            account({ id: 'account-id', name: 'BYN account', currencyCode: 'BYN' }),
+            account({
+                id: 'second-account',
+                name: 'USD account',
+                currencyCode: 'USD',
+                currencyLabel: 'US dollar',
+                balanceLabel: '100,00 $',
+                color: '#67a6c1',
+                isPrimary: false,
+            }),
+        ]);
+        fixture.componentRef.setInput('transferDraft', {
+            ...transferDraft,
+            amount: 100,
+            rate: 0.37,
+        });
+        fixture.detectChanges();
+
+        component.onTransferReceiveAmountFocus();
+        component.onTransferReceiveAmountInput('50');
+
+        expect(component.transferReceiveAmountText()).toBe('50');
+        expect(draftSpy).toHaveBeenLastCalledWith({
+            ...transferDraft,
+            amount: 135.14,
+            rate: 0.37,
+        });
     });
 });

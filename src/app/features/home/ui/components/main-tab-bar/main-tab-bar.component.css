@@ -24,7 +24,7 @@ ms-button {
     flex: 1 0 auto;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 900px) {
     .tab-bar {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -35,22 +35,32 @@ ms-button {
 
     ms-button {
         min-width: 0;
-        font-size: 0.72rem;
-        line-height: 1.1;
-        white-space: nowrap;
+        min-height: 2.8rem;
+        padding: 0;
     }
 
     ms-button .ms-btn__content {
-        flex-direction: column;
-        gap: 0.2rem;
+        gap: 0;
     }
 
     ms-button .material-symbols-outlined {
-        font-size: 1.25rem;
+        font-size: 1.45rem;
+    }
+
+    .tab-bar__label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
 }
 
-@media (min-width: 900px) {
+@media (min-width: 901px) {
     ms-button {
         flex: 1 1 0;
     }

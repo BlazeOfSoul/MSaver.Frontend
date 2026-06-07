@@ -80,6 +80,7 @@ describe('HomePageComponent', () => {
         getMonthBalance: ReturnType<typeof vi.fn>;
         createAccount: ReturnType<typeof vi.fn>;
         deleteAccount: ReturnType<typeof vi.fn>;
+        createTag: ReturnType<typeof vi.fn>;
         createTransaction: ReturnType<typeof vi.fn>;
         updateTransaction: ReturnType<typeof vi.fn>;
         deleteTransaction: ReturnType<typeof vi.fn>;
@@ -151,6 +152,7 @@ describe('HomePageComponent', () => {
             ),
             createAccount: vi.fn(() => of('account-id')),
             deleteAccount: vi.fn(() => of('account-id')),
+            createTag: vi.fn(() => of('tag-id')),
             createTransaction: vi.fn(() => of('transaction-id')),
             updateTransaction: vi.fn(() => of('transaction-id')),
             deleteTransaction: vi.fn(() => of('transaction-id')),
@@ -448,24 +450,25 @@ describe('HomePageComponent', () => {
                 toCurrencyCode: 'BYN',
             }),
         );
-        homeApi.getMonthBalance.mockImplementation((accountId: string, year: number, month: number) =>
-            of<MonthBalanceResponse>({
-                accountId,
-                accountName: accountId,
-                currencyCode: accountId === 'usd-account' ? 'USD' : 'BYN',
-                openingBalance: 0,
-                monthChange: 0,
-                closingBalance: accountId === 'usd-account' ? 5 : 10,
-                year,
-                month,
-            }),
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId,
+                    currencyCode: accountId === 'usd-account' ? 'USD' : 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: accountId === 'usd-account' ? 5 : 10,
+                    year,
+                    month,
+                }),
         );
 
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
-        const balanceCard = fixture
-            .componentInstance.summaryCards()
+        const balanceCard = fixture.componentInstance
+            .summaryCards()
             .find((card) => card.id === 'balance');
 
         expect(homeApi.getTransferRate).toHaveBeenCalledWith('usd-account', 'byn-account');
@@ -495,8 +498,8 @@ describe('HomePageComponent', () => {
 
         fixture.componentInstance.setNewAccountCurrency('USD');
 
-        const balanceCard = fixture
-            .componentInstance.summaryCards()
+        const balanceCard = fixture.componentInstance
+            .summaryCards()
             .find((card) => card.id === 'balance');
 
         expect(balanceCard?.value).toContain('Br');
@@ -553,28 +556,33 @@ describe('HomePageComponent', () => {
         homeApi.getAccounts.mockReturnValue(of(page([account])));
         homeApi.getCategories.mockReturnValue(of(page(categories)));
         homeApi.getTransactions.mockReturnValue(of(page(transactions)));
-        homeApi.getMonthBalance.mockImplementation((accountId: string, year: number, month: number) =>
-            of<MonthBalanceResponse>({
-                accountId,
-                accountName: 'Основной счёт',
-                currencyCode: 'BYN',
-                openingBalance: 0,
-                monthChange: 0,
-                closingBalance: 1000,
-                year,
-                month,
-            }),
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: 'Основной счёт',
+                    currencyCode: 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: 1000,
+                    year,
+                    month,
+                }),
         );
 
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
-        const debtCard = fixture
-            .componentInstance.summaryCards()
+        const debtCard = fixture.componentInstance
+            .summaryCards()
             .find((card) => card.id === 'debt-balance');
 
         expect(debtCard?.value).toContain('950');
         expect(debtCard?.value).toContain('Br');
+        expect(debtCard?.helper).toBe('Баланс после закрытия долгов');
+        expect(debtCard?.helperLines).toHaveLength(2);
+        expect(debtCard?.helperLines?.[0]).toContain('200');
+        expect(debtCard?.helperLines?.[1]).toContain('150');
     });
 
     it('loads the application currency from the current user and converts through a matching account', () => {
@@ -617,24 +625,25 @@ describe('HomePageComponent', () => {
                 toCurrencyCode: 'EUR',
             }),
         );
-        homeApi.getMonthBalance.mockImplementation((accountId: string, year: number, month: number) =>
-            of<MonthBalanceResponse>({
-                accountId,
-                accountName: accountId,
-                currencyCode: accountId === 'eur-account' ? 'EUR' : 'BYN',
-                openingBalance: 0,
-                monthChange: 0,
-                closingBalance: accountId === 'eur-account' ? 5 : 10,
-                year,
-                month,
-            }),
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId,
+                    currencyCode: accountId === 'eur-account' ? 'EUR' : 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: accountId === 'eur-account' ? 5 : 10,
+                    year,
+                    month,
+                }),
         );
 
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
-        const balanceCard = fixture
-            .componentInstance.summaryCards()
+        const balanceCard = fixture.componentInstance
+            .summaryCards()
             .find((card) => card.id === 'balance');
 
         expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
@@ -1051,6 +1060,35 @@ describe('HomePageComponent', () => {
         expect(homeApi.getCategories.mock.calls.length).toBe(initialCategoryCalls);
         expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls);
         expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls);
+    });
+
+    it('creates a tag with the selected color', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setNewTagGroup('Subscriptions');
+        fixture.componentInstance.setNewTagGroupColor('#e8b45d');
+        fixture.componentInstance.addTagGroup();
+
+        expect(homeApi.createTag).toHaveBeenCalledWith({
+            name: 'Subscriptions',
+            color: '#e8b45d',
+        });
     });
 
     it('clears the session and redirects to auth on logout', () => {

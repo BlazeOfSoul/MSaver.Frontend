@@ -35,6 +35,7 @@ describe('CategoriesTabComponent', () => {
         fixture.componentRef.setInput('newIncomeCategory', '');
         fixture.componentRef.setInput('newExpenseCategory', '');
         fixture.componentRef.setInput('newTagGroup', '');
+        fixture.componentRef.setInput('newTagGroupColor', '#67a6c1');
         fixture.componentRef.setInput('newIncomeCategoryColor', '#23c78b');
         fixture.componentRef.setInput('newExpenseCategoryColor', '#ff6f91');
         fixture.componentRef.setInput('categoryOptions', []);
@@ -93,7 +94,9 @@ describe('CategoriesTabComponent', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
-        host.querySelector<HTMLButtonElement>('[data-testid="open-income-category-dialog"]')?.click();
+        host.querySelector<HTMLButtonElement>(
+            '[data-testid="open-income-category-dialog"]',
+        )?.click();
         fixture.detectChanges();
 
         const colorPicker = host.querySelector<HTMLInputElement>(
@@ -120,7 +123,9 @@ describe('CategoriesTabComponent', () => {
 
         expect(host.querySelector('.create-form')).toBeNull();
 
-        host.querySelector<HTMLButtonElement>('[data-testid="open-income-category-dialog"]')?.click();
+        host.querySelector<HTMLButtonElement>(
+            '[data-testid="open-income-category-dialog"]',
+        )?.click();
         fixture.detectChanges();
 
         const dialog = host.querySelector<HTMLElement>('.category-dialog');
@@ -138,6 +143,43 @@ describe('CategoriesTabComponent', () => {
 
         expect(nameSpy).toHaveBeenCalledWith('Премия');
         expect(addSpy).toHaveBeenCalledOnce();
+    });
+
+    it('renders full-width footer actions in category and tag dialogs', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>(
+            '[data-testid="open-income-category-dialog"]',
+        )?.click();
+        fixture.detectChanges();
+
+        let footerButtons = Array.from(
+            host.querySelectorAll<HTMLElement>(
+                '.category-dialog:not(.tag-dialog) .category-dialog__footer ms-button',
+            ),
+        );
+
+        expect(footerButtons).toHaveLength(2);
+        expect(footerButtons.every((button) => button.classList.contains('ms-btn-full-width'))).toBe(
+            true,
+        );
+
+        component.closeCategoryDialog();
+        fixture.detectChanges();
+
+        host.querySelector<HTMLButtonElement>('[data-testid="open-tag-dialog"]')?.click();
+        fixture.detectChanges();
+
+        footerButtons = Array.from(
+            host.querySelectorAll<HTMLElement>('.tag-dialog .category-dialog__footer ms-button'),
+        );
+
+        expect(footerButtons).toHaveLength(2);
+        expect(footerButtons.every((button) => button.classList.contains('ms-btn-full-width'))).toBe(
+            true,
+        );
     });
 
     it('does not render delete actions for system categories', () => {
@@ -158,6 +200,86 @@ describe('CategoriesTabComponent', () => {
 
         expect(salaryChip?.querySelector('.category-chip__action')).not.toBeNull();
         expect(debtChip?.querySelector('.category-chip__action')).toBeNull();
+    });
+
+    it('creates tags from a modal dialog with a selected color', () => {
+        const addSpy = vi.fn();
+        const nameSpy = vi.fn();
+        const colorSpy = vi.fn();
+        component.addTagGroup.subscribe(addSpy);
+        component.newTagGroupChange.subscribe(nameSpy);
+        component.newTagGroupColorChange.subscribe(colorSpy);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>('[data-testid="open-tag-dialog"]')?.click();
+        fixture.detectChanges();
+
+        const dialog = host.querySelector<HTMLElement>('.tag-dialog');
+        const input = dialog?.querySelector<HTMLInputElement>('input[type="text"]');
+        const colorPicker = dialog?.querySelector<HTMLInputElement>(
+            '[data-testid="tag-color-picker"]',
+        );
+
+        expect(dialog).not.toBeNull();
+        expect(input).not.toBeNull();
+        expect(colorPicker).not.toBeNull();
+
+        input!.value = 'Subscriptions';
+        input!.dispatchEvent(new Event('input'));
+        fixture.componentRef.setInput('newTagGroup', 'Subscriptions');
+
+        colorPicker!.value = '#e8b45d';
+        colorPicker!.dispatchEvent(new Event('input'));
+        fixture.componentRef.setInput('newTagGroupColor', '#e8b45d');
+        fixture.detectChanges();
+
+        const preview = dialog?.querySelector<HTMLElement>('.tag-preview');
+
+        expect(preview?.style.getPropertyValue('--tag-color')).toBe('#e8b45d');
+
+        host.querySelector<HTMLButtonElement>('[data-testid="submit-tag-dialog"]')?.click();
+
+        expect(nameSpy).toHaveBeenCalledWith('Subscriptions');
+        expect(colorSpy).toHaveBeenCalledWith('#e8b45d');
+        expect(addSpy).toHaveBeenCalledOnce();
+    });
+
+    it('keeps the tag modal open when pointer selection starts inside and ends on the backdrop', () => {
+        const backdrop = document.createElement('div');
+        const dialog = document.createElement('section');
+
+        component.openTagDialog();
+
+        component.onTagDialogBackdropPointerDown({
+            target: dialog,
+            currentTarget: backdrop,
+        } as unknown as PointerEvent);
+        component.onTagDialogBackdropClick({
+            target: backdrop,
+            currentTarget: backdrop,
+        } as unknown as MouseEvent);
+
+        expect(component.isTagDialogOpen()).toBe(true);
+    });
+
+    it('closes the tag modal only when the pointer starts on the backdrop', () => {
+        const backdrop = document.createElement('div');
+
+        component.openTagDialog();
+
+        component.onTagDialogBackdropPointerDown({
+            target: backdrop,
+            currentTarget: backdrop,
+        } as unknown as PointerEvent);
+        component.onTagDialogBackdropClick({
+            target: backdrop,
+            currentTarget: backdrop,
+        } as unknown as MouseEvent);
+
+        expect(component.isTagDialogOpen()).toBe(false);
     });
 
     it('filters out categories already assigned to a tag', () => {

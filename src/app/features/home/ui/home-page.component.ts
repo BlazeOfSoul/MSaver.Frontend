@@ -76,6 +76,7 @@ export class HomePageComponent {
     readonly newIncomeCategoryColor = this.dashboard.newIncomeCategoryColor;
     readonly newExpenseCategoryColor = this.dashboard.newExpenseCategoryColor;
     readonly newTagGroup = this.dashboard.newTagGroup;
+    readonly newTagGroupColor = this.dashboard.newTagGroupColor;
     readonly transferDraft = this.dashboard.transferDraft;
     readonly transactionDraft = this.dashboard.transactionDraft;
     readonly transactionPageSize = this.dashboard.transactionPageSize;
@@ -101,9 +102,9 @@ export class HomePageComponent {
     readonly categoryMonthTable = this.dashboard.categoryMonthTable;
     readonly monthlyExpensesChart = this.dashboard.monthlyExpensesChart;
     readonly balanceDynamicsChart = this.dashboard.balanceDynamicsChart;
+    readonly savingsRateChart = this.dashboard.savingsRateChart;
     readonly tagExpensesChart = this.dashboard.tagExpensesChart;
     readonly topExpensesChart = this.dashboard.topExpensesChart;
-    readonly yearStatsChart = this.dashboard.yearStatsChart;
     readonly analyticsMetrics = this.dashboard.analyticsMetrics;
     readonly summaryCards = this.dashboard.summaryCards;
     readonly activeTabTitle = this.dashboard.activeTabTitle;
@@ -244,6 +245,10 @@ export class HomePageComponent {
 
     setNewTagGroup(value: string): void {
         this.dashboard.setNewTagGroup(value);
+    }
+
+    setNewTagGroupColor(value: string): void {
+        this.dashboard.setNewTagGroupColor(value);
     }
 
     addIncomeCategory(): void {

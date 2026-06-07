@@ -38,7 +38,9 @@
                                 (onClick)="changeSort('date')"
                             >
                                 Дата
-                                <span class="material-symbols-outlined">{{ sortIcon('date') }}</span>
+                                <span class="material-symbols-outlined">{{
+                                    sortIcon('date')
+                                }}</span>
                             </ms-button>
                         </th>
                         <th scope="col">
@@ -48,7 +50,9 @@
                                 (onClick)="changeSort('title')"
                             >
                                 Операция
-                                <span class="material-symbols-outlined">{{ sortIcon('title') }}</span>
+                                <span class="material-symbols-outlined">{{
+                                    sortIcon('title')
+                                }}</span>
                             </ms-button>
                         </th>
                         <th scope="col">
@@ -82,7 +86,9 @@
                                 (onClick)="changeSort('amount')"
                             >
                                 Сумма
-                                <span class="material-symbols-outlined">{{ sortIcon('amount') }}</span>
+                                <span class="material-symbols-outlined">{{
+                                    sortIcon('amount')
+                                }}</span>
                             </ms-button>
                         </th>
                         <th scope="col" class="transactions-table__actions-head">
@@ -98,9 +104,14 @@
                             </td>
                             <td data-label="Операция">
                                 <div class="transaction-name">
-                                    <span class="transaction-name__icon" [attr.data-tone]="item.tone">
+                                    <span
+                                        class="transaction-name__icon"
+                                        [attr.data-tone]="item.tone"
+                                    >
                                         <span class="material-symbols-outlined">
-                                            {{ item.tone === 'income' ? 'south_west' : 'north_east' }}
+                                            {{
+                                                item.tone === 'income' ? 'south_west' : 'north_east'
+                                            }}
                                         </span>
                                     </span>
                                     <div>
@@ -120,7 +131,16 @@
                             <td data-label="Сумма" class="transactions-table__amount">
                                 <strong [attr.data-tone]="item.tone">{{ item.amountLabel }}</strong>
                             </td>
-                            <td data-label="Действия" class="transactions-table__actions">
+                            <td
+                                data-label="Действия"
+                                class="transactions-table__actions transactions-table__actions--inline"
+                                [class.transactions-table__actions--with-edit]="
+                                    isTransactionEditable(item)
+                                "
+                                [class.transactions-table__actions--split]="
+                                    !isTransactionEditable(item)
+                                "
+                            >
                                 <ms-button
                                     appearance="icon"
                                     variant="neutral"
@@ -144,7 +164,7 @@
                                         appearance="ghost"
                                         variant="neutral"
                                         size="sm"
-                                        class="transaction-edit-action"
+                                        class="transaction-edit-action transaction-edit-action--readable"
                                         data-testid="edit-transaction"
                                         [disabled]="saving()"
                                         (onClick)="editTransaction.emit(item)"
@@ -172,25 +192,10 @@
                             <tr class="transaction-details-row">
                                 <td colspan="6">
                                     <div class="transaction-details">
-                                        <div>
-                                            <span>Дата и время</span>
-                                            <strong>{{ item.dateTimeLabel }}</strong>
-                                        </div>
-                                        <div>
-                                            <span>Счёт</span>
-                                            <strong>{{ item.accountName }}</strong>
-                                        </div>
-                                        <div>
-                                            <span>Категория</span>
-                                            <strong>{{ item.category }}</strong>
-                                        </div>
                                         <div class="transaction-details__description">
                                             <span>Описание</span>
                                             <strong>
-                                                {{
-                                                    item.description ||
-                                                        'Описание не указано'
-                                                }}
+                                                {{ item.description || 'Описание не указано' }}
                                             </strong>
                                         </div>
                                     </div>

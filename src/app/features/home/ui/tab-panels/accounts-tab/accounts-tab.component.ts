@@ -46,7 +46,9 @@ export class AccountsTabComponent {
     accountChange = output<string>();
 
     readonly transferAmountText = signal('0.00');
+    readonly transferReceiveAmountText = signal('0.00');
     private readonly transferAmountEditing = signal(false);
+    private readonly transferReceiveAmountEditing = signal(false);
 
     readonly fromAccount = computed(() =>
         this.allAccounts().find((account) => account.id === this.transferDraft().fromAccountId),
@@ -95,6 +97,21 @@ export class AccountsTabComponent {
 
         return `1 ${base} = ${displayRate} ${quote}`;
     });
+    readonly transferReceiveAmountLabel = computed(() => {
+        const amount = this.transferDraft().amount;
+        const toCurrency = this.toAccount()?.currencyCode ?? '';
+        const rate = this.usesDifferentCurrencies() ? this.transferDraft().rate : 1;
+
+        if (!amount || amount <= 0) {
+            return this.appendCurrency('0.00', toCurrency);
+        }
+
+        if (!rate || rate <= 0) {
+            return this.appendCurrency('—', toCurrency);
+        }
+
+        return this.appendCurrency(this.formatMoneyAmount(amount * rate), toCurrency);
+    });
 
     constructor() {
         effect(() => {
@@ -102,6 +119,12 @@ export class AccountsTabComponent {
 
             if (!this.transferAmountEditing()) {
                 this.transferAmountText.set(this.formatMoneyAmount(amount));
+            }
+
+            if (!this.transferReceiveAmountEditing()) {
+                this.transferReceiveAmountText.set(
+                    this.formatMoneyAmount(this.calculateReceiveAmount(amount)),
+                );
             }
         });
     }
@@ -131,17 +154,51 @@ export class AccountsTabComponent {
 
     onTransferAmountInput(value: string | number): void {
         const nextText = this.normalizeTransferAmountInputText(`${value ?? ''}`);
+        const amount = this.parseMoneyAmount(nextText);
 
         this.transferAmountText.set(nextText);
+        if (!this.transferReceiveAmountEditing()) {
+            this.transferReceiveAmountText.set(
+                this.formatMoneyAmount(this.calculateReceiveAmount(amount)),
+            );
+        }
         this.transferDraftChange.emit({
             ...this.transferDraft(),
-            amount: this.parseMoneyAmount(nextText),
+            amount,
         });
     }
 
     onTransferAmountBlur(): void {
         this.transferAmountEditing.set(false);
         this.transferAmountText.set(this.formatMoneyAmount(this.parseMoneyAmount(this.transferAmountText())));
+    }
+
+    onTransferReceiveAmountFocus(): void {
+        this.transferReceiveAmountEditing.set(true);
+
+        if (this.calculateReceiveAmount(this.transferDraft().amount) <= 0 && this.transferReceiveAmountText() === '0.00') {
+            this.transferReceiveAmountText.set('');
+        }
+    }
+
+    onTransferReceiveAmountInput(value: string | number): void {
+        const nextText = this.normalizeTransferReceiveAmountInputText(`${value ?? ''}`);
+        const receiveAmount = this.parseMoneyAmount(nextText);
+        const withdrawAmount = this.calculateWithdrawAmount(receiveAmount);
+
+        this.transferReceiveAmountText.set(nextText);
+        if (!this.transferAmountEditing()) {
+            this.transferAmountText.set(this.formatMoneyAmount(withdrawAmount));
+        }
+        this.transferDraftChange.emit({
+            ...this.transferDraft(),
+            amount: withdrawAmount,
+        });
+    }
+
+    onTransferReceiveAmountBlur(): void {
+        this.transferReceiveAmountEditing.set(false);
+        this.transferReceiveAmountText.set(this.formatMoneyAmount(this.parseMoneyAmount(this.transferReceiveAmountText())));
     }
 
     displayTransferRate(): string {
@@ -178,6 +235,14 @@ export class AccountsTabComponent {
         return value;
     }
 
+    private normalizeTransferReceiveAmountInputText(value: string): string {
+        if (this.transferReceiveAmountEditing() && this.calculateReceiveAmount(this.transferDraft().amount) <= 0 && value.startsWith('0.00')) {
+            return value.slice('0.00'.length);
+        }
+
+        return value;
+    }
+
     private parseTransferRate(value: string | number): number {
         const normalized = `${value ?? ''}`.replace(',', '.').replace(/\s/g, '').trim();
         const parsed = Number.parseFloat(normalized);
@@ -186,15 +251,47 @@ export class AccountsTabComponent {
             return 0;
         }
 
-        return Math.round(parsed * 1_000_000) / 1_000_000;
+        return Math.round(parsed * 1_000) / 1_000;
     }
 
     private formatRate(value: number): string {
         return Number.isFinite(value)
             ? value.toLocaleString('ru-RU', {
                 minimumFractionDigits: 2,
-                maximumFractionDigits: 6,
+                maximumFractionDigits: 3,
             })
             : '';
+    }
+
+    private calculateReceiveAmount(withdrawAmount: number): number {
+        const rate = this.transferReceiveRate();
+
+        if (!withdrawAmount || withdrawAmount <= 0 || rate <= 0) {
+            return 0;
+        }
+
+        return Math.round(withdrawAmount * rate * 100) / 100;
+    }
+
+    private calculateWithdrawAmount(receiveAmount: number): number {
+        const rate = this.transferReceiveRate();
+
+        if (!receiveAmount || receiveAmount <= 0 || rate <= 0) {
+            return 0;
+        }
+
+        return Math.round((receiveAmount / rate) * 100) / 100;
+    }
+
+    private transferReceiveRate(): number {
+        if (!this.usesDifferentCurrencies()) {
+            return 1;
+        }
+
+        return this.transferDraft().rate ?? 0;
+    }
+
+    private appendCurrency(value: string, currencyCode: string): string {
+        return currencyCode ? `${value} ${currencyCode}` : value;
     }
 }

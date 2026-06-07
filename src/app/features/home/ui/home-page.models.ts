@@ -11,6 +11,7 @@ export interface HomeSummaryCard {
     label: string;
     value: string;
     helper: string;
+    helperLines?: ReadonlyArray<string>;
     tone: 'primary' | 'positive' | 'negative' | 'neutral';
     icon: string;
 }
@@ -89,20 +90,34 @@ export interface AnalyticsCategoryMonthCell {
     formattedValue: string;
 }
 
+export interface AnalyticsCategoryMonthSummary {
+    cells: ReadonlyArray<AnalyticsCategoryMonthCell>;
+    totalValue: number;
+    formattedTotal: string;
+    averageValue: number;
+    formattedAverage: string;
+}
+
 export interface AnalyticsCategoryMonthRow {
     id: string;
     name: string;
     color: string;
-    type: 'income' | 'expense';
+    type: 'income' | 'expense' | 'debt';
     cells: ReadonlyArray<AnalyticsCategoryMonthCell>;
     totalValue: number;
     formattedTotal: string;
+    averageValue: number;
+    formattedAverage: string;
 }
 
 export interface AnalyticsCategoryMonthTable {
     months: ReadonlyArray<string>;
     incomeRows: ReadonlyArray<AnalyticsCategoryMonthRow>;
     expenseRows: ReadonlyArray<AnalyticsCategoryMonthRow>;
+    debtRows?: ReadonlyArray<AnalyticsCategoryMonthRow>;
+    incomeSummary?: AnalyticsCategoryMonthSummary;
+    expenseSummary?: AnalyticsCategoryMonthSummary;
+    debtSummary?: AnalyticsCategoryMonthSummary;
 }
 
 export interface CategoryBreakdownItem {

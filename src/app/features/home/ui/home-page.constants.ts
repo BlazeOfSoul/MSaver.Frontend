@@ -34,7 +34,7 @@ export const CURRENCY_OPTIONS: ReadonlyArray<MsSelectOption> = [
     { value: 'COP', label: 'COP - Колумбийское песо' },
     { value: 'PEN', label: 'PEN - Перуанский соль' },
     { value: 'UYU', label: 'UYU - Уругвайское песо' },
-];
+].sort((left, right) => left.value.localeCompare(right.value, 'en'));
 
 export const HOME_TABS: ReadonlyArray<HomeTabItem> = [
     { id: 'overview', label: 'Главная', icon: 'grid_view' },

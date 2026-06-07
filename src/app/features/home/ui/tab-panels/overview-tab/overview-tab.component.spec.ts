@@ -104,14 +104,16 @@ describe('OverviewTabComponent', () => {
         fixture.detectChanges();
 
         const rows = Array.from(
-            (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLTableRowElement>('tbody tr'),
+            (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLTableRowElement>(
+                'tbody tr',
+            ),
         );
 
         expect(rows[0].textContent ?? '').toContain('Evening market');
         expect(rows[1].textContent ?? '').toContain('Morning coffee');
     });
 
-    it('shows saved time and expands full transaction details', () => {
+    it('shows saved time and expands only the transaction description', () => {
         fixture.componentRef.setInput('transactions', [
             transaction({
                 id: 'detailed',
@@ -129,15 +131,22 @@ describe('OverviewTabComponent', () => {
         const host = fixture.nativeElement as HTMLElement;
 
         expect(host.textContent ?? '').toContain('05.06.2026, 14:37');
-        expect(host.textContent ?? '').not.toContain('Long description with the full payment context');
+        expect(host.textContent ?? '').not.toContain(
+            'Long description with the full payment context',
+        );
 
-        host.querySelector<HTMLButtonElement>('[data-testid="toggle-transaction-details"]')?.click();
+        host.querySelector<HTMLButtonElement>(
+            '[data-testid="toggle-transaction-details"]',
+        )?.click();
         fixture.detectChanges();
 
         expect(host.querySelector('.transaction-details')).not.toBeNull();
-        expect(host.textContent ?? '').toContain('Long description with the full payment context');
-        expect(host.textContent ?? '').toContain('Main');
-        expect(host.textContent ?? '').toContain('Food');
+        const detailsText = host.querySelector('.transaction-details')?.textContent ?? '';
+
+        expect(detailsText).toContain('Long description with the full payment context');
+        expect(detailsText).not.toContain('05.06.2026, 14:37');
+        expect(detailsText).not.toContain('Main');
+        expect(detailsText).not.toContain('Food');
     });
 
     it('emits the selected transaction item when editing starts', () => {
@@ -146,9 +155,7 @@ describe('OverviewTabComponent', () => {
             id: 'editable',
             title: 'Market',
         });
-        fixture.componentRef.setInput('transactions', [
-            editable,
-        ]);
+        fixture.componentRef.setInput('transactions', [editable]);
         fixture.componentInstance.editTransaction.subscribe(editSpy);
 
         fixture.detectChanges();
@@ -171,12 +178,56 @@ describe('OverviewTabComponent', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
-        const editButton = host.querySelector<HTMLButtonElement>('[data-testid="edit-transaction"]');
+        const editButton = host.querySelector<HTMLButtonElement>(
+            '[data-testid="edit-transaction"]',
+        );
 
         expect(editButton?.textContent ?? '').toContain('Изменить');
         expect(editButton?.querySelector('.material-symbols-outlined')?.textContent?.trim()).toBe(
             'tune',
         );
+    });
+
+    it('keeps mobile transaction actions in one inline row with a readable edit action', () => {
+        fixture.componentRef.setInput('transactions', [
+            transaction({
+                id: 'editable',
+                title: 'Market',
+            }),
+        ]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const actions = host.querySelector<HTMLElement>('.transactions-table__actions');
+        const editButton = host.querySelector<HTMLElement>('[data-testid="edit-transaction"]');
+        const editLabel = editButton?.querySelector<HTMLElement>('.transaction-edit-action__label');
+
+        expect(actions?.classList.contains('transactions-table__actions--inline')).toBe(true);
+        expect(actions?.classList.contains('transactions-table__actions--with-edit')).toBe(true);
+        expect(editButton?.classList.contains('transaction-edit-action--readable')).toBe(true);
+        expect(editLabel?.classList.contains('sr-only')).toBe(false);
+        expect(editLabel?.textContent?.trim()).toBe('Изменить');
+    });
+
+    it('splits the two mobile actions to the left and right when edit is not available', () => {
+        fixture.componentRef.setInput('transactions', [
+            transaction({
+                id: 'transfer',
+                categoryType: 'TransferExpense',
+                title: 'Transfer',
+            }),
+        ]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const actions = host.querySelector<HTMLElement>('.transactions-table__actions');
+
+        expect(actions?.classList.contains('transactions-table__actions--inline')).toBe(true);
+        expect(actions?.classList.contains('transactions-table__actions--split')).toBe(true);
+        expect(actions?.classList.contains('transactions-table__actions--with-edit')).toBe(false);
+        expect(actions?.querySelectorAll('ms-button')).toHaveLength(2);
     });
 
     it('does not render edit action for transfer transaction rows', () => {

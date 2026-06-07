@@ -20,7 +20,7 @@
         <div class="main-header__actions">
             <ms-button
                 appearance="icon"
-                variant="neutral"
+                variant="primary"
                 size="md"
                 data-testid="settings-button"
                 (onClick)="settings.emit()"
@@ -31,7 +31,7 @@
 
             <ms-button
                 appearance="ghost"
-                variant="neutral"
+                variant="danger"
                 size="sm"
                 class="logout-button"
                 data-testid="logout-button"
@@ -71,7 +71,13 @@
             </ms-button>
         </div>
 
-        <ms-button variant="primary" (onClick)="addTransaction.emit()">
+        <ms-button
+            class="add-transaction-button"
+            variant="primary"
+            (onClick)="addTransaction.emit()"
+            aria-label="Добавить транзакцию"
+        >
+            <span class="material-symbols-outlined">add</span>
             Добавить транзакцию
         </ms-button>
     </div>

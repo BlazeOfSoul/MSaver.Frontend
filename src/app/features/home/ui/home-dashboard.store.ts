@@ -18,6 +18,7 @@ import {
     AccountBalanceItem,
     AnalyticsMetricCard,
     AnalyticsCategoryMonthRow,
+    AnalyticsCategoryMonthSummary,
     AnalyticsCategoryMonthTable,
     AnalyticsSeriesPoint,
     AnalyticsStackedPoint,
@@ -113,6 +114,7 @@ export class HomeDashboardStore {
     readonly newIncomeCategoryColor = signal(CATEGORY_COLORS[0]);
     readonly newExpenseCategoryColor = signal(CATEGORY_COLORS[2] ?? CATEGORY_COLORS[0]);
     readonly newTagGroup = signal('');
+    readonly newTagGroupColor = signal(CATEGORY_COLORS[1] ?? CATEGORY_COLORS[0]);
     readonly transferDraft = signal<TransferDraft>({
         fromAccountId: '',
         toAccountId: '',
@@ -209,7 +211,11 @@ export class HomeDashboardStore {
     readonly allCategoryOptions = computed<MsSelectOption[]>(() =>
         this.categoryResponses()
             .filter((category) => category.type === 'Credit' || category.type === 'Debit')
-            .map((category) => ({ value: category.id, label: category.name, color: category.color })),
+            .map((category) => ({
+                value: category.id,
+                label: category.name,
+                color: category.color,
+            })),
     );
     readonly tagGroups = computed<TagGroupItem[]>(() => mapTags(this.tagDetailsResponses()));
     readonly filteredTagGroups = computed(() =>
@@ -274,7 +280,10 @@ export class HomeDashboardStore {
                 return;
             }
 
-            totals.set(kind, (totals.get(kind) ?? 0) + Math.abs(this.convertTransactionAmount(transaction)));
+            totals.set(
+                kind,
+                (totals.get(kind) ?? 0) + Math.abs(this.convertTransactionAmount(transaction)),
+            );
         });
 
         const owedByMe = Math.max(0, (totals.get('taken') ?? 0) - (totals.get('returned') ?? 0));
@@ -303,11 +312,18 @@ export class HomeDashboardStore {
     );
     readonly categoryMonthTable = computed<AnalyticsCategoryMonthTable>(() => {
         const months = this.monthsForSelectedYear();
+        const incomeRows = this.buildCategoryMonthRows(months, 'income');
+        const expenseRows = this.buildCategoryMonthRows(months, 'expense');
+        const debtRows = this.buildDebtMonthRows(months);
 
         return {
             months: months.map((month) => compactMonthLabel(month)),
-            incomeRows: this.buildCategoryMonthRows(months, 'income'),
-            expenseRows: this.buildCategoryMonthRows(months, 'expense'),
+            incomeRows,
+            expenseRows,
+            debtRows,
+            incomeSummary: this.buildMonthSummary(months, incomeRows),
+            expenseSummary: this.buildMonthSummary(months, expenseRows),
+            debtSummary: this.buildMonthSummary(months, debtRows, { totalFromLastCell: true }),
         };
     });
     readonly monthlyExpensesChart = computed<ReadonlyArray<AnalyticsSeriesPoint>>(() =>
@@ -334,6 +350,15 @@ export class HomeDashboardStore {
                 value,
             };
         }),
+    );
+    readonly savingsRateChart = computed<ReadonlyArray<AnalyticsSeriesPoint>>(() =>
+        this.incomeVsExpense().map((item) => ({
+            label: item.label,
+            value:
+                item.income > 0
+                    ? Math.round(((item.income - item.expense) / item.income) * 100)
+                    : 0,
+        })),
     );
     readonly tagExpensesChart = computed<ReadonlyArray<CategoryBreakdownItem>>(() => {
         const totals = categoryTotals(
@@ -374,25 +399,6 @@ export class HomeDashboardStore {
     readonly topExpensesChart = computed<ReadonlyArray<CategoryBreakdownItem>>(() =>
         [...this.expenseCategories()].sort((a, b) => b.amountValue - a.amountValue).slice(0, 5),
     );
-    readonly yearStatsChart = computed<ReadonlyArray<AnalyticsMetricCard>>(() => {
-        const income = this.incomeVsExpense().reduce((sum, item) => sum + item.income, 0);
-        const expense = this.incomeVsExpense().reduce((sum, item) => sum + item.expense, 0);
-
-        return [
-            {
-                id: 'year-income',
-                label: 'Доходы года',
-                value: formatMoney(income, this.applicationCurrencyCode()),
-                caption: `${this.selectedMonth().getFullYear()} год`,
-            },
-            {
-                id: 'year-expense',
-                label: 'Расходы года',
-                value: formatMoney(expense, this.applicationCurrencyCode()),
-                caption: `${this.selectedMonth().getFullYear()} год`,
-            },
-        ];
-    });
     readonly analyticsMetrics = computed<ReadonlyArray<AnalyticsMetricCard>>(() => {
         const income = this.incomeTotal();
         const expense = this.expenseTotal();
@@ -437,8 +443,15 @@ export class HomeDashboardStore {
         {
             id: 'debt-balance',
             label: 'После долгов',
-            value: formatMoney(this.debtSummary().balanceAfterClosing, this.applicationCurrencyCode()),
-            helper: `Мои: ${formatMoney(this.debtSummary().owedByMe, this.applicationCurrencyCode())}, мне: ${formatMoney(this.debtSummary().owedToMe, this.applicationCurrencyCode())}`,
+            value: formatMoney(
+                this.debtSummary().balanceAfterClosing,
+                this.applicationCurrencyCode(),
+            ),
+            helper: 'Баланс после закрытия долгов',
+            helperLines: [
+                `Я должен: ${formatMoney(this.debtSummary().owedByMe, this.applicationCurrencyCode())}`,
+                `Мне должны: ${formatMoney(this.debtSummary().owedToMe, this.applicationCurrencyCode())}`,
+            ],
             tone: 'neutral',
             icon: 'balance',
         },
@@ -826,6 +839,10 @@ export class HomeDashboardStore {
         this.newTagGroup.set(value);
     }
 
+    setNewTagGroupColor(value: string): void {
+        this.newTagGroupColor.set(value);
+    }
+
     addIncomeCategory(): void {
         this.createCategory(this.newIncomeCategory(), 'Credit', this.newIncomeCategoryColor());
     }
@@ -852,7 +869,7 @@ export class HomeDashboardStore {
         this.runMutation(
             this.homeApi.createTag({
                 name,
-                color: CATEGORY_COLORS[this.tagGroups().length % CATEGORY_COLORS.length],
+                color: this.newTagGroupColor(),
             }),
             'Не удалось создать тег.',
             () => {
@@ -981,14 +998,20 @@ export class HomeDashboardStore {
         accounts: AccountResponse[],
         applicationCurrencyCode: string,
     ) {
-        const applicationAccount = this.resolveApplicationAccount(accounts, applicationCurrencyCode);
+        const applicationAccount = this.resolveApplicationAccount(
+            accounts,
+            applicationCurrencyCode,
+        );
 
         if (!applicationAccount) {
             return of(new Map<string, number>());
         }
 
         const requests = accounts.map((account) => {
-            if (account.id === applicationAccount.id || account.currencyCode === applicationAccount.currencyCode) {
+            if (
+                account.id === applicationAccount.id ||
+                account.currencyCode === applicationAccount.currencyCode
+            ) {
                 return of([account.id, 1] as const);
             }
 
@@ -1253,9 +1276,7 @@ export class HomeDashboardStore {
 
     private readStoredTransactionPageSize(): number {
         try {
-            const storedValue = globalThis.localStorage?.getItem(
-                TRANSACTION_PAGE_SIZE_STORAGE_KEY,
-            );
+            const storedValue = globalThis.localStorage?.getItem(TRANSACTION_PAGE_SIZE_STORAGE_KEY);
 
             return this.normalizeTransactionPageSize(Number(storedValue));
         } catch {
@@ -1399,6 +1420,7 @@ export class HomeDashboardStore {
                     };
                 });
                 const totalValue = cells.reduce((sum, cell) => sum + cell.value, 0);
+                const averageValue = this.averageActiveValue(cells.map((cell) => cell.value));
 
                 return {
                     id: category.id,
@@ -1408,10 +1430,139 @@ export class HomeDashboardStore {
                     cells,
                     totalValue,
                     formattedTotal: formatMoney(totalValue, this.applicationCurrencyCode()),
+                    averageValue,
+                    formattedAverage: averageValue
+                        ? formatMoney(averageValue, this.applicationCurrencyCode())
+                        : '—',
                 };
             })
             .filter((row) => row.totalValue > 0)
             .sort((left, right) => right.totalValue - left.totalValue);
+    }
+
+    private buildDebtMonthRows(months: Date[]): AnalyticsCategoryMonthRow[] {
+        const debtRows = [
+            {
+                id: 'owed-by-me',
+                name: 'Я должен',
+                color: CATEGORY_COLORS[2] ?? CATEGORY_COLORS[0],
+                readValue: (totals: Map<DebtCategoryKind, number>) =>
+                    Math.max(0, (totals.get('taken') ?? 0) - (totals.get('returned') ?? 0)),
+            },
+            {
+                id: 'owed-to-me',
+                name: 'Мне должны',
+                color: CATEGORY_COLORS[0],
+                readValue: (totals: Map<DebtCategoryKind, number>) =>
+                    Math.max(0, (totals.get('given') ?? 0) - (totals.get('received') ?? 0)),
+            },
+        ];
+
+        return debtRows
+            .map((row) => {
+                const cells = months.map((month) => {
+                    const totals = this.debtTotalsUntilMonth(month);
+                    const value = row.readValue(totals);
+
+                    return {
+                        label: compactMonthLabel(month),
+                        value,
+                        formattedValue: value
+                            ? formatMoney(value, this.applicationCurrencyCode())
+                            : '—',
+                    };
+                });
+                const totalValue = cells.at(-1)?.value ?? 0;
+                const averageValue = this.averageActiveValue(cells.map((cell) => cell.value));
+
+                return {
+                    id: row.id,
+                    name: row.name,
+                    color: row.color,
+                    type: 'debt' as const,
+                    cells,
+                    totalValue,
+                    formattedTotal: totalValue
+                        ? formatMoney(totalValue, this.applicationCurrencyCode())
+                        : '—',
+                    averageValue,
+                    formattedAverage: averageValue
+                        ? formatMoney(averageValue, this.applicationCurrencyCode())
+                        : '—',
+                };
+            })
+            .filter((row) => row.totalValue > 0 || row.cells.some((cell) => cell.value > 0));
+    }
+
+    private buildMonthSummary(
+        months: Date[],
+        rows: ReadonlyArray<AnalyticsCategoryMonthRow>,
+        options: { totalFromLastCell?: boolean } = {},
+    ): AnalyticsCategoryMonthSummary {
+        const cells = months.map((month, index) => {
+            const value = rows.reduce((sum, row) => sum + (row.cells[index]?.value ?? 0), 0);
+
+            return {
+                label: compactMonthLabel(month),
+                value,
+                formattedValue: value ? formatMoney(value, this.applicationCurrencyCode()) : '—',
+            };
+        });
+        const totalValue = options.totalFromLastCell
+            ? (cells.at(-1)?.value ?? 0)
+            : cells.reduce((sum, cell) => sum + cell.value, 0);
+        const averageValue = this.averageActiveValue(cells.map((cell) => cell.value));
+
+        return {
+            cells,
+            totalValue,
+            formattedTotal: totalValue
+                ? formatMoney(totalValue, this.applicationCurrencyCode())
+                : '—',
+            averageValue,
+            formattedAverage: averageValue
+                ? formatMoney(averageValue, this.applicationCurrencyCode())
+                : '—',
+        };
+    }
+
+    private debtTotalsUntilMonth(month: Date): Map<DebtCategoryKind, number> {
+        const limitKey = monthKey(month);
+        const totals = new Map<DebtCategoryKind, number>([
+            ['taken', 0],
+            ['returned', 0],
+            ['given', 0],
+            ['received', 0],
+        ]);
+
+        this.yearTransactionResponses()
+            .filter((transaction) => monthKey(new Date(transaction.date)) <= limitKey)
+            .forEach((transaction) => {
+                const kind = this.resolveDebtCategoryKind(transaction.category.name);
+
+                if (!kind) {
+                    return;
+                }
+
+                totals.set(
+                    kind,
+                    (totals.get(kind) ?? 0) + Math.abs(this.convertTransactionAmount(transaction)),
+                );
+            });
+
+        return totals;
+    }
+
+    private averageActiveValue(values: ReadonlyArray<number>): number {
+        const activeValues = values.filter((value) => value > 0);
+
+        if (!activeValues.length) {
+            return 0;
+        }
+
+        const total = activeValues.reduce((sum, value) => sum + value, 0);
+
+        return Math.round((total / activeValues.length) * 100) / 100;
     }
 
     private transactionQuery(): { accountId?: string; fromDate: string; toDate: string } {

@@ -188,6 +188,28 @@
     overflow-wrap: anywhere;
 }
 
+.tag-group-card__title {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tag-group-card__title i {
+    flex: 0 0 auto;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 999px;
+    background: var(--tag-color);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--tag-color), transparent 78%);
+}
+
+.tag-group-card__title span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .tag-group-card__categories {
     display: grid;
     gap: 0.55rem;
@@ -276,20 +298,6 @@
         linear-gradient(180deg, rgba(19, 27, 24, 0.98), rgba(11, 16, 14, 0.96)),
         color-mix(in oklab, var(--color-ms-surface), transparent 3%);
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
-}
-
-.category-dialog::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 5.5rem;
-    border-radius: inherit;
-    background: linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--color-ms-primary), transparent 82%),
-        transparent
-    );
-    pointer-events: none;
 }
 
 .category-dialog:focus,
@@ -387,8 +395,8 @@
 .category-dialog__footer {
     position: sticky;
     bottom: -1.35rem;
-    display: flex;
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
     margin: 0 -1.35rem -1.35rem;
     padding: 1rem 1.35rem 1.35rem;
@@ -412,7 +420,7 @@
     }
 
     .create-row {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) auto;
     }
 
     .panel__header {
@@ -436,11 +444,6 @@
         border-right: 0;
         border-bottom: 0;
         border-left: 0;
-        border-radius: 1.35rem 1.35rem 0 0;
-    }
-
-    .category-dialog::before {
-        height: 4.2rem;
         border-radius: 1.35rem 1.35rem 0 0;
     }
 
@@ -477,7 +480,5 @@
         bottom: calc(-1rem - env(safe-area-inset-bottom));
         margin: 0 -1rem calc(-1rem - env(safe-area-inset-bottom));
         padding: 0.9rem 1rem max(1rem, env(safe-area-inset-bottom));
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

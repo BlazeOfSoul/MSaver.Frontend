@@ -31,16 +31,16 @@ export class AnalyticsTabComponent {
     incomeCategories = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     monthlyExpenses = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     balanceDynamics = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
+    savingsRate = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     tagExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     topExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
-    yearStats = input.required<ReadonlyArray<AnalyticsMetricCard>>();
     accountOptions = input.required<ReadonlyArray<MsSelectOption>>();
     selectedAccountId = input.required<string>();
 
     accountChange = output<string>();
     readonly activeView = signal<AnalyticsView>('monthly');
     readonly selectedTagExpenseId = signal('all');
-    readonly tagChartType = signal<HomeChartType>('bar');
+    readonly tagChartType = signal<HomeChartType>('doughnut');
     readonly tagChartLimit = signal<TagChartLimit>('10');
 
     readonly analyticsViews: ReadonlyArray<{ id: AnalyticsView; label: string }> = [
@@ -133,14 +133,22 @@ export class AnalyticsTabComponent {
         },
     ]);
 
-    readonly netCashFlowLabels = computed(() =>
-        this.incomeVsExpense().map((item) => item.label),
-    );
+    readonly netCashFlowLabels = computed(() => this.incomeVsExpense().map((item) => item.label));
     readonly netCashFlowDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Чистый поток',
             data: this.incomeVsExpense().map((item) => item.income - item.expense),
             color: '#67a6c1',
+            fill: true,
+        },
+    ]);
+
+    readonly savingsRateLabels = computed(() => this.savingsRate().map((item) => item.label));
+    readonly savingsRateDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
+        {
+            label: 'Норма накоплений',
+            data: this.savingsRate().map((item) => item.value),
+            color: '#e8b45d',
             fill: true,
         },
     ]);
@@ -155,7 +163,9 @@ export class AnalyticsTabComponent {
     ]);
     readonly selectedTagExpenses = computed(() => {
         const selectedTagId = this.selectedTagExpenseId();
-        const tags = [...this.tagExpenses()].sort((left, right) => right.amountValue - left.amountValue);
+        const tags = [...this.tagExpenses()].sort(
+            (left, right) => right.amountValue - left.amountValue,
+        );
 
         if (selectedTagId === 'all') {
             return tags;
@@ -173,15 +183,15 @@ export class AnalyticsTabComponent {
 
         return selected.slice(0, Number(limit));
     });
-    readonly tagExpenseLabels = computed(() =>
-        this.visibleTagExpenses().map((item) => item.name),
-    );
+    readonly tagExpenseLabels = computed(() => this.visibleTagExpenses().map((item) => item.name));
     readonly tagExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
             label: 'Теги',
             data: this.visibleTagExpenses().map((item) => item.amountValue),
             color: '#23c78b',
-            colors: this.visibleTagExpenses().map((item, index) => item.color || this.pickColor(index)),
+            colors: this.visibleTagExpenses().map(
+                (item, index) => item.color || this.pickColor(index),
+            ),
         },
     ]);
 
@@ -191,15 +201,6 @@ export class AnalyticsTabComponent {
             label: 'Топ расходов',
             data: this.topExpenses().map((item) => item.amountValue),
             color: '#e8b45d',
-        },
-    ]);
-
-    readonly yearStatLabels = computed(() => this.yearStats().map((item) => item.label));
-    readonly yearStatDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
-        {
-            label: 'Годовая статистика',
-            data: this.yearStats().map((item) => this.readAmount(item.value)),
-            color: '#23c78b',
         },
     ]);
 
@@ -247,11 +248,5 @@ export class AnalyticsTabComponent {
                 isSystem: false,
             },
         ];
-    }
-
-    private readAmount(value: string): number {
-        const normalized = value.replace(/[^\d.,-]/g, '').replace(',', '.');
-        const parsed = Number(normalized);
-        return Number.isFinite(parsed) ? parsed : 0;
     }
 }

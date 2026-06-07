@@ -8,7 +8,15 @@
             <div class="summary-card__copy">
                 <span class="summary-card__label">{{ card.label }}</span>
                 <strong class="summary-card__value">{{ card.value }}</strong>
-                <span class="summary-card__helper">{{ card.helper }}</span>
+                @if (card.helperLines?.length) {
+                    <span class="summary-card__helper summary-card__helper--stack">
+                        @for (line of card.helperLines; track line) {
+                            <span>{{ line }}</span>
+                        }
+                    </span>
+                } @else {
+                    <span class="summary-card__helper">{{ card.helper }}</span>
+                }
             </div>
         </article>
     }

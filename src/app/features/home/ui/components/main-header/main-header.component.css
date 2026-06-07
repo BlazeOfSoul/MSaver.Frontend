@@ -116,6 +116,10 @@
     font-weight: 700;
 }
 
+.add-transaction-button .material-symbols-outlined {
+    display: none;
+}
+
 @keyframes brand-mark-shimmer {
     to {
         transform: rotate(360deg);
@@ -130,6 +134,12 @@
     .main-header__top,
     .main-header__bottom {
         gap: 0.65rem;
+    }
+
+    .main-header__bottom {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: center;
     }
 
     .brand-mark {
@@ -153,28 +163,26 @@
     }
 
     .period-switcher {
+        min-width: 0;
+        width: 100%;
+        flex: 0 1 auto;
         padding: 0.4rem;
         gap: 0.6rem;
     }
 
     .logout-button {
-        width: 2.4rem;
-        padding: 0;
-    }
-
-    .logout-button span:last-child {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
         white-space: nowrap;
-        border: 0;
     }
 
-    .main-header__bottom ms-button {
+    .add-transaction-button {
         width: 100%;
+        min-width: 0;
+        min-height: 3rem;
+        padding-inline: 1rem;
+    }
+
+    .add-transaction-button .material-symbols-outlined {
+        display: block;
+        font-size: 1.25rem;
     }
 }
