@@ -23,6 +23,12 @@ import {
     Tooltip,
     LinearScale,
 } from 'chart.js';
+import {
+    MS_CATEGORY_COLORS,
+    MS_CHART_FALLBACK_COLORS,
+    MS_CHART_THEME,
+    readThemeColor,
+} from '../../../../../shared/theme/theme-colors';
 import { HomeChartDataset, HomeChartType } from '../../home-page.models';
 
 Chart.register(
@@ -95,6 +101,7 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
 
         this.chart?.destroy();
 
+        const themeColors = this.chartThemeColors();
         const datasets = this.datasets().map((dataset) => ({
             label: dataset.label,
             data: dataset.data,
@@ -131,17 +138,17 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
                     legend: {
                         display: this.type() === 'line',
                         labels: {
-                            color: 'rgba(255,255,255,0.72)',
+                            color: themeColors.legendText,
                             usePointStyle: true,
                             boxHeight: 8,
                             boxWidth: 8,
                         },
                     },
                     tooltip: {
-                        backgroundColor: '#0e1512',
-                        titleColor: '#ffffff',
-                        bodyColor: 'rgba(255,255,255,0.78)',
-                        borderColor: 'rgba(35,199,139,0.18)',
+                        backgroundColor: themeColors.tooltipBackground,
+                        titleColor: themeColors.tooltipTitle,
+                        bodyColor: themeColors.tooltipBody,
+                        borderColor: themeColors.tooltipBorder,
                         borderWidth: 1,
                     },
                 },
@@ -151,7 +158,7 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
                         : {
                               x: {
                                   ticks: {
-                                      color: 'rgba(255,255,255,0.44)',
+                                      color: themeColors.axisText,
                                       autoSkip: true,
                                       maxRotation: 0,
                                       minRotation: 0,
@@ -167,11 +174,11 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
                               y: {
                                   beginAtZero: true,
                                   ticks: {
-                                      color: 'rgba(255,255,255,0.38)',
+                                      color: themeColors.axisSubtleText,
                                       maxTicksLimit: 6,
                                   },
                                   grid: {
-                                      color: 'rgba(255,255,255,0.06)',
+                                      color: themeColors.gridLine,
                                   },
                                   border: {
                                       display: false,
@@ -184,13 +191,43 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
 
     legendColor(index: number): string {
         const firstDataset = this.datasets()[0];
+        const paletteColor = MS_CATEGORY_COLORS[index % MS_CATEGORY_COLORS.length];
 
         return (
             firstDataset?.colors?.[index] ??
             this.datasets()[index]?.color ??
             firstDataset?.color ??
-            '#23c78b'
+            paletteColor ??
+            readThemeColor(MS_CHART_THEME.fallbackSeries, MS_CHART_FALLBACK_COLORS.fallbackSeries)
         );
+    }
+
+    private chartThemeColors() {
+        return {
+            tooltipBackground: readThemeColor(
+                MS_CHART_THEME.tooltipBackground,
+                MS_CHART_FALLBACK_COLORS.tooltipBackground,
+            ),
+            tooltipTitle: readThemeColor(
+                MS_CHART_THEME.tooltipTitle,
+                MS_CHART_FALLBACK_COLORS.tooltipTitle,
+            ),
+            tooltipBody: readThemeColor(
+                MS_CHART_THEME.tooltipBody,
+                MS_CHART_FALLBACK_COLORS.tooltipBody,
+            ),
+            tooltipBorder: readThemeColor(
+                MS_CHART_THEME.tooltipBorder,
+                MS_CHART_FALLBACK_COLORS.tooltipBorder,
+            ),
+            legendText: readThemeColor(MS_CHART_THEME.legendText, MS_CHART_FALLBACK_COLORS.legendText),
+            axisText: readThemeColor(MS_CHART_THEME.axisText, MS_CHART_FALLBACK_COLORS.axisText),
+            axisSubtleText: readThemeColor(
+                MS_CHART_THEME.axisSubtleText,
+                MS_CHART_FALLBACK_COLORS.axisSubtleText,
+            ),
+            gridLine: readThemeColor(MS_CHART_THEME.gridLine, MS_CHART_FALLBACK_COLORS.gridLine),
+        };
     }
 
     private truncateAxisLabel(index: number): string {

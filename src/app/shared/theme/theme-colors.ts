@@ -27,6 +27,18 @@ export const MS_CHART_THEME = {
     fallbackSeries: '--color-ms-chart-series-fallback',
 } as const;
 
+export const MS_CHART_FALLBACK_COLORS = {
+    tooltipBackground: '#0e1512',
+    tooltipTitle: '#ffffff',
+    tooltipBody: 'rgba(255, 255, 255, 0.78)',
+    tooltipBorder: 'rgba(35, 199, 139, 0.18)',
+    legendText: 'rgba(255, 255, 255, 0.72)',
+    axisText: 'rgba(255, 255, 255, 0.44)',
+    axisSubtleText: 'rgba(255, 255, 255, 0.38)',
+    gridLine: 'rgba(255, 255, 255, 0.06)',
+    fallbackSeries: MS_CATEGORY_COLORS[0],
+} as const;
+
 export function readThemeColor(
     variableName: string,
     fallback: string,
