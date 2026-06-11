@@ -1,8 +1,9 @@
+import { MS_ACCOUNT_COLORS, MS_CATEGORY_COLORS } from '../../../shared/theme/theme-colors';
 import { MsSelectOption } from '../../../shared/ui/select/select';
 import { HomeTabItem } from './home-page.models';
 
-export const ACCOUNT_COLORS = ['#23c78b', '#ffd166', '#67a6c1', '#ff8fab', '#c77dff'];
-export const CATEGORY_COLORS = ['#23c78b', '#67a6c1', '#ff6f91', '#e8b45d', '#c77dff', '#79e0b5'];
+export const ACCOUNT_COLORS = MS_ACCOUNT_COLORS;
+export const CATEGORY_COLORS = MS_CATEGORY_COLORS;
 
 export const CURRENCY_OPTIONS: ReadonlyArray<MsSelectOption> = [
     { value: 'BYN', label: 'BYN - Белорусский рубль' },

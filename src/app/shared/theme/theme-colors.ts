@@ -1,13 +1,19 @@
-export const MS_ACCOUNT_COLORS = ['#23c78b', '#ffd166', '#67a6c1', '#ff8fab', '#c77dff'] as const;
+export const MS_ACCOUNT_COLORS: ReadonlyArray<string> = [
+    '#23c78b',
+    '#ffd166',
+    '#67a6c1',
+    '#ff8fab',
+    '#c77dff',
+];
 
-export const MS_CATEGORY_COLORS = [
+export const MS_CATEGORY_COLORS: ReadonlyArray<string> = [
     '#23c78b',
     '#67a6c1',
     '#ff6f91',
     '#e8b45d',
     '#c77dff',
     '#79e0b5',
-] as const;
+];
 
 export const MS_CHART_THEME = {
     tooltipBackground: '--color-ms-chart-tooltip-bg',
