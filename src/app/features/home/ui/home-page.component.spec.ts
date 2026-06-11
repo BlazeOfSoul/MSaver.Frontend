@@ -418,7 +418,7 @@ describe('HomePageComponent', () => {
         expect(fixture.componentInstance.transferDraft().rate).toBe(3.25);
     });
 
-    it('converts dashboard totals to the primary account currency', () => {
+    it('shows the primary account balance in the summary and the aggregate balance in accounts', () => {
         homeApi.getAccounts.mockReturnValue(
             of(
                 page([
@@ -472,8 +472,18 @@ describe('HomePageComponent', () => {
             .find((card) => card.id === 'balance');
 
         expect(homeApi.getTransferRate).toHaveBeenCalledWith('usd-account', 'byn-account');
-        expect(balanceCard?.value).toContain('25');
+        expect(balanceCard?.value).toContain('10');
         expect(balanceCard?.value).toContain('Br');
+        expect(balanceCard?.helper).toBe('Основной счёт');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('25');
+
+        fixture.componentInstance.setActiveTab('accounts');
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.textContent ?? '').toContain('Сводный баланс');
+        expect(host.textContent ?? '').toContain('25,00 Br');
     });
 
     it('keeps dashboard totals in the primary account currency when new account currency changes', () => {
@@ -648,8 +658,51 @@ describe('HomePageComponent', () => {
 
         expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
         expect(homeApi.getTransferRate).toHaveBeenCalledWith('byn-account', 'eur-account');
-        expect(balanceCard?.value).toContain('7,50');
-        expect(balanceCard?.value).toContain('€');
+        expect(balanceCard?.value).toContain('10');
+        expect(balanceCard?.value).toContain('Br');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('7,50');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
+    });
+
+    it('marks the primary balance summary as negative when the primary account is below zero', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'primary-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: -15,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: 'Основной счёт',
+                    currencyCode: 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: -15,
+                    year,
+                    month,
+                }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const balanceCard = fixture.componentInstance
+            .summaryCards()
+            .find((card) => card.id === 'balance');
+
+        expect(balanceCard?.value).toContain('-15');
+        expect(balanceCard?.tone).toBe('negative');
     });
 
     it('saves application currency changes from settings and reloads dashboard data', () => {

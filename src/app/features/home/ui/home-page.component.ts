@@ -94,6 +94,8 @@ export class HomePageComponent {
     readonly toolbarAccountOptions = this.dashboard.toolbarAccountOptions;
     readonly accountOptions = this.dashboard.accountOptions;
     readonly applicationCurrencyCode = this.dashboard.applicationCurrencyCode;
+    readonly accountSummaryBalance = this.dashboard.accountSummaryBalance;
+    readonly accountSummaryBalanceLabel = this.dashboard.accountSummaryBalanceLabel;
     readonly allCategoryOptions = this.dashboard.allCategoryOptions;
     readonly incomeCategoryOptions = this.dashboard.incomeCategoryOptions;
     readonly expenseCategoryOptions = this.dashboard.expenseCategoryOptions;

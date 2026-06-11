@@ -50,9 +50,36 @@ describe('AccountsTabComponent', () => {
         fixture.componentRef.setInput('accountFilterOptions', [{ value: '', label: 'Все счета' }]);
         fixture.componentRef.setInput('searchControl', new FormControl('', { nonNullable: true }));
         fixture.componentRef.setInput('selectedAccountId', '');
+        fixture.componentRef.setInput('summaryBalanceLabel', '100,00 Br');
+        fixture.componentRef.setInput('summaryBalanceValue', 100);
         fixture.componentRef.setInput('newAccountName', '');
         fixture.componentRef.setInput('newAccountCurrency', 'BYN');
         fixture.componentRef.setInput('newAccountNameError', '');
+    });
+
+    it('renders the account summary and marks negative balances', () => {
+        const debtAccount = account({
+            id: 'debt-account',
+            name: 'Debt account',
+            balanceLabel: '-25,00 Br',
+            balanceValue: -25,
+            isPrimary: false,
+        });
+
+        fixture.componentRef.setInput('accounts', [debtAccount]);
+        fixture.componentRef.setInput('allAccounts', [debtAccount]);
+        fixture.componentRef.setInput('summaryBalanceLabel', '-25,00 Br');
+        fixture.componentRef.setInput('summaryBalanceValue', -25);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const summaryValue = host.querySelector('.accounts-summary__value');
+        const accountBalance = host.querySelector('.account-card__balance');
+
+        expect(host.textContent ?? '').toContain('Сводный баланс');
+        expect(summaryValue?.textContent).toContain('-25,00 Br');
+        expect(summaryValue?.classList.contains('accounts-summary__value--negative')).toBe(true);
+        expect(accountBalance?.classList.contains('account-card__balance--negative')).toBe(true);
     });
 
     it('uses different empty messages for no accounts and no filtered results', () => {

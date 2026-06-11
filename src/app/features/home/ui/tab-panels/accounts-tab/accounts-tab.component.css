@@ -45,6 +45,47 @@
     gap: 0.75rem;
 }
 
+.accounts-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid color-mix(in oklab, var(--color-ms-primary), transparent 76%);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(
+            135deg,
+            color-mix(in oklab, var(--color-ms-primary), transparent 90%),
+            transparent 62%
+        ),
+        rgba(255, 255, 255, 0.025);
+}
+
+.accounts-summary__copy {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.accounts-summary__label,
+.accounts-summary__helper {
+    color: var(--color-ms-light-dark);
+    font-size: 0.82rem;
+}
+
+.accounts-summary__value {
+    color: var(--color-ms-primary);
+    font-size: 1.35rem;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.accounts-summary__value--negative,
+.account-card__balance--negative {
+    color: var(--color-ms-danger);
+}
+
 .accounts-empty {
     display: grid;
     gap: 0.45rem;
@@ -110,6 +151,10 @@
 .account-card__balance {
     font-size: 1.35rem;
     color: color-mix(in oklab, var(--account-color), white 18%);
+}
+
+.account-card__balance.account-card__balance--negative {
+    color: var(--color-ms-danger);
 }
 
 .account-card__change {
@@ -392,6 +437,11 @@
 
     .account-card {
         padding: 0.9rem;
+    }
+
+    .accounts-summary {
+        align-items: start;
+        flex-direction: column;
     }
 
     .account-create ms-button {

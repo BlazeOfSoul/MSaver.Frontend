@@ -155,6 +155,9 @@ export class HomeDashboardStore {
             mapAccount(account, index, this.selectedMonthBalanceByAccountId().get(account.id)),
         ),
     );
+    readonly primaryAccount = computed(
+        () => this.accounts().find((account) => account.isPrimary) ?? this.accounts()[0],
+    );
     readonly visibleAccounts = computed(() =>
         this.accounts().filter(
             (item) => this.selectedAccountId() === 'all' || item.id === this.selectedAccountId(),
@@ -254,6 +257,15 @@ export class HomeDashboardStore {
             (sum, account) => sum + this.convertAccountAmount(account.id, account.balanceValue),
             0,
         ),
+    );
+    readonly accountSummaryBalance = computed(() =>
+        this.accounts().reduce(
+            (sum, account) => sum + this.convertAccountAmount(account.id, account.balanceValue),
+            0,
+        ),
+    );
+    readonly accountSummaryBalanceLabel = computed(() =>
+        formatMoney(this.accountSummaryBalance(), this.applicationCurrencyCode()),
     );
     readonly incomeTotal = computed(() =>
         this.transactionResponses()
@@ -431,55 +443,62 @@ export class HomeDashboardStore {
             },
         ];
     });
-    readonly summaryCards = computed<ReadonlyArray<HomeSummaryCard>>(() => [
-        {
-            id: 'balance',
-            label: 'Баланс',
-            value: formatMoney(this.totalBalance(), this.applicationCurrencyCode()),
-            helper: 'Сводный баланс',
-            tone: 'primary',
-            icon: 'account_balance_wallet',
-        },
-        {
-            id: 'debt-balance',
-            label: 'После долгов',
-            value: formatMoney(
-                this.debtSummary().balanceAfterClosing,
-                this.applicationCurrencyCode(),
-            ),
-            helper: 'Баланс после закрытия долгов',
-            helperLines: [
-                `Я должен: ${formatMoney(this.debtSummary().owedByMe, this.applicationCurrencyCode())}`,
-                `Мне должны: ${formatMoney(this.debtSummary().owedToMe, this.applicationCurrencyCode())}`,
-            ],
-            tone: 'neutral',
-            icon: 'balance',
-        },
-        {
-            id: 'income',
-            label: 'Доходы',
-            value: `+${formatMoney(this.incomeTotal(), this.applicationCurrencyCode())}`,
-            helper: 'За выбранный месяц',
-            tone: 'positive',
-            icon: 'south_west',
-        },
-        {
-            id: 'expense',
-            label: 'Расходы',
-            value: `-${formatMoney(this.expenseTotal(), this.applicationCurrencyCode())}`,
-            helper: 'За выбранный месяц',
-            tone: 'negative',
-            icon: 'north_east',
-        },
-        {
-            id: 'operations',
-            label: 'Операции',
-            value: `${this.filteredTransactions().length}`,
-            helper: 'За выбранный период',
-            tone: 'neutral',
-            icon: 'receipt_long',
-        },
-    ]);
+    readonly summaryCards = computed<ReadonlyArray<HomeSummaryCard>>(() => {
+        const primaryAccount = this.primaryAccount();
+        const primaryBalanceValue = primaryAccount?.balanceValue ?? 0;
+
+        return [
+            {
+                id: 'balance',
+                label: 'Баланс',
+                value:
+                    primaryAccount?.balanceLabel ??
+                    formatMoney(primaryBalanceValue, this.applicationCurrencyCode()),
+                helper: 'Основной счёт',
+                tone: primaryBalanceValue < 0 ? 'negative' : 'primary',
+                icon: 'account_balance_wallet',
+            },
+            {
+                id: 'debt-balance',
+                label: 'После долгов',
+                value: formatMoney(
+                    this.debtSummary().balanceAfterClosing,
+                    this.applicationCurrencyCode(),
+                ),
+                helper: 'Баланс после закрытия долгов',
+                helperLines: [
+                    `Я должен: ${formatMoney(this.debtSummary().owedByMe, this.applicationCurrencyCode())}`,
+                    `Мне должны: ${formatMoney(this.debtSummary().owedToMe, this.applicationCurrencyCode())}`,
+                ],
+                tone: 'neutral',
+                icon: 'balance',
+            },
+            {
+                id: 'income',
+                label: 'Доходы',
+                value: `+${formatMoney(this.incomeTotal(), this.applicationCurrencyCode())}`,
+                helper: 'За выбранный месяц',
+                tone: 'positive',
+                icon: 'south_west',
+            },
+            {
+                id: 'expense',
+                label: 'Расходы',
+                value: `-${formatMoney(this.expenseTotal(), this.applicationCurrencyCode())}`,
+                helper: 'За выбранный месяц',
+                tone: 'negative',
+                icon: 'north_east',
+            },
+            {
+                id: 'operations',
+                label: 'Операции',
+                value: `${this.filteredTransactions().length}`,
+                helper: 'За выбранный период',
+                tone: 'neutral',
+                icon: 'receipt_long',
+            },
+        ];
+    });
     readonly activeTabTitle = computed(() => {
         switch (this.activeTab()) {
             case 'accounts':

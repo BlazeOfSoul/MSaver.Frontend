@@ -30,6 +30,8 @@ export class AccountsTabComponent {
     accountFilterOptions = input.required<ReadonlyArray<MsSelectOption>>();
     searchControl = input.required<FormControl<string>>();
     selectedAccountId = input.required<string>();
+    summaryBalanceLabel = input.required<string>();
+    summaryBalanceValue = input.required<number>();
     newAccountName = input.required<string>();
     newAccountCurrency = input.required<string>();
     newAccountNameError = input<string>('');
@@ -170,13 +172,18 @@ export class AccountsTabComponent {
 
     onTransferAmountBlur(): void {
         this.transferAmountEditing.set(false);
-        this.transferAmountText.set(this.formatMoneyAmount(this.parseMoneyAmount(this.transferAmountText())));
+        this.transferAmountText.set(
+            this.formatMoneyAmount(this.parseMoneyAmount(this.transferAmountText())),
+        );
     }
 
     onTransferReceiveAmountFocus(): void {
         this.transferReceiveAmountEditing.set(true);
 
-        if (this.calculateReceiveAmount(this.transferDraft().amount) <= 0 && this.transferReceiveAmountText() === '0.00') {
+        if (
+            this.calculateReceiveAmount(this.transferDraft().amount) <= 0 &&
+            this.transferReceiveAmountText() === '0.00'
+        ) {
             this.transferReceiveAmountText.set('');
         }
     }
@@ -198,7 +205,9 @@ export class AccountsTabComponent {
 
     onTransferReceiveAmountBlur(): void {
         this.transferReceiveAmountEditing.set(false);
-        this.transferReceiveAmountText.set(this.formatMoneyAmount(this.parseMoneyAmount(this.transferReceiveAmountText())));
+        this.transferReceiveAmountText.set(
+            this.formatMoneyAmount(this.parseMoneyAmount(this.transferReceiveAmountText())),
+        );
     }
 
     displayTransferRate(): string {
@@ -215,11 +224,12 @@ export class AccountsTabComponent {
 
     onTransferRateInput(value: string | number): void {
         const parsed = this.parseTransferRate(value);
-        const nextRate = parsed > 0
-            ? this.isBankRateInverted()
-                ? Math.round((1 / parsed) * 1_000_000) / 1_000_000
-                : parsed
-            : null;
+        const nextRate =
+            parsed > 0
+                ? this.isBankRateInverted()
+                    ? Math.round((1 / parsed) * 1_000_000) / 1_000_000
+                    : parsed
+                : null;
 
         this.transferDraftChange.emit({
             ...this.transferDraft(),
@@ -228,7 +238,11 @@ export class AccountsTabComponent {
     }
 
     private normalizeTransferAmountInputText(value: string): string {
-        if (this.transferAmountEditing() && this.transferDraft().amount <= 0 && value.startsWith('0.00')) {
+        if (
+            this.transferAmountEditing() &&
+            this.transferDraft().amount <= 0 &&
+            value.startsWith('0.00')
+        ) {
             return value.slice('0.00'.length);
         }
 
@@ -236,7 +250,11 @@ export class AccountsTabComponent {
     }
 
     private normalizeTransferReceiveAmountInputText(value: string): string {
-        if (this.transferReceiveAmountEditing() && this.calculateReceiveAmount(this.transferDraft().amount) <= 0 && value.startsWith('0.00')) {
+        if (
+            this.transferReceiveAmountEditing() &&
+            this.calculateReceiveAmount(this.transferDraft().amount) <= 0 &&
+            value.startsWith('0.00')
+        ) {
             return value.slice('0.00'.length);
         }
 
@@ -257,9 +275,9 @@ export class AccountsTabComponent {
     private formatRate(value: number): string {
         return Number.isFinite(value)
             ? value.toLocaleString('ru-RU', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 3,
-            })
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 3,
+              })
             : '';
     }
 

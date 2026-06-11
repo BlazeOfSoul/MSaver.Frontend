@@ -7,6 +7,19 @@
             </div>
         </div>
 
+        <div class="accounts-summary" aria-label="Сводный баланс">
+            <div class="accounts-summary__copy">
+                <span class="accounts-summary__label">Сводный баланс</span>
+                <strong
+                    class="accounts-summary__value"
+                    [class.accounts-summary__value--negative]="summaryBalanceValue() < 0"
+                >
+                    {{ summaryBalanceLabel() }}
+                </strong>
+            </div>
+            <span class="accounts-summary__helper">Все счета в валюте приложения</span>
+        </div>
+
         <div class="accounts-toolbar">
             <ms-select
                 [options]="accountFilterOptions()"
@@ -50,7 +63,10 @@
                         </div>
 
                         <span class="account-card__currency">{{ account.currencyLabel }}</span>
-                        <strong class="account-card__balance">
+                        <strong
+                            class="account-card__balance"
+                            [class.account-card__balance--negative]="account.balanceValue < 0"
+                        >
                             {{ account.balanceLabel }}
                         </strong>
                         <span class="account-card__change">
@@ -145,7 +161,9 @@
                             "
                         ></ms-select>
 
-                        <div class="transfer-field transfer-field--amount transfer-amount-card transfer-amount-card--withdraw">
+                        <div
+                            class="transfer-field transfer-field--amount transfer-amount-card transfer-amount-card--withdraw"
+                        >
                             <span class="transfer-amount-card__label">Будет списано</span>
                             <ms-input
                                 [ngModel]="transferAmountText()"
@@ -180,11 +198,16 @@
                             [options]="accountOptions()"
                             [value]="transferDraft().toAccountId"
                             (valueChange)="
-                                transferDraftChange.emit({ ...transferDraft(), toAccountId: $event })
+                                transferDraftChange.emit({
+                                    ...transferDraft(),
+                                    toAccountId: $event,
+                                })
                             "
                         ></ms-select>
 
-                        <div class="transfer-field transfer-amount-card transfer-amount-card--deposit">
+                        <div
+                            class="transfer-field transfer-amount-card transfer-amount-card--deposit"
+                        >
                             <span class="transfer-amount-card__label">Будет зачислено</span>
                             <ms-input
                                 [ngModel]="transferReceiveAmountText()"
@@ -196,7 +219,10 @@
                                 type="text"
                             ></ms-input>
                             @if (usesDifferentCurrencies()) {
-                                <small>{{ toAccount()?.currencyCode }} · пересчёт по курсу ниже.</small>
+                                <small
+                                    >{{ toAccount()?.currencyCode }} · пересчёт по курсу
+                                    ниже.</small
+                                >
                             } @else {
                                 <small>Валюта совпадает, сумма не меняется.</small>
                             }
