@@ -1,0 +1,77 @@
+:host {
+    display: block;
+}
+
+.panel {
+    display: grid;
+    gap: 1rem;
+    padding: 1.2rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-05), var(--color-ms-white-alpha-015)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
+    box-shadow:
+        0 22px 48px var(--color-ms-black-alpha-18),
+        inset 0 1px 0 var(--color-ms-white-alpha-04);
+}
+
+.panel__header h2,
+.account-card__top strong,
+.account-card__balance {
+    margin: 0;
+    color: var(--color-ms-light);
+}
+
+.panel__header p,
+.account-card__currency,
+.account-card__change {
+    margin: 0.25rem 0 0;
+    color: var(--color-ms-light-dark);
+}
+
+.accounts-grid {
+    display: grid;
+    gap: 0.875rem;
+}
+
+.accounts-toolbar {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.accounts-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid color-mix(in oklab, var(--color-ms-primary), transparent 76%);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(
+            135deg,
+            color-mix(in oklab, var(--color-ms-primary), transparent 90%),
+            transparent 62%
+        ),
+        var(--color-ms-white-alpha-025);
+}
+
+.accounts-summary__copy {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.accounts-summary__label,
+.accounts-summary__helper {
+    color: var(--color-ms-light-dark);
+    font-size: 0.82rem;
+}
+
+.accounts-summary__value {
+    color: var(--color-ms-primary);
+    font-size: 1.35rem;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}

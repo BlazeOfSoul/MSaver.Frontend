@@ -8,16 +8,16 @@
     gap: 0.55rem;
     min-height: 2.55rem;
     padding: 0 0.9rem;
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    border: 1px solid var(--color-ms-white-alpha-09);
     border-radius: 999px;
     color: var(--color-ms-light);
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
-        rgba(11, 18, 16, 0.86);
+        linear-gradient(180deg, var(--color-ms-white-alpha-08), var(--color-ms-white-alpha-035)),
+        var(--color-ms-loader-bg);
     box-shadow:
-        0 18px 38px rgba(0, 0, 0, 0.22),
-        0 0 18px rgba(35, 199, 139, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        0 18px 38px var(--color-ms-black-alpha-22),
+        0 0 18px var(--color-ms-primary-alpha-08),
+        inset 0 1px 0 var(--color-ms-white-alpha-08);
     backdrop-filter: blur(18px);
     transform: translateX(-50%);
 }
@@ -25,7 +25,7 @@
 .global-loader__spinner {
     width: 1rem;
     height: 1rem;
-    border: 2px solid rgba(255, 255, 255, 0.22);
+    border: 2px solid var(--color-ms-white-alpha-22);
     border-top-color: var(--color-ms-primary);
     border-radius: 50%;
     animation: global-loader-spin 0.72s linear infinite;

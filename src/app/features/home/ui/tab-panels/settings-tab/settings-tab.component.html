@@ -7,20 +7,8 @@
             </p>
         </div>
 
-        <div class="currency-preview">
-            <span class="currency-preview__code">{{ applicationCurrencyCode() }}</span>
-            <strong>{{ applicationCurrencyLabel() }}</strong>
-            <span>
-                @if (primaryAccount()) {
-                    Основной счёт: {{ primaryAccount().name }}
-                } @else {
-                    Основной счёт ещё не создан
-                }
-            </span>
-        </div>
-
         <ms-select
-            label="Валюта"
+            label="Валюта отображения"
             [options]="currencyOptions()"
             [value]="applicationCurrencyCode()"
             [disabled]="saving()"

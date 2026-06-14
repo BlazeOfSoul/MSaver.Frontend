@@ -61,7 +61,22 @@ export class AuthStore {
             return null;
         }
 
-        return localStorage.getItem(key);
+        const sessionStorage = this.getBrowserStorage('sessionStorage');
+        const localStorage = this.getBrowserStorage('localStorage');
+        const sessionValue = this.safeGetStorageValue(sessionStorage, key);
+
+        if (sessionValue !== null) {
+            return sessionValue;
+        }
+
+        const legacyValue = this.safeGetStorageValue(localStorage, key);
+
+        if (legacyValue !== null) {
+            this.safeSetStorageValue(sessionStorage, key, legacyValue);
+            this.safeRemoveStorageValue(localStorage, key);
+        }
+
+        return legacyValue;
     }
 
     private writeStorage(key: string, value: string): void {
@@ -69,7 +84,8 @@ export class AuthStore {
             return;
         }
 
-        localStorage.setItem(key, value);
+        this.safeSetStorageValue(this.getBrowserStorage('sessionStorage'), key, value);
+        this.safeRemoveStorageValue(this.getBrowserStorage('localStorage'), key);
     }
 
     private removeStorage(key: string): void {
@@ -77,6 +93,51 @@ export class AuthStore {
             return;
         }
 
-        localStorage.removeItem(key);
+        this.safeRemoveStorageValue(this.getBrowserStorage('sessionStorage'), key);
+        this.safeRemoveStorageValue(this.getBrowserStorage('localStorage'), key);
+    }
+
+    private getBrowserStorage(storageKey: 'localStorage' | 'sessionStorage'): Storage | null {
+        try {
+            return globalThis[storageKey] ?? null;
+        } catch {
+            return null;
+        }
+    }
+
+    private safeGetStorageValue(storage: Storage | null, key: string): string | null {
+        if (!storage) {
+            return null;
+        }
+
+        try {
+            return storage.getItem(key);
+        } catch {
+            return null;
+        }
+    }
+
+    private safeSetStorageValue(storage: Storage | null, key: string, value: string): void {
+        if (!storage) {
+            return;
+        }
+
+        try {
+            storage.setItem(key, value);
+        } catch {
+            return;
+        }
+    }
+
+    private safeRemoveStorageValue(storage: Storage | null, key: string): void {
+        if (!storage) {
+            return;
+        }
+
+        try {
+            storage.removeItem(key);
+        } catch {
+            return;
+        }
     }
 }

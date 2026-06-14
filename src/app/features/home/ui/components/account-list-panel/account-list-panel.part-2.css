@@ -1,0 +1,75 @@
+.accounts-summary__value--negative,
+.account-card__balance--negative {
+    color: var(--color-ms-danger);
+}
+
+.accounts-empty {
+    display: grid;
+    gap: 0.45rem;
+    justify-items: center;
+    padding: 1.4rem 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    color: var(--color-ms-light-dark);
+    background: var(--color-ms-white-alpha-025);
+}
+
+.accounts-empty strong {
+    color: var(--color-ms-light);
+}
+
+.accounts-empty p {
+    max-width: 24rem;
+    margin: 0;
+}
+
+.account-card {
+    display: grid;
+    gap: 0.55rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in oklab, var(--account-color), transparent 78%);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(
+            135deg,
+            color-mix(in oklab, var(--account-color), transparent 88%),
+            transparent 60%
+        ),
+        var(--color-ms-white-alpha-03);
+}
+
+.account-card__top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.account-card__top strong {
+    min-width: 0;
+    flex: 1;
+    overflow-wrap: anywhere;
+}
+
+.account-card__icon {
+    display: inline-flex;
+    width: 2.25rem;
+    height: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    color: color-mix(in oklab, var(--account-color), white 16%);
+    background: color-mix(in oklab, var(--account-color), transparent 86%);
+}
+
+.account-card__balance {
+    font-size: 1.35rem;
+    color: color-mix(in oklab, var(--account-color), white 18%);
+}
+
+.account-card__balance.account-card__balance--negative {
+    color: var(--color-ms-danger);
+}
+
+.account-card__change {
+    font-size: 0.86rem;
+}

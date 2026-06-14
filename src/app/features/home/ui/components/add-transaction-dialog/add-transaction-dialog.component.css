@@ -2,40 +2,39 @@
     display: contents;
 }
 
-.dialog-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: rgba(2, 4, 4, 0.72);
-    backdrop-filter: blur(8px);
-}
-
 .dialog {
     width: min(100%, 42rem);
     max-height: min(100dvh - 2rem, 46rem);
     display: grid;
     gap: 1rem;
     padding: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--color-ms-white-alpha-08);
     border-radius: 0.5rem;
     background:
-        linear-gradient(180deg, rgba(11, 16, 14, 0.98), rgba(11, 16, 14, 0.95)),
+        linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--color-ms-surface), transparent 2%),
+            color-mix(in oklab, var(--color-ms-surface), transparent 5%)
+        ),
         color-mix(in oklab, var(--color-ms-surface), transparent 4%);
     box-shadow:
-        0 36px 72px rgba(0, 0, 0, 0.34),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        0 36px 72px var(--color-ms-black-alpha-34),
+        inset 0 1px 0 var(--color-ms-white-alpha-05);
     overflow: auto;
+    transform-origin: center;
+    animation: dialog-pop-in 0.18s ease-out both;
 }
 
 .dialog__header,
 .dialog__mode,
+.dialog__fields,
 .dialog__grid {
     display: grid;
     gap: 0.75rem;
+}
+
+.dialog__grid {
+    align-items: start;
 }
 
 .dialog__header {
@@ -57,10 +56,12 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 0.25rem;
     border-radius: 0.5rem;
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--color-ms-white-alpha-06);
 }
 
 .dialog__field,
+.dialog__account-section,
+.dialog__amount-section,
 .dialog__footer,
 .dialog__hint,
 .dialog__empty {
@@ -68,18 +69,69 @@
     gap: 0.5rem;
 }
 
+.dialog__account-section {
+    padding-bottom: 0.2rem;
+}
+
+.dialog__amount-section {
+    padding: 0.25rem 0 0.35rem;
+    border-bottom: 1px solid var(--color-ms-white-alpha-06);
+}
+
 .dialog__amount-card {
+    --amount-accent: var(--color-ms-success);
+    --amount-accent-soft: var(--color-ms-text-success-soft);
+    --amount-glow: var(--color-ms-success-alpha-12);
+
     grid-column: 1 / -1;
     padding: 0.9rem;
-    border: 1px solid rgba(35, 199, 139, 0.16);
+    border: 1px solid color-mix(in oklab, var(--amount-accent), transparent 74%);
     border-radius: 0.5rem;
     background:
-        linear-gradient(135deg, rgba(35, 199, 139, 0.12), transparent 58%),
-        rgba(255, 255, 255, 0.035);
+        linear-gradient(
+            135deg,
+            color-mix(in oklab, var(--amount-accent), transparent 88%),
+            transparent 58%
+        ),
+        var(--color-ms-white-alpha-035);
+    box-shadow:
+        0 16px 36px var(--color-ms-black-alpha-18),
+        0 0 0 1px var(--color-ms-white-alpha-025);
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
+}
+
+.dialog__amount-card--expense {
+    --amount-accent: var(--color-ms-danger);
+    --amount-accent-soft: var(--color-ms-danger-soft);
+    --amount-glow: var(--color-ms-danger-alpha-12-soft);
+}
+
+.dialog__amount-card:focus-within {
+    border-color: color-mix(in oklab, var(--amount-accent), white 8%);
+    box-shadow:
+        0 0 0 4px var(--amount-glow),
+        0 18px 42px var(--color-ms-black-alpha-22);
+    transform: translateY(-1px);
 }
 
 .dialog__amount-card .dialog__field-label {
-    color: color-mix(in oklab, var(--color-ms-primary-soft), white 12%);
+    color: color-mix(in oklab, var(--amount-accent-soft), white 8%);
+}
+
+.dialog__amount-currency {
+    position: absolute;
+    top: 50%;
+    right: 0.85rem;
+    transform: translateY(-50%);
+    color: var(--color-ms-light-dark);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    pointer-events: none;
 }
 
 .dialog__field--wide {
@@ -89,93 +141,5 @@
 .dialog__field-label {
     font-size: 0.78rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.66);
-}
-
-.dialog__native-input {
-    width: 100%;
-    min-height: 3rem;
-    padding: 0 0.9rem;
-    border: 1px solid var(--color-ms-border);
-    border-radius: 0.5rem;
-    color: var(--color-ms-light);
-    background: rgba(255, 255, 255, 0.04);
-    font: inherit;
-    color-scheme: dark;
-}
-
-.dialog__native-input:focus {
-    outline: 2px solid color-mix(in oklab, var(--color-ms-primary), transparent 56%);
-    outline-offset: 2px;
-}
-
-.dialog__footer {
-    position: sticky;
-    bottom: -1.5rem;
-    margin: 0 -1.5rem -1.5rem;
-    padding: 0.85rem 1.5rem 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    background:
-        linear-gradient(180deg, rgba(11, 16, 14, 0.72), rgba(11, 16, 14, 0.98) 34%),
-        color-mix(in oklab, var(--color-ms-surface), transparent 4%);
-}
-
-.dialog__empty {
-    justify-items: center;
-    padding: 1.25rem 1rem;
-    border-radius: 0.5rem;
-    text-align: center;
-    color: var(--color-ms-light-dark);
-    background: rgba(255, 255, 255, 0.03);
-}
-
-.dialog__empty strong {
-    color: var(--color-ms-light);
-}
-
-.dialog__empty p {
-    margin: 0;
-}
-
-.dialog__hint {
-    grid-template-columns: auto 1fr;
-    align-items: start;
-    color: var(--color-ms-light-dark);
-    font-size: 0.85rem;
-}
-
-@media (min-width: 720px) {
-    .dialog__grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 480px) {
-    .dialog-backdrop {
-        align-items: end;
-        padding: 0.5rem;
-    }
-
-    .dialog {
-        width: 100%;
-        max-height: min(100dvh - 0.5rem, 100dvh);
-        gap: 1rem;
-        padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
-        border-radius: 0.5rem;
-    }
-
-    .dialog__header h2 {
-        font-size: 1.2rem;
-    }
-
-    .dialog__header p,
-    .dialog__hint {
-        font-size: 0.8rem;
-    }
-
-    .dialog__footer {
-        bottom: calc(-1 * max(1rem, env(safe-area-inset-bottom)));
-        margin: 0 -1rem calc(-1 * max(1rem, env(safe-area-inset-bottom)));
-        padding: 0.8rem 1rem max(1rem, env(safe-area-inset-bottom));
-    }
+    color: var(--color-ms-white-alpha-66);
 }

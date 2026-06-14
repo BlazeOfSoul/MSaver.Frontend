@@ -1,0 +1,54 @@
+.analytics-view-tabs {
+    display: flex;
+    gap: 0.45rem;
+    overflow-x: auto;
+    padding: 0.2rem;
+    border-radius: 0.5rem;
+    background: var(--color-ms-white-alpha-045);
+    scrollbar-width: thin;
+}
+
+.analytics-view-tabs ms-button {
+    flex: 0 0 auto;
+}
+
+@media (min-width: 720px) {
+    .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .panel {
+        padding: 0.95rem;
+        border-radius: 0.5rem;
+    }
+
+    .metric-card {
+        padding: 0.9rem;
+    }
+
+    .metric-card__value {
+        font-size: 1.2rem;
+    }
+
+    .analytics-view-tabs {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.35rem;
+        overflow: visible;
+        scrollbar-width: none;
+    }
+
+    .analytics-view-tabs ms-button {
+        min-width: 0;
+        padding-inline: 0.35rem;
+        font-size: 0.78rem;
+    }
+}
+
+@media (min-width: 1200px) {
+    .metric-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}

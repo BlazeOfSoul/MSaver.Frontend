@@ -1,0 +1,25 @@
+<div class="home-alert" [class.home-alert--leaving]="dismissing()" role="alert">
+    <span class="material-symbols-outlined">error</span>
+    <span>{{ message() }}</span>
+    <div class="home-alert__actions">
+        <ms-button
+            appearance="ghost"
+            variant="neutral"
+            size="sm"
+            data-testid="home-error-retry"
+            (onClick)="retry.emit()"
+        >
+            Обновить
+        </ms-button>
+        <ms-button
+            appearance="icon"
+            variant="danger"
+            size="sm"
+            data-testid="dismiss-error"
+            aria-label="Закрыть сообщение"
+            (onClick)="dismiss.emit()"
+        >
+            <span class="material-symbols-outlined">close</span>
+        </ms-button>
+    </div>
+</div>

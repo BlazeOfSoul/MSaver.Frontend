@@ -20,7 +20,7 @@ export interface MsSelectOption {
     selector: 'ms-select',
     standalone: true,
     templateUrl: './select.html',
-    styleUrl: './select.css',
+    styleUrls: ['./select.css', './select.dropdown.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
     host: {
         '[class.ms-select-host--open]': 'isOpen()',
@@ -68,9 +68,13 @@ export class SelectComponent {
 
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: Event): void {
-        if (!this.host.nativeElement.contains(event.target as Node | null)) {
-            this.isOpen.set(false);
+        const target = event.target;
+
+        if (target instanceof Node && this.host.nativeElement.contains(target)) {
+            return;
         }
+
+        this.isOpen.set(false);
     }
 
     @HostListener('document:keydown.escape')

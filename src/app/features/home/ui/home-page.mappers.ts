@@ -13,6 +13,7 @@ import {
     TransactionItem,
 } from './home-page.models';
 import { ACCOUNT_COLORS, CATEGORY_COLORS } from './home-page.constants';
+import { safeHexColor } from './home-color.utils';
 import {
     formatDate,
     formatDateTime,
@@ -40,7 +41,7 @@ export function mapAccount(
         balanceLabel: formatMoney(balanceValue, currencyCode),
         monthChangeValue,
         monthChangeLabel: formatSignedMoney(monthChangeValue, currencyCode),
-        color: account.color || ACCOUNT_COLORS[index % ACCOUNT_COLORS.length],
+        color: safeHexColor(account.color, ACCOUNT_COLORS[index % ACCOUNT_COLORS.length]),
         isPrimary: !!account.isPrimary,
     };
 }
@@ -58,7 +59,7 @@ export function mapTransaction(transaction: TransactionResponse): TransactionIte
         category: categoryName,
         categoryId: transaction.category.id,
         categoryType: transaction.category.type,
-        categoryColor: transaction.category.color || CATEGORY_COLORS[0],
+        categoryColor: safeHexColor(transaction.category.color, CATEGORY_COLORS[0]),
         accountId: transaction.account.id,
         accountName,
         date: formatDate(transaction.date),
@@ -98,7 +99,7 @@ export function mapCategories(
             amount: formatMoney(amountValue, currencyCode),
             amountValue,
             progress,
-            color: category.color || CATEGORY_COLORS[0],
+            color: safeHexColor(category.color, CATEGORY_COLORS[0]),
             type,
             tone: type === 'income' ? 'good' : resolveExpenseTone(progress),
             isSystem: !!category.isSystem,
@@ -107,19 +108,21 @@ export function mapCategories(
 }
 
 export function mapTags(tags: ReadonlyArray<TagDetailsResponse>): TagGroupItem[] {
-    return tags.map((tag, index) => ({
-        id: tag.id,
-        name: safeText(tag.name, 'Тег без названия'),
-        color: tag.color || CATEGORY_COLORS[index % CATEGORY_COLORS.length],
-        categories: tag.categories
-            .filter((category) => !category.isDeleted)
-            .map((category) => ({
-                id: category.id,
-                name: safeText(category.name, 'Категория без названия'),
-                color: category.color || CATEGORY_COLORS[0],
-                type: isExpenseCategory(category.type) ? 'expense' : 'income',
-            })),
-    }));
+    return tags
+        .filter((tag) => !tag.isDeleted)
+        .map((tag, index) => ({
+            id: tag.id,
+            name: safeText(tag.name, 'Тег без названия'),
+            color: safeHexColor(tag.color, CATEGORY_COLORS[index % CATEGORY_COLORS.length]),
+            categories: tag.categories
+                .filter((category) => !category.isDeleted)
+                .map((category) => ({
+                    id: category.id,
+                    name: safeText(category.name, 'Категория без названия'),
+                    color: safeHexColor(category.color, CATEGORY_COLORS[0]),
+                    type: isExpenseCategory(category.type) ? 'expense' : 'income',
+                })),
+        }));
 }
 
 export function categoryTotals(

@@ -1,0 +1,11 @@
+.tag-group-list {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.categories-empty {
+    padding: 0.9rem 1rem;
+    border-radius: 0.5rem;
+    color: var(--color-ms-light-dark);
+    background: var(--color-ms-white-alpha-03);
+}

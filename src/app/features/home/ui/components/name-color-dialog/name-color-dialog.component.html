@@ -1,0 +1,98 @@
+<ms-dialog-shell backdropClass="category-dialog-backdrop" (closed)="closed.emit()">
+    <section
+        class="category-dialog"
+        [class.tag-dialog]="previewKind() === 'tag'"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="name-color-dialog-title"
+        aria-describedby="name-color-dialog-description"
+        (click)="$event.stopPropagation()"
+    >
+        <header class="category-dialog__header">
+            <div class="category-dialog__heading">
+                <h2 id="name-color-dialog-title">{{ title() }}</h2>
+
+                <p id="name-color-dialog-description">{{ description() }}</p>
+            </div>
+
+            <ms-button
+                appearance="icon"
+                variant="neutral"
+                size="sm"
+                class="category-dialog__close"
+                (onClick)="closed.emit()"
+                aria-label="Закрыть диалог"
+            >
+                <span class="material-symbols-outlined">close</span>
+            </ms-button>
+        </header>
+
+        <div class="category-dialog__body">
+            <div class="category-dialog__field">
+                <ms-input
+                    [ngModel]="name()"
+                    (ngModelChange)="nameChange.emit($event)"
+                    [placeholder]="placeholder()"
+                ></ms-input>
+            </div>
+
+            <label class="color-field">
+                <span>Цвет</span>
+
+                <input
+                    type="color"
+                    [attr.data-testid]="colorPickerTestId()"
+                    [value]="color()"
+                    [disabled]="saving()"
+                    (input)="colorChange.emit(readColor($event))"
+                />
+
+                <strong>{{ color() }}</strong>
+            </label>
+
+            <div class="category-dialog__preview">
+                <span class="category-dialog__preview-label">Предпросмотр</span>
+
+                @if (previewKind() === 'category') {
+                    <span
+                        class="category-chip category-chip--preview"
+                        [style.--category-color]="color()"
+                    >
+                        <span>{{ name().trim() || fallbackName() }}</span>
+                    </span>
+                } @else {
+                    <span
+                        class="tag-category-pill tag-preview"
+                        [style.--category-color]="color()"
+                        [style.--tag-color]="color()"
+                    >
+                        <i aria-hidden="true"></i>
+                        <span># {{ name().trim() || fallbackName() }}</span>
+                    </span>
+                }
+            </div>
+        </div>
+
+        <footer class="category-dialog__footer">
+            <ms-button
+                appearance="ghost"
+                variant="neutral"
+                [fullWidth]="true"
+                [disabled]="saving()"
+                (onClick)="closed.emit()"
+            >
+                Отмена
+            </ms-button>
+
+            <ms-button
+                variant="primary"
+                [attr.data-testid]="submitTestId()"
+                [fullWidth]="true"
+                [disabled]="saving() || !name().trim()"
+                (onClick)="submitDialog()"
+            >
+                Создать
+            </ms-button>
+        </footer>
+    </section>
+</ms-dialog-shell>

@@ -35,6 +35,15 @@ export interface TransactionItem {
     tone: 'income' | 'expense';
 }
 
+export interface TransactionPagination {
+    page: number;
+    size: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
 export interface AccountBalanceItem {
     id: string;
     name: string;

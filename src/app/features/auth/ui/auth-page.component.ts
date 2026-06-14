@@ -1,6 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    DestroyRef,
+    computed,
+    inject,
+    signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -8,14 +16,9 @@ import { AuthService } from '../data-access/auth.service';
 import { AuthStore } from '../data-access/auth.store';
 import { Button } from '../../../shared/ui/button/button';
 import { InputComponent } from '../../../shared/ui/input/input';
+import { ApiErrorDetails, readApiError } from '../../../core/api-error.utils';
 
 type AuthMode = 'login' | 'register';
-type ApiErrorDetails = Record<string, string[]>;
-type ApiErrorResponse = {
-    code: string;
-    message: string;
-    details: ApiErrorDetails;
-};
 
 const EMAIL_VALIDATORS = [Validators.required, Validators.email, Validators.maxLength(100)];
 const USERNAME_VALIDATORS = [Validators.required, Validators.maxLength(50)];
@@ -34,7 +37,7 @@ const REGISTER_PASSWORD_VALIDATORS = [
     standalone: true,
     imports: [CommonModule, ReactiveFormsModule, InputComponent, Button],
     templateUrl: './auth-page.component.html',
-    styleUrls: ['./auth-page.component.css'],
+    styleUrls: ['./auth-page.component.css', './auth-page.part-2.css', './auth-page.part-3.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AuthPageComponent {
@@ -42,6 +45,8 @@ export class AuthPageComponent {
     private readonly authService = inject(AuthService);
     private readonly authStore = inject(AuthStore);
     private readonly router = inject(Router);
+    private readonly destroyRef = inject(DestroyRef);
+    private isDestroyed = false;
 
     readonly mode = signal<AuthMode>('login');
     readonly loading = signal(false);
@@ -57,6 +62,12 @@ export class AuthPageComponent {
         password: ['', LOGIN_PASSWORD_VALIDATORS],
         confirmPassword: [''],
     });
+
+    constructor() {
+        this.destroyRef.onDestroy(() => {
+            this.isDestroyed = true;
+        });
+    }
 
     get usernameCtrl() {
         return this.form.controls.username;
@@ -130,7 +141,10 @@ export class AuthPageComponent {
         if (this.isLogin()) {
             this.authService
                 .login({ email, password })
-                .pipe(finalize(() => this.loading.set(false)))
+                .pipe(
+                    finalize(() => this.stopLoadingIfAlive()),
+                    takeUntilDestroyed(this.destroyRef),
+                )
                 .subscribe({
                     next: (response) => {
                         this.authStore.setSession(response);
@@ -144,7 +158,7 @@ export class AuthPageComponent {
 
         this.authService
             .register({ username, email, password })
-            .pipe(finalize(() => this.loading.set(false)))
+            .pipe(finalize(() => this.stopLoadingIfAlive()), takeUntilDestroyed(this.destroyRef))
             .subscribe({
                 next: () => {
                     this.successMessage.set('Аккаунт создан. Теперь войдите.');
@@ -201,7 +215,7 @@ export class AuthPageComponent {
     }
 
     private handleError(error: unknown): void {
-        const apiError = this.readApiError(error);
+        const apiError = readApiError(error);
         const details = apiError?.details;
         const message = apiError?.message;
 
@@ -220,7 +234,9 @@ export class AuthPageComponent {
         }
 
         if (this.isNetworkError(error, message)) {
-            this.errorMessage.set('Не удалось подключиться. Проверьте интернет и попробуйте снова.');
+            this.errorMessage.set(
+                'Не удалось подключиться. Проверьте интернет и попробуйте снова.',
+            );
             return;
         }
 
@@ -233,6 +249,10 @@ export class AuthPageComponent {
     }
 
     private resolveLoginErrorMessage(error: unknown, message?: string): string {
+        if (message && !this.isTechnicalErrorMessage(message)) {
+            return message;
+        }
+
         if (this.isNetworkError(error, message)) {
             return 'Не удалось подключиться. Проверьте интернет и попробуйте снова.';
         }
@@ -241,11 +261,15 @@ export class AuthPageComponent {
             return 'Неверный email или пароль.';
         }
 
-        if (message && !this.isTechnicalErrorMessage(message)) {
-            return message;
+        return 'Не удалось войти в аккаунт. Попробуйте снова.';
+    }
+
+    private stopLoadingIfAlive(): void {
+        if (this.isDestroyed) {
+            return;
         }
 
-        return 'Не удалось войти в аккаунт. Попробуйте снова.';
+        this.loading.set(false);
     }
 
     private applyModeValidators(mode: AuthMode): void {
@@ -264,38 +288,22 @@ export class AuthPageComponent {
         this.confirmPasswordCtrl.updateValueAndValidity({ emitEvent: false });
     }
 
-    private readApiError(error: unknown): ApiErrorResponse | null {
-        if (
-            !(error instanceof HttpErrorResponse) ||
-            !error.error ||
-            typeof error.error !== 'object'
-        ) {
-            return null;
-        }
-
-        const apiError = error.error as Partial<ApiErrorResponse>;
-
-        return {
-            code: typeof apiError.code === 'string' ? apiError.code : '',
-            message: typeof apiError.message === 'string' ? apiError.message : '',
-            details:
-                apiError.details && typeof apiError.details === 'object' ? apiError.details : {},
-        };
-    }
-
     private isNetworkError(error: unknown, message?: string): boolean {
         if (error instanceof HttpErrorResponse && error.status === 0) {
             return true;
         }
 
-        if (this.isTechnicalErrorMessage(message)) {
+        if (this.isNetworkTransportMessage(message)) {
             return true;
         }
 
         if (
-            error instanceof HttpErrorResponse &&
+            !(error instanceof HttpErrorResponse) &&
+            error &&
+            typeof error === 'object' &&
+            'message' in error &&
             typeof error.message === 'string' &&
-            this.isTechnicalErrorMessage(error.message)
+            this.isNetworkTransportMessage(error.message)
         ) {
             return true;
         }
@@ -311,7 +319,7 @@ export class AuthPageComponent {
                 ? error.error.message
                 : undefined;
 
-        return this.isTechnicalErrorMessage(nestedMessage);
+        return this.isNetworkTransportMessage(nestedMessage);
     }
 
     private isTechnicalErrorMessage(message?: string): boolean {
@@ -325,6 +333,20 @@ export class AuthPageComponent {
             normalizedMessage.includes('failed to fetch') ||
             normalizedMessage.includes('fetch failed') ||
             normalizedMessage.includes('http failure response')
+        );
+    }
+
+    private isNetworkTransportMessage(message?: string): boolean {
+        if (!message) {
+            return false;
+        }
+
+        const normalizedMessage = message.trim().toLowerCase();
+
+        return (
+            normalizedMessage.includes('failed to fetch') ||
+            normalizedMessage.includes('fetch failed') ||
+            normalizedMessage.includes('load failed')
         );
     }
 

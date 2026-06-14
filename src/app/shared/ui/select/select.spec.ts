@@ -31,4 +31,19 @@ describe('SelectComponent', () => {
         expect(host.querySelectorAll('.ms-select__option')).toHaveLength(3);
         expect(getComputedStyle(shell!).overflow).toBe('visible');
     });
+
+    it('closes without throwing when a document click target is not a DOM node', () => {
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+        const event = new Event('click');
+
+        component.isOpen.set(true);
+        Object.defineProperty(event, 'target', {
+            value: new EventTarget(),
+        });
+
+        expect(() => component.onDocumentClick(event)).not.toThrow();
+        expect(component.isOpen()).toBe(false);
+    });
 });

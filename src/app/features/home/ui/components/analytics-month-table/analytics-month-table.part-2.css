@@ -1,0 +1,97 @@
+@media (max-width: 900px) {
+    .analytics-table-card {
+        padding: 0.85rem;
+    }
+
+    .analytics-table-shell {
+        overflow: visible;
+        border: 0;
+        background: transparent;
+    }
+
+    .analytics-table {
+        min-width: 0;
+    }
+
+    .analytics-table thead {
+        display: none;
+    }
+
+    .analytics-table,
+    .analytics-table tbody,
+    .analytics-table tfoot,
+    .analytics-table tr,
+    .analytics-table th,
+    .analytics-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .analytics-table tbody,
+    .analytics-table tfoot {
+        display: grid;
+        gap: 0.7rem;
+    }
+
+    .analytics-table tfoot {
+        margin-top: 0.7rem;
+    }
+
+    .analytics-table tbody tr,
+    .analytics-table tfoot tr {
+        display: grid;
+        gap: 0.45rem;
+        padding: 0.8rem;
+        border: 1px solid var(--color-ms-white-alpha-06);
+        border-radius: 0.5rem;
+        background: var(--color-ms-white-alpha-03);
+    }
+
+    .analytics-table th:first-child,
+    .analytics-table td:first-child {
+        position: static;
+        min-width: 0;
+        background: transparent;
+    }
+
+    .analytics-table tbody th,
+    .analytics-table tfoot th {
+        display: flex;
+        padding: 0 0 0.3rem;
+        border-top: 0;
+        white-space: normal;
+    }
+
+    .analytics-table tbody th span,
+    .analytics-table tfoot th span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .analytics-table td {
+        display: grid;
+        grid-template-columns: minmax(4.5rem, auto) minmax(0, 1fr);
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.45rem 0.55rem;
+        border-top: 0;
+        border-radius: 0.45rem;
+        background: var(--color-ms-white-alpha-025);
+        text-align: right;
+        white-space: normal;
+    }
+
+    .analytics-table td::before {
+        content: attr(data-label);
+        min-width: 0;
+        color: var(--color-ms-light-dark);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-align: left;
+        text-transform: uppercase;
+    }
+
+    .analytics-table td:last-child {
+        background: var(--color-ms-primary-alpha-07);
+    }
+}

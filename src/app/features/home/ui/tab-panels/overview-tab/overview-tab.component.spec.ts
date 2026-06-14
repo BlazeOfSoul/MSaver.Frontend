@@ -210,7 +210,7 @@ describe('OverviewTabComponent', () => {
         expect(editLabel?.textContent?.trim()).toBe('Изменить');
     });
 
-    it('splits the two mobile actions to the left and right when edit is not available', () => {
+    it('keeps only the details action for transfer transaction rows', () => {
         fixture.componentRef.setInput('transactions', [
             transaction({
                 id: 'transfer',
@@ -227,7 +227,7 @@ describe('OverviewTabComponent', () => {
         expect(actions?.classList.contains('transactions-table__actions--inline')).toBe(true);
         expect(actions?.classList.contains('transactions-table__actions--split')).toBe(true);
         expect(actions?.classList.contains('transactions-table__actions--with-edit')).toBe(false);
-        expect(actions?.querySelectorAll('ms-button')).toHaveLength(2);
+        expect(actions?.querySelectorAll('ms-button')).toHaveLength(1);
     });
 
     it('does not render edit action for transfer transaction rows', () => {
@@ -244,6 +244,22 @@ describe('OverviewTabComponent', () => {
         const host = fixture.nativeElement as HTMLElement;
 
         expect(host.querySelector('[data-testid="edit-transaction"]')).toBeNull();
+    });
+
+    it('does not render delete action for transfer transaction rows', () => {
+        fixture.componentRef.setInput('transactions', [
+            transaction({
+                id: 'transfer',
+                categoryType: 'TransferExpense',
+                title: 'Transfer',
+            }),
+        ]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.querySelector('[data-testid="delete-transaction"]')).toBeNull();
     });
 
     it('paginates transactions in compact pages', () => {

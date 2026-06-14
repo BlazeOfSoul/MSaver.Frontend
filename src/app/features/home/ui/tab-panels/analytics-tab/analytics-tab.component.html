@@ -1,49 +1,19 @@
 <section class="analytics-layout">
-    <article class="panel">
-        <div class="panel__header">
-            <div>
-                <h2>Финансовая аналитика</h2>
-                <p>Понятные графики для контроля доходов, расходов и баланса.</p>
-            </div>
-        </div>
-
-        <div class="analytics-toolbar">
-            <ms-select
-                [options]="accountOptions()"
-                [value]="selectedAccountId()"
-                (valueChange)="accountChange.emit($event)"
-            ></ms-select>
-        </div>
-
-        <div class="metric-grid">
-            @for (metric of metrics(); track metric.id) {
-                <article class="metric-card">
-                    <span class="metric-card__label">{{ metric.label }}</span>
-                    <strong class="metric-card__value">{{ metric.value }}</strong>
-                    <span class="metric-card__caption">{{ metric.caption }}</span>
-                </article>
-            }
-        </div>
-
-        <nav class="analytics-view-tabs" aria-label="Разделы аналитики">
-            @for (view of analyticsViews; track view.id) {
-                <ms-button
-                    appearance="tab"
-                    variant="neutral"
-                    [active]="activeView() === view.id"
-                    (onClick)="activeView.set(view.id)"
-                >
-                    {{ view.label }}
-                </ms-button>
-            }
-        </nav>
-    </article>
+    <ms-analytics-overview-panel
+        [metrics]="metrics()"
+        [accountOptions]="accountOptions()"
+        [selectedAccountId]="selectedAccountId()"
+        [views]="analyticsViews"
+        [activeView]="activeView()"
+        (accountChange)="accountChange.emit($event)"
+        (viewChange)="setActiveView($event)"
+    ></ms-analytics-overview-panel>
 
     @switch (activeView()) {
         @case ('monthly') {
             <section class="analytics-section">
                 <div class="analytics-section__header">
-                    <span>Месячные срезы</span>
+                    <span>Месячный срез</span>
                 </div>
 
                 <ms-chart-card
@@ -60,6 +30,14 @@
                     type="doughnut"
                     [labels]="incomeCategoryLabels()"
                     [datasets]="incomeCategoryDatasets()"
+                ></ms-chart-card>
+
+                <ms-chart-card
+                    title="Доходы и расходы"
+                    subtitle="Сравнение поступлений и списаний выбранного месяца."
+                    type="bar"
+                    [labels]="monthlyCashFlowLabels"
+                    [datasets]="monthlyCashFlowDatasets()"
                 ></ms-chart-card>
 
                 <ms-chart-card
@@ -126,203 +104,33 @@
                     <span>Таблицы по месяцам</span>
                 </div>
 
-                <article class="analytics-table-card">
-                    <h3>Расходы по категориям</h3>
+                <ms-analytics-month-table
+                    title="Расходы по категориям"
+                    rowHeader="Категория"
+                    [months]="categoryMonthTable().months"
+                    [rows]="categoryMonthTable().expenseRows"
+                    [summary]="categoryMonthTable().expenseSummary"
+                    emptyText="Расходов за выбранный год пока нет."
+                ></ms-analytics-month-table>
 
-                    @if (categoryMonthTable().expenseRows.length) {
-                        <div class="analytics-table-shell">
-                            <table class="analytics-table">
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Категория</th>
-                                        @for (month of categoryMonthTable().months; track month) {
-                                            <th scope="col">{{ month }}</th>
-                                        }
-                                        <th scope="col">Итого</th>
-                                        <th scope="col">Среднее</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @for (row of categoryMonthTable().expenseRows; track row.id) {
-                                        <tr>
-                                            <th scope="row">
-                                                <i [style.background]="row.color"></i>
-                                                <span>{{ row.name }}</span>
-                                            </th>
-                                            @for (cell of row.cells; track cell.label) {
-                                                <td [attr.data-label]="cell.label">
-                                                    {{ cell.formattedValue }}
-                                                </td>
-                                            }
-                                            <td data-label="Итого">
-                                                <strong>{{ row.formattedTotal }}</strong>
-                                            </td>
-                                            <td data-label="Среднее">
-                                                <strong>{{ row.formattedAverage }}</strong>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                                @if (categoryMonthTable().expenseSummary; as summary) {
-                                    <tfoot>
-                                        <tr>
-                                            <th scope="row">
-                                                <i></i>
-                                                <span>Итого за месяц</span>
-                                            </th>
-                                            @for (cell of summary.cells; track cell.label) {
-                                                <td [attr.data-label]="cell.label">
-                                                    {{ cell.formattedValue }}
-                                                </td>
-                                            }
-                                            <td data-label="Итого">
-                                                <strong>{{ summary.formattedTotal }}</strong>
-                                            </td>
-                                            <td data-label="Среднее" data-testid="month-average">
-                                                <strong>{{ summary.formattedAverage }}</strong>
-                                            </td>
-                                        </tr>
-                                    </tfoot>
-                                }
-                            </table>
-                        </div>
-                    } @else {
-                        <div class="analytics-empty">Расходов за выбранный год пока нет.</div>
-                    }
-                </article>
+                <ms-analytics-month-table
+                    title="Доходы по категориям"
+                    rowHeader="Категория"
+                    [months]="categoryMonthTable().months"
+                    [rows]="categoryMonthTable().incomeRows"
+                    [summary]="categoryMonthTable().incomeSummary"
+                    emptyText="Доходов за выбранный год пока нет."
+                ></ms-analytics-month-table>
 
-                <article class="analytics-table-card">
-                    <h3>Доходы по категориям</h3>
-
-                    @if (categoryMonthTable().incomeRows.length) {
-                        <div class="analytics-table-shell">
-                            <table class="analytics-table">
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Категория</th>
-                                        @for (month of categoryMonthTable().months; track month) {
-                                            <th scope="col">{{ month }}</th>
-                                        }
-                                        <th scope="col">Итого</th>
-                                        <th scope="col">Среднее</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @for (row of categoryMonthTable().incomeRows; track row.id) {
-                                        <tr>
-                                            <th scope="row">
-                                                <i [style.background]="row.color"></i>
-                                                <span>{{ row.name }}</span>
-                                            </th>
-                                            @for (cell of row.cells; track cell.label) {
-                                                <td [attr.data-label]="cell.label">
-                                                    {{ cell.formattedValue }}
-                                                </td>
-                                            }
-                                            <td data-label="Итого">
-                                                <strong>{{ row.formattedTotal }}</strong>
-                                            </td>
-                                            <td data-label="Среднее">
-                                                <strong>{{ row.formattedAverage }}</strong>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                                @if (categoryMonthTable().incomeSummary; as summary) {
-                                    <tfoot>
-                                        <tr>
-                                            <th scope="row">
-                                                <i></i>
-                                                <span>Итого за месяц</span>
-                                            </th>
-                                            @for (cell of summary.cells; track cell.label) {
-                                                <td [attr.data-label]="cell.label">
-                                                    {{ cell.formattedValue }}
-                                                </td>
-                                            }
-                                            <td data-label="Итого">
-                                                <strong>{{ summary.formattedTotal }}</strong>
-                                            </td>
-                                            <td data-label="Среднее" data-testid="month-average">
-                                                <strong>{{ summary.formattedAverage }}</strong>
-                                            </td>
-                                        </tr>
-                                    </tfoot>
-                                }
-                            </table>
-                        </div>
-                    } @else {
-                        <div class="analytics-empty">Доходов за выбранный год пока нет.</div>
-                    }
-                </article>
-
-                <article class="analytics-table-card">
-                    <h3>Долги</h3>
-
-                    @if (categoryMonthTable().debtRows?.length) {
-                        <div class="analytics-table-shell">
-                            <table class="analytics-table">
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Долг</th>
-                                        @for (month of categoryMonthTable().months; track month) {
-                                            <th scope="col">{{ month }}</th>
-                                        }
-                                        <th scope="col">Итого</th>
-                                        <th scope="col">Среднее</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @for (
-                                        row of categoryMonthTable().debtRows ?? [];
-                                        track row.id
-                                    ) {
-                                        <tr>
-                                            <th scope="row">
-                                                <i [style.background]="row.color"></i>
-                                                <span>{{ row.name }}</span>
-                                            </th>
-                                            @for (cell of row.cells; track cell.label) {
-                                                <td [attr.data-label]="cell.label">
-                                                    {{ cell.formattedValue }}
-                                                </td>
-                                            }
-                                            <td data-label="Итого">
-                                                <strong>{{ row.formattedTotal }}</strong>
-                                            </td>
-                                            <td data-label="Среднее">
-                                                <strong>{{ row.formattedAverage }}</strong>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                                @if (categoryMonthTable().debtSummary; as summary) {
-                                    <tfoot>
-                                        <tr>
-                                            <th scope="row">
-                                                <i></i>
-                                                <span>Итого за месяц</span>
-                                            </th>
-                                            @for (cell of summary.cells; track cell.label) {
-                                                <td [attr.data-label]="cell.label">
-                                                    {{ cell.formattedValue }}
-                                                </td>
-                                            }
-                                            <td data-label="Итого">
-                                                <strong>{{ summary.formattedTotal }}</strong>
-                                            </td>
-                                            <td data-label="Среднее" data-testid="month-average">
-                                                <strong>{{ summary.formattedAverage }}</strong>
-                                            </td>
-                                        </tr>
-                                    </tfoot>
-                                }
-                            </table>
-                        </div>
-                    } @else {
-                        <div class="analytics-empty">Долгов за выбранный год пока нет.</div>
-                    }
-                </article>
+                <ms-analytics-month-table
+                    title="Долги"
+                    rowHeader="Долг"
+                    [months]="categoryMonthTable().months"
+                    [rows]="categoryMonthTable().debtRows ?? []"
+                    [summary]="categoryMonthTable().debtSummary"
+                    [showWhenEmpty]="true"
+                    emptyText="Долгов за выбранный год пока нет."
+                ></ms-analytics-month-table>
             </section>
         }
 
@@ -357,22 +165,6 @@
                     [height]="280"
                 ></ms-chart-card>
 
-                <div class="tag-filter-strip" aria-label="Фильтр расходов по тегам">
-                    @for (option of tagExpenseOptions(); track option.value) {
-                        <ms-button
-                            appearance="chip"
-                            variant="primary"
-                            class="tag-filter-button"
-                            [active]="selectedTagExpenseId() === option.value"
-                            (onClick)="selectedTagExpenseId.set(option.value)"
-                        >
-                            @if (option.color) {
-                                <i [style.--tag-filter-color]="option.color"></i>
-                            }
-                            <span>{{ option.label }}</span>
-                        </ms-button>
-                    }
-                </div>
             </section>
         }
     }

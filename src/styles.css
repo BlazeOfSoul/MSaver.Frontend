@@ -44,6 +44,19 @@
     --color-ms-page-glow-info: rgba(103, 166, 193, 0.045);
     --color-ms-page-glow-accent: rgba(199, 125, 255, 0.035);
     --color-ms-page-sheen: rgba(255, 255, 255, 0.018);
+    --color-ms-page-green-glow-07: rgba(34, 197, 94, 0.07);
+    --color-ms-page-green-glow-034: rgba(34, 197, 94, 0.034);
+    --color-ms-page-green-glow-035: rgba(34, 197, 94, 0.035);
+    --color-ms-page-mint-glow-028: rgba(20, 184, 166, 0.028);
+    --color-ms-page-mint-glow-03: rgba(20, 184, 166, 0.03);
+    --color-ms-page-mint-glow-055: rgba(20, 184, 166, 0.055);
+    --color-ms-page-mint-glow-06: rgba(20, 184, 166, 0.06);
+    --color-ms-page-overlay-start: rgba(4, 10, 8, 0.18);
+    --color-ms-page-overlay-auth-start: rgba(4, 10, 8, 0.2);
+    --color-ms-page-overlay-end: rgba(3, 7, 6, 0.42);
+    --color-ms-auth-visual-overlay-start: rgba(5, 5, 6, 0.84);
+    --color-ms-auth-visual-overlay-mid: rgba(9, 9, 10, 0.55);
+    --color-ms-auth-visual-overlay-end: rgba(5, 5, 6, 0.88);
 
     --color-ms-white-alpha-01: rgba(255, 255, 255, 0.01);
     --color-ms-white-alpha-015: rgba(255, 255, 255, 0.015);
@@ -87,11 +100,13 @@
     --color-ms-black-alpha-28: rgba(0, 0, 0, 0.28);
     --color-ms-black-alpha-3: rgba(0, 0, 0, 0.3);
     --color-ms-black-alpha-32: rgba(0, 0, 0, 0.32);
+    --color-ms-black-alpha-34: rgba(0, 0, 0, 0.34);
     --color-ms-black-alpha-42: rgba(0, 0, 0, 0.42);
 
     --color-ms-primary-alpha-07: rgba(35, 199, 139, 0.07);
     --color-ms-primary-alpha-08: rgba(35, 199, 139, 0.08);
     --color-ms-primary-alpha-09: rgba(35, 199, 139, 0.09);
+    --color-ms-primary-alpha-1: rgba(35, 199, 139, 0.1);
     --color-ms-primary-alpha-11: rgba(35, 199, 139, 0.11);
     --color-ms-primary-alpha-12: rgba(35, 199, 139, 0.12);
     --color-ms-primary-alpha-14: rgba(35, 199, 139, 0.14);
@@ -105,12 +120,20 @@
 
     --color-ms-info-alpha-18: rgba(99, 184, 255, 0.18);
     --color-ms-danger-alpha-09: rgba(255, 111, 145, 0.09);
+    --color-ms-danger-alpha-12-soft: rgba(255, 111, 145, 0.12);
+    --color-ms-danger-alpha-18-soft: rgba(255, 111, 145, 0.18);
+    --color-ms-danger-alpha-35: rgba(255, 111, 145, 0.35);
     --color-ms-danger-alpha-12: rgba(239, 68, 68, 0.12);
     --color-ms-danger-alpha-18: rgba(239, 68, 68, 0.18);
     --color-ms-danger-alpha-2: rgba(255, 111, 145, 0.2);
     --color-ms-danger-alpha-88: rgba(255, 111, 145, 0.88);
     --color-ms-danger-surface: rgba(127, 29, 29, 0.14);
+    --color-ms-success-alpha-04: rgba(16, 185, 129, 0.04);
+    --color-ms-success-alpha-025: rgba(16, 185, 129, 0.025);
+    --color-ms-success-alpha-08: rgba(16, 185, 129, 0.08);
+    --color-ms-success-alpha-085: rgba(16, 185, 129, 0.085);
     --color-ms-success-alpha-12: rgba(16, 185, 129, 0.12);
+    --color-ms-success-alpha-2: rgba(16, 185, 129, 0.2);
 
     --color-ms-overlay-backdrop: rgba(2, 4, 4, 0.72);
     --color-ms-overlay-surface: rgba(2, 4, 4, 0.76);

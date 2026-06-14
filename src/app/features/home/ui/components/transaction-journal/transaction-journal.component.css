@@ -1,0 +1,32 @@
+:host {
+    display: grid;
+    gap: 1rem;
+}
+
+.overview-toolbar {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.transactions-table-shell {
+    overflow-x: auto;
+    border: 1px solid var(--color-ms-white-alpha-06);
+    border-radius: 0.5rem;
+    background: var(--color-ms-white-alpha-025);
+}
+
+.transactions-table {
+    width: 100%;
+    min-width: 58rem;
+    border-collapse: collapse;
+}
+
+.transactions-table th {
+    padding: 0.82rem 0.9rem;
+    color: var(--color-ms-light-dark);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-align: left;
+    text-transform: uppercase;
+    vertical-align: middle;
+}

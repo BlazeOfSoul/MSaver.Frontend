@@ -1,0 +1,101 @@
+.dialog__date-picker-actions,
+.dialog__date-picker-grid {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.dialog__date-picker-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dialog__date-chip {
+    min-height: 2.35rem;
+    border: 1px solid var(--color-ms-white-alpha-08);
+    border-radius: 0.5rem;
+    color: var(--color-ms-light);
+    background: var(--color-ms-white-alpha-045);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 800;
+    transition:
+        border-color 0.16s ease,
+        background 0.16s ease,
+        transform 0.16s ease;
+}
+
+.dialog__date-chip:hover {
+    border-color: color-mix(in oklab, var(--color-ms-primary), transparent 52%);
+    background: var(--color-ms-primary-alpha-08);
+    transform: translateY(-1px);
+}
+
+.dialog__date-part-input,
+.dialog__time-part-input {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.dialog__date-part-input > span,
+.dialog__time-part-input > span {
+    color: var(--color-ms-white-alpha-62);
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.dialog__date-part-input input,
+.dialog__time-part-input input {
+    width: 100%;
+    min-width: 0;
+    min-height: 52px;
+    padding: 0 0.9rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    color: var(--color-ms-light);
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-05), var(--color-ms-white-alpha-015)),
+        color-mix(in oklab, var(--color-ms-surface), transparent 18%);
+    outline: 0;
+    font: inherit;
+    letter-spacing: 0;
+    transition:
+        border-color 0.16s ease,
+        box-shadow 0.16s ease,
+        background 0.16s ease;
+}
+
+.dialog__date-part-input input::placeholder,
+.dialog__time-part-input input::placeholder {
+    color: var(--color-ms-light-dark);
+}
+
+.dialog__date-part-input input:focus,
+.dialog__time-part-input input:focus {
+    border-color: color-mix(in oklab, var(--color-ms-primary), white 14%);
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-07), var(--color-ms-white-alpha-02)),
+        color-mix(in oklab, var(--color-ms-surface-elevated), transparent 14%);
+    box-shadow: 0 0 0 3px var(--color-ms-primary-alpha-11);
+}
+
+@media (min-width: 720px) {
+    .dialog__date-picker-grid {
+        grid-template-columns: minmax(0, 1fr) 8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .dialog__date-picker {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .dialog__date-picker-actions {
+        gap: 0.4rem;
+    }
+
+    .dialog__date-chip {
+        min-height: 2.25rem;
+        font-size: 0.76rem;
+    }
+}

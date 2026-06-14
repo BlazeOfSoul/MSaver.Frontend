@@ -27,8 +27,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
     ],
 })
 export class InputComponent implements ControlValueAccessor {
-    beforeInputTemplate = contentChild<TemplateRef<any>>('beforeInput');
-    afterInputTemplate = contentChild<TemplateRef<any>>('afterInput');
+    beforeInputTemplate = contentChild<TemplateRef<unknown>>('beforeInput');
+    afterInputTemplate = contentChild<TemplateRef<unknown>>('afterInput');
 
     id = input<string>('');
     name = input<string>('');
@@ -80,8 +80,11 @@ export class InputComponent implements ControlValueAccessor {
     }
 
     onInput(event: Event): void {
-        const target = event.target as HTMLInputElement | null;
-        const nextValue = target?.value ?? '';
+        if (!(event.target instanceof HTMLInputElement)) {
+            return;
+        }
+
+        const nextValue = event.target.value;
         this.value.set(nextValue);
         this.onChange(nextValue);
     }

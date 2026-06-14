@@ -1,6 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+    MS_ANALYTICS_CHART_COLORS,
+    MS_CATEGORY_COLORS,
+    MS_CATEGORY_OTHER_COLOR,
+} from '../../../../../shared/theme/theme-colors';
+import { AnalyticsMonthTableComponent } from '../../components/analytics-month-table/analytics-month-table.component';
+import {
+    AnalyticsOverviewPanelComponent,
+    AnalyticsViewId,
+    AnalyticsViewOption,
+} from '../../components/analytics-overview-panel/analytics-overview-panel.component';
 import { ChartCardComponent } from '../../components/chart-card/chart-card.component';
-import { Button } from '../../../../../shared/ui/button/button';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import {
     AnalyticsCategoryMonthTable,
@@ -11,16 +21,34 @@ import {
     AnalyticsStackedPoint,
     CategoryBreakdownItem,
 } from '../../home-page.models';
-
-type AnalyticsView = 'monthly' | 'yearly' | 'tables' | 'tags';
-type TagChartLimit = '5' | '10' | '15' | 'all';
+import {
+    AnalyticsTagChartLimit,
+    breakdownLabels,
+    buildBreakdownDataset,
+    buildNetCashFlowDataset,
+    buildStackedIncomeExpenseDatasets,
+    buildValueDataset,
+    chartLabels,
+    isTagChartLimit,
+    limitBreakdownItems,
+    selectLimitedBreakdownItems,
+} from './analytics-tab.helpers';
 
 @Component({
     selector: 'ms-analytics-tab',
     standalone: true,
-    imports: [Button, ChartCardComponent, SelectComponent],
+    imports: [
+        ChartCardComponent,
+        AnalyticsMonthTableComponent,
+        AnalyticsOverviewPanelComponent,
+        SelectComponent,
+    ],
     templateUrl: './analytics-tab.component.html',
-    styleUrl: './analytics-tab.component.css',
+    styleUrls: [
+        './analytics-tab.component.css',
+        './analytics-tab.part-2.css',
+        './analytics-tab.part-3.css',
+    ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AnalyticsTabComponent {
@@ -38,14 +66,14 @@ export class AnalyticsTabComponent {
     selectedAccountId = input.required<string>();
 
     accountChange = output<string>();
-    readonly activeView = signal<AnalyticsView>('monthly');
+    readonly activeView = signal<AnalyticsViewId>('monthly');
     readonly selectedTagExpenseId = signal('all');
     readonly tagChartType = signal<HomeChartType>('doughnut');
-    readonly tagChartLimit = signal<TagChartLimit>('10');
+    readonly tagChartLimit = signal<AnalyticsTagChartLimit>('10');
 
-    readonly analyticsViews: ReadonlyArray<{ id: AnalyticsView; label: string }> = [
-        { id: 'monthly', label: 'Месячные' },
-        { id: 'yearly', label: 'Годовые' },
+    readonly analyticsViews: ReadonlyArray<AnalyticsViewOption> = [
+        { id: 'monthly', label: 'Месяц' },
+        { id: 'yearly', label: 'Год' },
         { id: 'tables', label: 'Таблицы' },
         { id: 'tags', label: 'Теги' },
     ];
@@ -60,98 +88,100 @@ export class AnalyticsTabComponent {
         { value: 'all', label: 'Все' },
     ];
 
-    readonly incomeVsExpenseLabels = computed(() =>
-        this.incomeVsExpense().map((item) => item.label),
+    readonly incomeVsExpenseLabels = computed(() => chartLabels(this.incomeVsExpense()));
+    readonly incomeVsExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
+        buildStackedIncomeExpenseDatasets(
+            this.incomeVsExpense(),
+            { income: 'Доходы', expense: 'Расходы' },
+            {
+                income: MS_ANALYTICS_CHART_COLORS.income,
+                expense: MS_ANALYTICS_CHART_COLORS.expense,
+            },
+        ),
     );
-    readonly incomeVsExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
-        {
-            label: 'Доходы',
-            data: this.incomeVsExpense().map((item) => item.income),
-            color: '#23c78b',
-        },
-        {
-            label: 'Расходы',
-            data: this.incomeVsExpense().map((item) => item.expense),
-            color: '#ff6f91',
-        },
-    ]);
 
     readonly visibleExpenseCategories = computed(() =>
-        this.limitCategoryChartItems(this.expenseCategories()),
+        limitBreakdownItems(this.expenseCategories(), {
+            otherLabel: 'Прочее',
+            otherColor: MS_CATEGORY_OTHER_COLOR,
+        }),
     );
     readonly expenseCategoryLabels = computed(() =>
-        this.visibleExpenseCategories().map((item) => item.name),
+        breakdownLabels(this.visibleExpenseCategories()),
     );
-    readonly expenseCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
-        {
-            label: 'Расходы',
-            data: this.visibleExpenseCategories().map((item) => item.amountValue),
-            color: '#ff6f91',
-            colors: this.visibleExpenseCategories().map(
-                (item, index) => item.color || this.pickColor(index),
-            ),
-        },
-    ]);
+    readonly expenseCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
+        buildBreakdownDataset(
+            'Расходы',
+            this.visibleExpenseCategories(),
+            MS_ANALYTICS_CHART_COLORS.expense,
+            MS_CATEGORY_COLORS,
+        ),
+    );
 
     readonly visibleIncomeCategories = computed(() =>
-        this.limitCategoryChartItems(this.incomeCategories()),
+        limitBreakdownItems(this.incomeCategories(), {
+            otherLabel: 'Прочее',
+            otherColor: MS_CATEGORY_OTHER_COLOR,
+        }),
     );
     readonly incomeCategoryLabels = computed(() =>
-        this.visibleIncomeCategories().map((item) => item.name),
+        breakdownLabels(this.visibleIncomeCategories()),
     );
-    readonly incomeCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
-        {
-            label: 'Доходы',
-            data: this.visibleIncomeCategories().map((item) => item.amountValue),
-            color: '#23c78b',
-            colors: this.visibleIncomeCategories().map(
-                (item, index) => item.color || this.pickColor(index),
-            ),
-        },
-    ]);
-
-    readonly monthlyExpenseLabels = computed(() =>
-        this.monthlyExpenses().map((item) => item.label),
+    readonly incomeCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
+        buildBreakdownDataset(
+            'Доходы',
+            this.visibleIncomeCategories(),
+            MS_ANALYTICS_CHART_COLORS.income,
+            MS_CATEGORY_COLORS,
+        ),
     );
-    readonly monthlyExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
+
+    readonly monthlyCashFlowLabels: ReadonlyArray<string> = ['Доходы', 'Расходы'];
+    readonly monthlyCashFlowDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
         {
-            label: 'Расходы',
-            data: this.monthlyExpenses().map((item) => item.value),
-            color: '#ff6f91',
+            label: 'Сумма',
+            data: [
+                sumBreakdownValues(this.incomeCategories()),
+                sumBreakdownValues(this.expenseCategories()),
+            ],
+            color: MS_ANALYTICS_CHART_COLORS.balance,
+            colors: [MS_ANALYTICS_CHART_COLORS.income, MS_ANALYTICS_CHART_COLORS.expense],
         },
     ]);
 
-    readonly balanceDynamicsLabels = computed(() =>
-        this.balanceDynamics().map((item) => item.label),
+    readonly monthlyExpenseLabels = computed(() => chartLabels(this.monthlyExpenses()));
+    readonly monthlyExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
+        buildValueDataset('Расходы', this.monthlyExpenses(), MS_ANALYTICS_CHART_COLORS.expense),
     );
-    readonly balanceDynamicsDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
-        {
-            label: 'Баланс',
-            data: this.balanceDynamics().map((item) => item.value),
-            color: '#67a6c1',
-            fill: true,
-        },
-    ]);
 
-    readonly netCashFlowLabels = computed(() => this.incomeVsExpense().map((item) => item.label));
-    readonly netCashFlowDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
-        {
-            label: 'Чистый поток',
-            data: this.incomeVsExpense().map((item) => item.income - item.expense),
-            color: '#67a6c1',
-            fill: true,
-        },
-    ]);
+    readonly balanceDynamicsLabels = computed(() => chartLabels(this.balanceDynamics()));
+    readonly balanceDynamicsDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
+        buildValueDataset(
+            'Баланс',
+            this.balanceDynamics(),
+            MS_ANALYTICS_CHART_COLORS.balance,
+            true,
+        ),
+    );
 
-    readonly savingsRateLabels = computed(() => this.savingsRate().map((item) => item.label));
-    readonly savingsRateDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
-        {
-            label: 'Норма накоплений',
-            data: this.savingsRate().map((item) => item.value),
-            color: '#e8b45d',
-            fill: true,
-        },
-    ]);
+    readonly netCashFlowLabels = computed(() => chartLabels(this.incomeVsExpense()));
+    readonly netCashFlowDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
+        buildNetCashFlowDataset(
+            this.incomeVsExpense(),
+            'Чистый поток',
+            MS_ANALYTICS_CHART_COLORS.balance,
+        ),
+    );
+
+    readonly savingsRateLabels = computed(() => chartLabels(this.savingsRate()));
+    readonly savingsRateDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
+        buildValueDataset(
+            'Норма накоплений',
+            this.savingsRate(),
+            MS_ANALYTICS_CHART_COLORS.savings,
+            true,
+        ),
+    );
 
     readonly tagExpenseOptions = computed<ReadonlyArray<MsSelectOption>>(() => [
         { value: 'all', label: 'Все теги' },
@@ -161,48 +191,35 @@ export class AnalyticsTabComponent {
             color: item.color,
         })),
     ]);
-    readonly selectedTagExpenses = computed(() => {
-        const selectedTagId = this.selectedTagExpenseId();
-        const tags = [...this.tagExpenses()].sort(
-            (left, right) => right.amountValue - left.amountValue,
-        );
+    readonly selectedTagExpenses = computed(() =>
+        selectLimitedBreakdownItems(this.tagExpenses(), this.selectedTagExpenseId(), 'all'),
+    );
+    readonly visibleTagExpenses = computed(() =>
+        selectLimitedBreakdownItems(
+            this.tagExpenses(),
+            this.selectedTagExpenseId(),
+            this.tagChartLimit(),
+        ),
+    );
+    readonly tagExpenseLabels = computed(() => breakdownLabels(this.visibleTagExpenses()));
+    readonly tagExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
+        buildBreakdownDataset(
+            'Теги',
+            this.visibleTagExpenses(),
+            MS_ANALYTICS_CHART_COLORS.tags,
+            MS_CATEGORY_COLORS,
+        ),
+    );
 
-        if (selectedTagId === 'all') {
-            return tags;
-        }
-
-        return tags.filter((item) => item.id === selectedTagId);
-    });
-    readonly visibleTagExpenses = computed(() => {
-        const selected = this.selectedTagExpenses();
-        const limit = this.tagChartLimit();
-
-        if (limit === 'all') {
-            return selected;
-        }
-
-        return selected.slice(0, Number(limit));
-    });
-    readonly tagExpenseLabels = computed(() => this.visibleTagExpenses().map((item) => item.name));
-    readonly tagExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
-        {
-            label: 'Теги',
-            data: this.visibleTagExpenses().map((item) => item.amountValue),
-            color: '#23c78b',
-            colors: this.visibleTagExpenses().map(
-                (item, index) => item.color || this.pickColor(index),
-            ),
-        },
-    ]);
-
-    readonly topExpenseLabels = computed(() => this.topExpenses().map((item) => item.name));
-    readonly topExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
-        {
-            label: 'Топ расходов',
-            data: this.topExpenses().map((item) => item.amountValue),
-            color: '#e8b45d',
-        },
-    ]);
+    readonly topExpenseLabels = computed(() => breakdownLabels(this.topExpenses()));
+    readonly topExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
+        buildBreakdownDataset(
+            'Топ расходов',
+            this.topExpenses(),
+            MS_ANALYTICS_CHART_COLORS.topExpenses,
+            MS_CATEGORY_COLORS,
+        ),
+    );
 
     setTagChartType(value: string): void {
         if (value === 'bar' || value === 'doughnut') {
@@ -211,42 +228,16 @@ export class AnalyticsTabComponent {
     }
 
     setTagChartLimit(value: string): void {
-        if (value === '5' || value === '10' || value === '15' || value === 'all') {
+        if (isTagChartLimit(value)) {
             this.tagChartLimit.set(value);
         }
     }
 
-    private pickColor(index: number): string {
-        const colors = ['#23c78b', '#67a6c1', '#ff6f91', '#e8b45d', '#c77dff', '#79e0b5'];
-        return colors[index % colors.length];
+    setActiveView(value: AnalyticsViewId): void {
+        this.activeView.set(value);
     }
+}
 
-    private limitCategoryChartItems(
-        items: ReadonlyArray<CategoryBreakdownItem>,
-    ): CategoryBreakdownItem[] {
-        const sorted = [...items].sort((left, right) => right.amountValue - left.amountValue);
-
-        if (sorted.length <= 10) {
-            return sorted;
-        }
-
-        const visible = sorted.slice(0, 9);
-        const rest = sorted.slice(9);
-        const amountValue = rest.reduce((sum, item) => sum + item.amountValue, 0);
-
-        return [
-            ...visible,
-            {
-                id: 'other',
-                name: 'Прочее',
-                amount: '',
-                amountValue,
-                progress: 0,
-                color: '#8aa39a',
-                type: visible[0]?.type ?? 'expense',
-                tone: 'warning',
-                isSystem: false,
-            },
-        ];
-    }
+function sumBreakdownValues(items: ReadonlyArray<CategoryBreakdownItem>): number {
+    return items.reduce((sum, item) => sum + item.amountValue, 0);
 }

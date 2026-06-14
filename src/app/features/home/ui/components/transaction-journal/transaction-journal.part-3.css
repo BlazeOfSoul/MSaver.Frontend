@@ -1,0 +1,24 @@
+@media (max-width: 900px) {
+    .transactions-table-shell {
+        overflow: visible;
+        border: 0;
+        background: transparent;
+    }
+
+    .transactions-table {
+        min-width: 0;
+    }
+
+    .transactions-table thead {
+        display: none;
+    }
+
+    .transactions-table {
+        display: block;
+        width: 100%;
+    }
+
+    .pagination {
+        justify-content: center;
+    }
+}

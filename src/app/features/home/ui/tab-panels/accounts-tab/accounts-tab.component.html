@@ -1,128 +1,23 @@
 <section class="accounts-layout">
-    <article class="panel">
-        <div class="panel__header">
-            <div>
-                <h2>Счета и балансы</h2>
-                <p>Карты, наличные и резервы с балансом в своей валюте.</p>
-            </div>
-        </div>
-
-        <div class="accounts-summary" aria-label="Сводный баланс">
-            <div class="accounts-summary__copy">
-                <span class="accounts-summary__label">Сводный баланс</span>
-                <strong
-                    class="accounts-summary__value"
-                    [class.accounts-summary__value--negative]="summaryBalanceValue() < 0"
-                >
-                    {{ summaryBalanceLabel() }}
-                </strong>
-            </div>
-            <span class="accounts-summary__helper">Все счета в валюте приложения</span>
-        </div>
-
-        <div class="accounts-toolbar">
-            <ms-select
-                [options]="accountFilterOptions()"
-                [value]="selectedAccountId()"
-                (valueChange)="accountChange.emit($event)"
-            ></ms-select>
-
-            <ms-input
-                [formControl]="searchControl()"
-                placeholder="Поиск по названию или валюте"
-            ></ms-input>
-        </div>
-
-        @if (accounts().length) {
-            <div class="accounts-grid">
-                @for (account of accounts(); track account.id) {
-                    <article class="account-card" [style.--account-color]="account.color">
-                        <div class="account-card__top">
-                            <span class="account-card__icon">
-                                <span class="material-symbols-outlined">
-                                    account_balance_wallet
-                                </span>
-                            </span>
-                            <strong>{{ account.name }}</strong>
-
-                            @if (!account.isPrimary) {
-                                <ms-button
-                                    appearance="icon"
-                                    variant="danger"
-                                    size="sm"
-                                    data-testid="delete-account"
-                                    [disabled]="saving()"
-                                    (onClick)="deleteAccount.emit(account.id)"
-                                    aria-label="Удалить счёт"
-                                >
-                                    <span class="material-symbols-outlined">delete</span>
-                                </ms-button>
-                            } @else {
-                                <span class="account-card__badge">Основной</span>
-                            }
-                        </div>
-
-                        <span class="account-card__currency">{{ account.currencyLabel }}</span>
-                        <strong
-                            class="account-card__balance"
-                            [class.account-card__balance--negative]="account.balanceValue < 0"
-                        >
-                            {{ account.balanceLabel }}
-                        </strong>
-                        <span class="account-card__change">
-                            За месяц: {{ account.monthChangeLabel }}
-                        </span>
-                    </article>
-                }
-            </div>
-        } @else {
-            <div class="accounts-empty">
-                @if (allAccounts().length) {
-                    <span class="material-symbols-outlined">search_off</span>
-                    <strong>Ничего не найдено</strong>
-                    <p>Измените фильтр или поисковый запрос, чтобы увидеть нужный счёт.</p>
-                } @else {
-                    <span class="material-symbols-outlined">account_balance_wallet</span>
-                    <strong>Пока нет счетов</strong>
-                    <p>Создайте первый счёт, чтобы появились баланс, переводы и аналитика.</p>
-                }
-            </div>
-        }
-
-        <div class="account-create">
-            <div class="account-create__fields">
-                <div class="account-create__field-stack">
-                    <ms-input
-                        [ngModel]="newAccountName()"
-                        (ngModelChange)="newAccountNameChange.emit($event)"
-                        placeholder="Название счёта..."
-                        [invalid]="!!newAccountNameError()"
-                    ></ms-input>
-
-                    @if (newAccountNameError()) {
-                        <p class="field-error">{{ newAccountNameError() }}</p>
-                    }
-                </div>
-
-                <ms-select
-                    [options]="currencyOptions()"
-                    [value]="newAccountCurrency()"
-                    (valueChange)="newAccountCurrencyChange.emit($event)"
-                ></ms-select>
-            </div>
-
-            <ms-button
-                appearance="icon"
-                variant="primary"
-                size="lg"
-                [disabled]="saving()"
-                (onClick)="createAccount.emit()"
-                aria-label="Добавить счёт"
-            >
-                <span class="material-symbols-outlined">add</span>
-            </ms-button>
-        </div>
-    </article>
+    <ms-account-list-panel
+        [accounts]="accounts()"
+        [allAccounts]="allAccounts()"
+        [currencyOptions]="currencyOptions()"
+        [accountFilterOptions]="accountFilterOptions()"
+        [searchControl]="searchControl()"
+        [selectedAccountId]="selectedAccountId()"
+        [summaryBalanceLabel]="summaryBalanceLabel()"
+        [summaryBalanceValue]="summaryBalanceValue()"
+        [newAccountName]="newAccountName()"
+        [newAccountCurrency]="newAccountCurrency()"
+        [newAccountNameError]="newAccountNameError()"
+        [saving]="saving()"
+        (newAccountNameChange)="newAccountNameChange.emit($event)"
+        (newAccountCurrencyChange)="newAccountCurrencyChange.emit($event)"
+        (createAccount)="createAccount.emit()"
+        (deleteAccount)="deleteAccount.emit($event)"
+        (accountChange)="accountChange.emit($event)"
+    ></ms-account-list-panel>
 
     <article class="panel">
         <div class="panel__header">
@@ -135,160 +30,15 @@
             </div>
         </div>
 
-        @if (accountOptions().length > 1) {
-            <div class="transfer-form">
-                <div class="transfer-flow">
-                    <section class="transfer-panel transfer-panel--from" aria-label="Списание">
-                        <div class="transfer-panel__heading">
-                            <span class="material-symbols-outlined" aria-hidden="true">
-                                call_made
-                            </span>
-                            <div>
-                                <strong>К списанию</strong>
-                                <small>Счёт и сумма, которые уменьшатся</small>
-                            </div>
-                        </div>
-
-                        <ms-select
-                            label="Счёт списания"
-                            [options]="accountOptions()"
-                            [value]="transferDraft().fromAccountId"
-                            (valueChange)="
-                                transferDraftChange.emit({
-                                    ...transferDraft(),
-                                    fromAccountId: $event,
-                                })
-                            "
-                        ></ms-select>
-
-                        <div
-                            class="transfer-field transfer-field--amount transfer-amount-card transfer-amount-card--withdraw"
-                        >
-                            <span class="transfer-amount-card__label">Будет списано</span>
-                            <ms-input
-                                [ngModel]="transferAmountText()"
-                                (focused)="onTransferAmountFocus()"
-                                (blurred)="onTransferAmountBlur()"
-                                (ngModelChange)="onTransferAmountInput($event)"
-                                placeholder="0.00"
-                                inputMode="decimal"
-                                type="text"
-                            ></ms-input>
-                            <small>{{ fromAccount()?.currencyCode || 'Валюта списания' }}</small>
-                        </div>
-                    </section>
-
-                    <div class="transfer-direction" aria-hidden="true">
-                        <span class="material-symbols-outlined">arrow_forward</span>
-                    </div>
-
-                    <section class="transfer-panel transfer-panel--to" aria-label="Зачисление">
-                        <div class="transfer-panel__heading">
-                            <span class="material-symbols-outlined" aria-hidden="true">
-                                call_received
-                            </span>
-                            <div>
-                                <strong>К зачислению</strong>
-                                <small>Счёт, который получит деньги</small>
-                            </div>
-                        </div>
-
-                        <ms-select
-                            label="Счёт зачисления"
-                            [options]="accountOptions()"
-                            [value]="transferDraft().toAccountId"
-                            (valueChange)="
-                                transferDraftChange.emit({
-                                    ...transferDraft(),
-                                    toAccountId: $event,
-                                })
-                            "
-                        ></ms-select>
-
-                        <div
-                            class="transfer-field transfer-amount-card transfer-amount-card--deposit"
-                        >
-                            <span class="transfer-amount-card__label">Будет зачислено</span>
-                            <ms-input
-                                [ngModel]="transferReceiveAmountText()"
-                                (focused)="onTransferReceiveAmountFocus()"
-                                (blurred)="onTransferReceiveAmountBlur()"
-                                (ngModelChange)="onTransferReceiveAmountInput($event)"
-                                placeholder="0.00"
-                                inputMode="decimal"
-                                type="text"
-                            ></ms-input>
-                            @if (usesDifferentCurrencies()) {
-                                <small
-                                    >{{ toAccount()?.currencyCode }} · пересчёт по курсу
-                                    ниже.</small
-                                >
-                            } @else {
-                                <small>Валюта совпадает, сумма не меняется.</small>
-                            }
-                        </div>
-                    </section>
-                </div>
-
-                @if (usesDifferentCurrencies()) {
-                    <div class="transfer-conversion-card">
-                        <div class="transfer-conversion-card__copy">
-                            <span>Курс пересчёта</span>
-                            <strong>{{ bankRatePairLabel() }}</strong>
-                            <small>Автоматический курс можно поправить для этого перевода.</small>
-                        </div>
-
-                        <div class="transfer-rate">
-                            <span class="transfer-rate__label">Курс {{ bankRatePairLabel() }}</span>
-                            <ms-input
-                                [ngModel]="displayTransferRate()"
-                                (ngModelChange)="onTransferRateInput($event)"
-                                placeholder="Например, 2.89"
-                                inputMode="decimal"
-                                type="text"
-                            ></ms-input>
-                            <span class="transfer-rate__hint">
-                                @if (rateLoading()) {
-                                    Получаем актуальный курс...
-                                } @else {
-                                    {{ bankRateHint() }}
-                                }
-                            </span>
-                            @if (transferRateError()) {
-                                <span class="field-error">{{ transferRateError() }}</span>
-                            }
-                        </div>
-                    </div>
-                }
-
-                <div class="transfer-field transfer-description">
-                    <span class="transfer-field__label">Комментарий</span>
-                    <ms-input
-                        [ngModel]="transferDraft().description"
-                        (ngModelChange)="
-                            transferDraftChange.emit({ ...transferDraft(), description: $event })
-                        "
-                        placeholder="Необязательно"
-                        type="text"
-                    ></ms-input>
-                </div>
-            </div>
-        } @else {
-            <div class="accounts-empty accounts-empty--compact">
-                <span class="material-symbols-outlined">swap_horiz</span>
-                <strong>Переводы появятся после второго счёта</strong>
-                <p>Создайте минимум два счёта, чтобы переводить деньги между ними.</p>
-            </div>
-        }
-
-        <ms-button
-            variant="primary"
-            [fullWidth]="true"
-            [loading]="saving()"
-            [disabled]="!canSubmitTransfer()"
-            (onClick)="submitTransfer.emit()"
-        >
-            Перевести
-        </ms-button>
+        <ms-account-transfer-panel
+            [allAccounts]="allAccounts()"
+            [accountOptions]="accountOptions()"
+            [transferDraft]="transferDraft()"
+            [transferRateError]="transferRateError()"
+            [rateLoading]="rateLoading()"
+            [saving]="saving()"
+            (transferDraftChange)="transferDraftChange.emit($event)"
+            (submitTransfer)="submitTransfer.emit()"
+        ></ms-account-transfer-panel>
     </article>
 </section>

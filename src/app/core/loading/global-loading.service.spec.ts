@@ -48,4 +48,20 @@ describe('GlobalLoadingService', () => {
 
         expect(service.isLoading()).toBe(false);
     });
+
+    it('does not track non-api requests in the loading interceptor', () => {
+        TestBed.configureTestingModule({
+            providers: [GlobalLoadingService],
+        });
+
+        const service = TestBed.inject(GlobalLoadingService);
+
+        TestBed.runInInjectionContext(() => {
+            loadingInterceptor(new HttpRequest('GET', '/assets/config.json'), () => {
+                return new Observable(() => undefined);
+            }).subscribe();
+        });
+
+        expect(service.isLoading()).toBe(false);
+    });
 });

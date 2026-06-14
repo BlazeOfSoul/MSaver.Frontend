@@ -1,13 +1,20 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    DestroyRef,
+    computed,
+    inject,
+    signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../auth/data-access/auth.service';
 import { AuthStore } from '../../auth/data-access/auth.store';
-import { Button } from '../../../shared/ui/button/button';
-import { SelectComponent } from '../../../shared/ui/select/select';
 import { AddTransactionDialogComponent } from './components/add-transaction-dialog/add-transaction-dialog.component';
+import { FirstAccountSetupComponent } from './components/first-account-setup/first-account-setup.component';
+import { HomeErrorAlertComponent } from './components/home-error-alert/home-error-alert.component';
 import { MainHeaderComponent } from './components/main-header/main-header.component';
 import { MainSummaryCardsComponent } from './components/main-summary-cards/main-summary-cards.component';
 import { MainEmptyStateComponent } from './components/main-empty-state/main-empty-state.component';
@@ -35,12 +42,12 @@ import { HomeDashboardStore } from './home-dashboard.store';
         CategoriesTabComponent,
         SettingsTabComponent,
         AddTransactionDialogComponent,
-        Button,
-        SelectComponent,
+        FirstAccountSetupComponent,
+        HomeErrorAlertComponent,
     ],
     providers: [HomeDashboardStore],
     templateUrl: './home-page.component.html',
-    styleUrl: './home-page.component.css',
+    styleUrls: ['./home-page.component.css', './home-page.part-2.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomePageComponent {
@@ -59,6 +66,8 @@ export class HomePageComponent {
 
     readonly activeTab = this.dashboard.activeTab;
     readonly selectedAccountId = this.dashboard.selectedAccountId;
+    readonly accountsSelectedAccountId = this.dashboard.accountsSelectedAccountId;
+    readonly analyticsSelectedAccountId = this.dashboard.analyticsSelectedAccountId;
     readonly isLoading = this.dashboard.isLoading;
     readonly isSaving = this.dashboard.isSaving;
     readonly isTransferRateLoading = this.dashboard.isTransferRateLoading;
@@ -80,6 +89,7 @@ export class HomePageComponent {
     readonly transferDraft = this.dashboard.transferDraft;
     readonly transactionDraft = this.dashboard.transactionDraft;
     readonly transactionPageSize = this.dashboard.transactionPageSize;
+    readonly transactionPagination = this.dashboard.transactionPagination;
     readonly transactionPageSizeOptions = this.dashboard.transactionPageSizeOptions;
     readonly accounts = this.dashboard.accounts;
     readonly accountList = this.dashboard.accountList;
@@ -87,6 +97,8 @@ export class HomePageComponent {
     readonly filteredTransactions = this.dashboard.filteredTransactions;
     readonly incomeCategories = this.dashboard.incomeCategories;
     readonly expenseCategories = this.dashboard.expenseCategories;
+    readonly analyticsIncomeCategories = this.dashboard.analyticsIncomeCategories;
+    readonly analyticsExpenseCategories = this.dashboard.analyticsExpenseCategories;
     readonly filteredIncomeCategories = this.dashboard.filteredIncomeCategories;
     readonly filteredExpenseCategories = this.dashboard.filteredExpenseCategories;
     readonly tagGroups = this.dashboard.tagGroups;
@@ -111,6 +123,14 @@ export class HomePageComponent {
     readonly summaryCards = this.dashboard.summaryCards;
     readonly activeTabTitle = this.dashboard.activeTabTitle;
     readonly activeTabDescription = this.dashboard.activeTabDescription;
+    readonly transactionCurrencyCode = computed(() => {
+        const accountId = this.transactionDraft().accountId;
+        const selectedAccount = this.accounts().find((account) => account.id === accountId);
+
+        return selectedAccount?.currencyCode ?? this.applicationCurrencyCode();
+    });
+
+    private dismissErrorTimeoutId: number | null = null;
 
     constructor() {
         this.searchControl.valueChanges
@@ -128,6 +148,7 @@ export class HomePageComponent {
             return;
         }
 
+        this.destroyRef.onDestroy(() => this.clearDismissErrorTimeout());
         this.dashboard.loadDashboard();
     }
 
@@ -143,7 +164,8 @@ export class HomePageComponent {
 
         this.isErrorDismissing.set(true);
 
-        window.setTimeout(() => {
+        this.dismissErrorTimeoutId = window.setTimeout(() => {
+            this.dismissErrorTimeoutId = null;
             this.dashboard.dismissError();
             this.isErrorDismissing.set(false);
         }, 180);
@@ -161,8 +183,20 @@ export class HomePageComponent {
         this.dashboard.setAccountFilter(accountId);
     }
 
+    setAccountsAccountFilter(accountId: string): void {
+        this.dashboard.setAccountsAccountFilter(accountId);
+    }
+
+    setAnalyticsAccountFilter(accountId: string): void {
+        this.dashboard.setAnalyticsAccountFilter(accountId);
+    }
+
     setTransactionPageSize(size: number): void {
         this.dashboard.setTransactionPageSize(size);
+    }
+
+    goToTransactionPage(page: number): void {
+        this.dashboard.goToTransactionPage(page);
     }
 
     goToPreviousMonth(): void {
@@ -301,5 +335,14 @@ export class HomePageComponent {
     private completeLogout(): void {
         this.authStore.clearSession();
         this.router.navigateByUrl('/auth');
+    }
+
+    private clearDismissErrorTimeout(): void {
+        if (this.dismissErrorTimeoutId === null) {
+            return;
+        }
+
+        window.clearTimeout(this.dismissErrorTimeoutId);
+        this.dismissErrorTimeoutId = null;
     }
 }

@@ -1,0 +1,71 @@
+<article class="tag-group-card" [style.--tag-color]="group().color">
+    <div class="tag-group-card__header">
+        <strong class="tag-group-card__title">
+            <i aria-hidden="true"></i>
+            <span># {{ group().name }}</span>
+        </strong>
+        <ms-button
+            appearance="icon"
+            variant="danger"
+            size="sm"
+            data-testid="delete-tag"
+            [disabled]="saving()"
+            (onClick)="deleteTag.emit(group().id)"
+            aria-label="Удалить тег"
+        >
+            <span class="material-symbols-outlined">delete</span>
+        </ms-button>
+    </div>
+
+    @if (availableCategoryOptions().length) {
+        <ms-select
+            label="Добавить категорию"
+            [options]="availableCategoryOptions()"
+            value=""
+            placeholder="Выберите категорию"
+            (valueChange)="onAssignCategory($event)"
+        ></ms-select>
+    } @else {
+        <div class="categories-empty categories-empty--compact">
+            Все доступные категории уже в этом теге.
+        </div>
+    }
+
+    <div class="tag-group-card__categories">
+        <span class="tag-group-card__label">
+            Категории в теге · {{ group().categories.length }}
+        </span>
+
+        @if (group().categories.length) {
+            <div class="tag-category-list">
+                @for (category of group().categories; track category.id) {
+                    <span class="tag-category-pill" [style.--category-color]="category.color">
+                        <i aria-hidden="true"></i>
+                        <span>{{ category.name }}</span>
+                        <ms-button
+                            appearance="icon"
+                            variant="neutral"
+                            size="xs"
+                            class="category-chip__action"
+                            data-testid="remove-tag-category"
+                            [disabled]="saving()"
+                            (onClick)="
+                                removeCategoryFromTag.emit({
+                                    tagId: group().id,
+                                    categoryId: category.id,
+                                })
+                            "
+                            aria-label="Убрать категорию из тега"
+                        >
+                            <span class="material-symbols-outlined">close</span>
+                        </ms-button>
+                    </span>
+                }
+            </div>
+        } @else {
+            <div class="categories-empty categories-empty--compact">
+                В этом теге пока нет категорий.
+            </div>
+        }
+    </div>
+</article>

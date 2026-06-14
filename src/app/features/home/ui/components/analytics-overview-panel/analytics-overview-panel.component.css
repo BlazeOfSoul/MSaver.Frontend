@@ -1,0 +1,71 @@
+:host {
+    display: block;
+    min-width: 0;
+}
+
+.panel {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+    padding: 1.125rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-05), var(--color-ms-white-alpha-015)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
+    box-shadow:
+        0 22px 48px var(--color-ms-black-alpha-18),
+        inset 0 1px 0 var(--color-ms-white-alpha-04);
+}
+
+.panel__header h2,
+.metric-card__value {
+    margin: 0;
+    color: var(--color-ms-light);
+}
+
+.panel__header p,
+.metric-card__label,
+.metric-card__caption {
+    margin: 0.25rem 0 0;
+    color: var(--color-ms-light-dark);
+}
+
+.analytics-toolbar {
+    width: min(100%, 22rem);
+}
+
+.metric-grid {
+    display: grid;
+    gap: 0.875rem;
+}
+
+.metric-card {
+    display: grid;
+    gap: 0.25rem;
+    padding: 1rem;
+    border: 1px solid var(--color-ms-white-alpha-045);
+    border-radius: 0.5rem;
+    background: var(--color-ms-white-alpha-03);
+}
+
+.metric-card:nth-child(1) {
+    border-color: color-mix(in oklab, var(--color-ms-success), transparent 82%);
+}
+
+.metric-card:nth-child(2) {
+    border-color: color-mix(in oklab, var(--color-ms-danger), transparent 82%);
+}
+
+.metric-card:nth-child(3) {
+    border-color: color-mix(in oklab, var(--color-ms-warning), transparent 82%);
+}
+
+.metric-card:nth-child(4) {
+    border-color: color-mix(in oklab, var(--color-ms-info), transparent 82%);
+}
+
+.metric-card__value {
+    font-size: 1.4rem;
+    letter-spacing: 0;
+}

@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Button } from '../../../../../shared/ui/button/button';
 import { InputComponent } from '../../../../../shared/ui/input/input';
-import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
+import { MsSelectOption } from '../../../../../shared/ui/select/select';
+import { CategoryGroupPanelComponent } from '../../components/category-group-panel/category-group-panel.component';
+import { NameColorDialogComponent } from '../../components/name-color-dialog/name-color-dialog.component';
+import { TagGroupCardComponent } from '../../components/tag-group-card/tag-group-card.component';
 import { CategoryBreakdownItem, TagGroupItem } from '../../home-page.models';
 
 type CategoryDialogType = 'income' | 'expense';
@@ -10,9 +13,20 @@ type CategoryDialogType = 'income' | 'expense';
 @Component({
     selector: 'ms-categories-tab',
     standalone: true,
-    imports: [FormsModule, ReactiveFormsModule, Button, InputComponent, SelectComponent],
+    imports: [
+        ReactiveFormsModule,
+        Button,
+        InputComponent,
+        CategoryGroupPanelComponent,
+        NameColorDialogComponent,
+        TagGroupCardComponent,
+    ],
     templateUrl: './categories-tab.component.html',
-    styleUrl: './categories-tab.component.css',
+    styleUrls: [
+        './categories-tab.component.css',
+        './categories-tab.part-2.css',
+        './categories-tab.part-3.css',
+    ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CategoriesTabComponent {
@@ -46,7 +60,6 @@ export class CategoriesTabComponent {
     readonly isCategoryDialogOpen = signal(false);
     readonly isTagDialogOpen = signal(false);
     readonly categoryDialogType = signal<CategoryDialogType>('income');
-    private tagBackdropPointerDownStartedOnBackdrop = false;
     readonly categoryDialogTitle = computed(() =>
         this.categoryDialogType() === 'income'
             ? 'Новая категория доходов'
@@ -76,31 +89,11 @@ export class CategoriesTabComponent {
     }
 
     openTagDialog(): void {
-        this.tagBackdropPointerDownStartedOnBackdrop = false;
         this.isTagDialogOpen.set(true);
     }
 
     closeTagDialog(): void {
-        this.tagBackdropPointerDownStartedOnBackdrop = false;
         this.isTagDialogOpen.set(false);
-    }
-
-    onCategoryDialogBackdropClick(event: MouseEvent): void {
-        if (event.target === event.currentTarget) {
-            this.closeCategoryDialog();
-        }
-    }
-
-    onTagDialogBackdropClick(event: MouseEvent): void {
-        if (event.target === event.currentTarget && this.tagBackdropPointerDownStartedOnBackdrop) {
-            this.closeTagDialog();
-        }
-
-        this.tagBackdropPointerDownStartedOnBackdrop = false;
-    }
-
-    onTagDialogBackdropPointerDown(event: PointerEvent): void {
-        this.tagBackdropPointerDownStartedOnBackdrop = event.target === event.currentTarget;
     }
 
     setCategoryDialogName(value: string): void {
@@ -156,15 +149,4 @@ export class CategoriesTabComponent {
         return this.categoryOptions().filter((option) => !assignedIds.has(option.value));
     }
 
-    onAssignCategoryToTag(tagId: string, categoryId: string): void {
-        if (!categoryId) {
-            return;
-        }
-
-        this.assignCategoryToTag.emit({ tagId, categoryId });
-    }
-
-    readColor(event: Event): string {
-        return (event.target as HTMLInputElement | null)?.value || '#23c78b';
-    }
 }

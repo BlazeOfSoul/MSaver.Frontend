@@ -22,7 +22,7 @@
         [attr.aria-invalid]="invalid()"
         [value]="value()"
         [class.has-left-icon]="!!icon()"
-        [class.has-right-action]="!!actionIcon()"
+        [class.has-right-action]="!!actionIcon() || !!afterInputTemplate()"
         (input)="onInput($event)"
         (focus)="onFocus()"
         (blur)="onBlur()"

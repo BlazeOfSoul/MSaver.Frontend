@@ -2,7 +2,7 @@ import { signal, WritableSignal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { AuthService } from '../../auth/data-access/auth.service';
 import { AuthStore } from '../../auth/data-access/auth.store';
 import {
@@ -57,6 +57,19 @@ function transaction(
     };
 }
 
+function account(overrides: Partial<AccountResponse> = {}): AccountResponse {
+    return {
+        id: 'main-account',
+        name: 'Основной счёт',
+        currencyCode: 'BYN',
+        currentBalance: 0,
+        color: '#23c78b',
+        isArchived: false,
+        isPrimary: true,
+        ...overrides,
+    };
+}
+
 describe('HomePageComponent', () => {
     let fixture: ComponentFixture<HomePageComponent>;
     let authStore: {
@@ -80,7 +93,10 @@ describe('HomePageComponent', () => {
         getMonthBalance: ReturnType<typeof vi.fn>;
         createAccount: ReturnType<typeof vi.fn>;
         deleteAccount: ReturnType<typeof vi.fn>;
+        deleteCategory: ReturnType<typeof vi.fn>;
+        createCategory: ReturnType<typeof vi.fn>;
         createTag: ReturnType<typeof vi.fn>;
+        deleteTag: ReturnType<typeof vi.fn>;
         createTransaction: ReturnType<typeof vi.fn>;
         updateTransaction: ReturnType<typeof vi.fn>;
         deleteTransaction: ReturnType<typeof vi.fn>;
@@ -152,7 +168,10 @@ describe('HomePageComponent', () => {
             ),
             createAccount: vi.fn(() => of('account-id')),
             deleteAccount: vi.fn(() => of('account-id')),
+            deleteCategory: vi.fn(() => of('category-id')),
+            createCategory: vi.fn(() => of('category-id')),
             createTag: vi.fn(() => of('tag-id')),
+            deleteTag: vi.fn(() => of('tag-id')),
             createTransaction: vi.fn(() => of('transaction-id')),
             updateTransaction: vi.fn(() => of('transaction-id')),
             deleteTransaction: vi.fn(() => of('transaction-id')),
@@ -225,6 +244,25 @@ describe('HomePageComponent', () => {
         expect(homeApi.getAccounts).not.toHaveBeenCalled();
     });
 
+    it('does not start another full dashboard load while the current one is pending', () => {
+        const pendingAccountsPage = new Subject<PagedResponse<AccountResponse>>();
+        homeApi.getAccounts.mockReturnValue(pendingAccountsPage.asObservable());
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.isLoading()).toBe(true);
+
+        fixture.componentInstance.reloadDashboard();
+
+        expect(homeApi.getAccounts).toHaveBeenCalledTimes(1);
+        expect(homeApi.getCurrentUser).toHaveBeenCalledTimes(1);
+        expect(homeApi.getCategories).not.toHaveBeenCalled();
+
+        pendingAccountsPage.next(page<AccountResponse>([]));
+        pendingAccountsPage.complete();
+    });
+
     it('blocks the dashboard with first-login setup until the primary account is created', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
@@ -246,6 +284,130 @@ describe('HomePageComponent', () => {
             currencyCode: 'USD',
             color: '#23c78b',
         });
+    });
+
+    it('ignores unsupported primary account currency codes', () => {
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.setNewAccountCurrency('ZZZ');
+        component.createPrimaryAccount();
+
+        expect(homeApi.createAccount).toHaveBeenCalledWith({
+            name: 'Основной счёт',
+            currencyCode: 'BYN',
+            color: '#23c78b',
+        });
+    });
+
+    it('does not load transaction data before the first account exists', () => {
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.needsAccountSetup()).toBe(true);
+        expect(homeApi.getAccounts).toHaveBeenCalledTimes(1);
+        expect(homeApi.getCurrentUser).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTransactions).not.toHaveBeenCalled();
+        expect(homeApi.getMonthBalance).not.toHaveBeenCalled();
+        expect(homeApi.getTransferRate).not.toHaveBeenCalled();
+    });
+
+    it('does not reload transaction data from first-login setup when the page size changes', () => {
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.getTransactions.mockClear();
+
+        fixture.componentInstance.setTransactionPageSize(50);
+
+        expect(window.localStorage.getItem('msaver:overview-transaction-count')).toBe('50');
+        expect(homeApi.getTransactions).not.toHaveBeenCalled();
+    });
+
+    it('does not load period transaction data before the first account exists', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-12-11T12:00:00'));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.getTransactions.mockClear();
+        homeApi.getMonthBalance.mockClear();
+
+        fixture.componentInstance.goToNextMonth();
+
+        expect(fixture.componentInstance.needsAccountSetup()).toBe(true);
+        expect(homeApi.getTransactions).not.toHaveBeenCalled();
+        expect(homeApi.getMonthBalance).not.toHaveBeenCalled();
+
+        vi.useRealTimers();
+    });
+
+    it('refreshes account data after first-login account creation without reloading current user', () => {
+        const primaryAccount: AccountResponse = {
+            id: 'primary-account',
+            name: 'Основной счёт',
+            currencyCode: 'USD',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+            isPrimary: true,
+        };
+
+        homeApi.getAccounts
+            .mockReturnValueOnce(of(page<AccountResponse>([])))
+            .mockReturnValueOnce(of(page<AccountResponse>([primaryAccount])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+        const initialUserCalls = homeApi.getCurrentUser.mock.calls.length;
+
+        component.setNewAccountCurrency('USD');
+        component.createPrimaryAccount();
+
+        expect(homeApi.createAccount).toHaveBeenCalledWith({
+            name: 'Основной счёт',
+            currencyCode: 'USD',
+            color: '#23c78b',
+        });
+        expect(homeApi.getAccounts.mock.calls.length).toBeGreaterThan(1);
+        expect(homeApi.getCurrentUser).toHaveBeenCalledTimes(initialUserCalls);
+        expect(component.accounts().map((account) => account.id)).toEqual(['primary-account']);
+    });
+
+    it('ignores stale dashboard payloads after creating the primary account during initial load', () => {
+        const pendingInitialAccounts = new Subject<PagedResponse<AccountResponse>>();
+        const primaryAccount: AccountResponse = {
+            id: 'primary-account',
+            name: 'Основной счёт',
+            currencyCode: 'BYN',
+            currentBalance: 100,
+            color: '#23c78b',
+            isArchived: false,
+            isPrimary: true,
+        };
+
+        homeApi.getAccounts
+            .mockReturnValueOnce(pendingInitialAccounts.asObservable())
+            .mockReturnValueOnce(of(page<AccountResponse>([primaryAccount])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.createPrimaryAccount();
+
+        expect(component.needsAccountSetup()).toBe(false);
+        expect(component.accounts().map((account) => account.id)).toEqual(['primary-account']);
+
+        pendingInitialAccounts.next(page<AccountResponse>([]));
+        pendingInitialAccounts.complete();
+
+        expect(component.needsAccountSetup()).toBe(false);
+        expect(component.accounts().map((account) => account.id)).toEqual(['primary-account']);
     });
 
     it('sends transfer currency rate when accounts use different currencies', () => {
@@ -296,7 +458,156 @@ describe('HomePageComponent', () => {
         });
     });
 
+    it('does not send a transfer between different currencies until a rate exists', () => {
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) =>
+            fromAccountId === 'from-account' && toAccountId === 'to-account'
+                ? throwError(() => new Error('Rate unavailable'))
+                : of({
+                      rate: 0.9,
+                      fromCurrencyCode: 'EUR',
+                      toCurrencyCode: 'USD',
+                  }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'from-account',
+                        name: 'USD card',
+                        currencyCode: 'USD',
+                        currentBalance: 500,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'to-account',
+                        name: 'EUR reserve',
+                        currencyCode: 'EUR',
+                        currentBalance: 200,
+                        color: '#67a6c1',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.updateTransferDraft({
+            fromAccountId: 'from-account',
+            toAccountId: 'to-account',
+            amount: 100,
+            rate: null,
+            description: 'Reserve top-up',
+        });
+        expect(fixture.componentInstance.accounts().map((account) => account.id)).toEqual([
+            'from-account',
+            'to-account',
+        ]);
+        expect(fixture.componentInstance.transferDraft().rate).toBeNull();
+
+        fixture.componentInstance.transferBetweenAccounts();
+
+        expect(homeApi.createTransfer).not.toHaveBeenCalled();
+    });
+
+    it('does not send a transfer when the amount is not a positive finite number', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'from-account',
+                        name: 'USD card',
+                        currencyCode: 'USD',
+                        currentBalance: 500,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                    {
+                        id: 'to-account',
+                        name: 'EUR reserve',
+                        currencyCode: 'EUR',
+                        currentBalance: 200,
+                        color: '#67a6c1',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        [-100, Number.NaN, Number.POSITIVE_INFINITY].forEach((amount) => {
+            fixture.componentInstance.updateTransferDraft({
+                fromAccountId: 'from-account',
+                toAccountId: 'to-account',
+                amount,
+                rate: 1.1,
+                description: 'Reserve top-up',
+            });
+            fixture.componentInstance.transferBetweenAccounts();
+        });
+
+        expect(homeApi.createTransfer).not.toHaveBeenCalled();
+    });
+
+    it('refreshes transaction data after transfer without reloading static dashboard data', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'from-account',
+                        name: 'USD card',
+                        currencyCode: 'USD',
+                        currentBalance: 500,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                    {
+                        id: 'to-account',
+                        name: 'EUR reserve',
+                        currencyCode: 'EUR',
+                        currentBalance: 200,
+                        color: '#67a6c1',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.updateTransferDraft({
+            fromAccountId: 'from-account',
+            toAccountId: 'to-account',
+            amount: 100,
+            rate: 1.1,
+            description: 'Reserve top-up',
+        });
+
+        const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
+        const initialCurrentUserCalls = homeApi.getCurrentUser.mock.calls.length;
+        const initialCategoryCalls = homeApi.getCategories.mock.calls.length;
+        const initialTransactionCalls = homeApi.getTransactions.mock.calls.length;
+        const initialBalanceCalls = homeApi.getMonthBalance.mock.calls.length;
+
+        fixture.componentInstance.transferBetweenAccounts();
+
+        expect(homeApi.createTransfer).toHaveBeenCalled();
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
+        expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls + 2);
+        expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
+        expect(homeApi.getCurrentUser.mock.calls.length).toBe(initialCurrentUserCalls);
+        expect(homeApi.getCategories.mock.calls.length).toBe(initialCategoryCalls);
+    });
+
     it('loads 25 latest transactions by default for the overview journal', () => {
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account()])));
+
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
@@ -305,8 +616,139 @@ describe('HomePageComponent', () => {
         );
     });
 
+    it('loads the next backend transaction page from the overview pagination', () => {
+        const mainAccount = account();
+        const expenseCategory: CategoryResponse = {
+            id: 'expense-category',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff6f91',
+        };
+        const firstTransaction = {
+            ...transaction('first-page-transaction', mainAccount, expenseCategory, -10),
+            description: 'First page transaction',
+        };
+        const secondTransaction = {
+            ...transaction('second-page-transaction', mainAccount, expenseCategory, -20),
+            description: 'Second page transaction',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([expenseCategory])));
+        homeApi.getTransactions.mockImplementation(
+            (query: { page?: number; size?: number }) => {
+                if (query.size !== undefined && query.page === 1) {
+                    return of<PagedResponse<TransactionResponse>>({
+                        ...page([firstTransaction]),
+                        page: 1,
+                        size: 25,
+                        totalCount: 2,
+                        totalPages: 2,
+                        hasPreviousPage: false,
+                        hasNextPage: true,
+                    });
+                }
+
+                if (query.size !== undefined && query.page === 2) {
+                    return of<PagedResponse<TransactionResponse>>({
+                        ...page([secondTransaction]),
+                        page: 2,
+                        size: 25,
+                        totalCount: 2,
+                        totalPages: 2,
+                        hasPreviousPage: true,
+                        hasNextPage: false,
+                    });
+                }
+
+                return of(page<TransactionResponse>([]));
+            },
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain('1 / 2');
+
+        host.querySelector<HTMLButtonElement>('[data-testid="next-transactions-page"]')?.click();
+        fixture.detectChanges();
+
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({ page: 2, size: 25 }),
+        );
+        expect(host.textContent ?? '').toContain('Second page transaction');
+        expect(host.textContent ?? '').not.toContain('First page transaction');
+        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain('2 / 2');
+
+        host.querySelector<HTMLButtonElement>('[data-testid="previous-transactions-page"]')?.click();
+        fixture.detectChanges();
+
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({ page: 1, size: 25 }),
+        );
+        expect(host.textContent ?? '').toContain('First page transaction');
+        expect(host.textContent ?? '').not.toContain('Second page transaction');
+        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain('1 / 2');
+    });
+
+    it('loads additional paged transaction data sequentially', () => {
+        const pendingSecondYearPage = new Subject<PagedResponse<TransactionResponse>>();
+        const pendingThirdYearPage = new Subject<PagedResponse<TransactionResponse>>();
+        const wasYearPageRequested = (pageNumber: number) =>
+            homeApi.getTransactions.mock.calls.some(([query]) => {
+                const transactionQuery = query as { page?: number; size?: number };
+
+                return transactionQuery.page === pageNumber && transactionQuery.size === undefined;
+            });
+
+        homeApi.getTransactions.mockImplementation(
+            (query: { page?: number; size?: number; fromDate: string; toDate: string }) => {
+                if (query.size !== undefined) {
+                    return of(page<TransactionResponse>([]));
+                }
+
+                if (query.page === 1) {
+                    return of({
+                        ...page<TransactionResponse>([]),
+                        totalCount: 3,
+                        totalPages: 3,
+                        hasNextPage: true,
+                    });
+                }
+
+                if (query.page === 2) {
+                    return pendingSecondYearPage.asObservable();
+                }
+
+                if (query.page === 3) {
+                    return pendingThirdYearPage.asObservable();
+                }
+
+                return of(page<TransactionResponse>([]));
+            },
+        );
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account()])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(wasYearPageRequested(2)).toBe(true);
+        expect(wasYearPageRequested(3)).toBe(false);
+
+        pendingSecondYearPage.next(page<TransactionResponse>([]));
+        pendingSecondYearPage.complete();
+
+        expect(wasYearPageRequested(3)).toBe(true);
+
+        pendingThirdYearPage.next(page<TransactionResponse>([]));
+        pendingThirdYearPage.complete();
+    });
+
     it('loads the remembered transaction count for the overview journal', () => {
         window.localStorage.setItem('msaver:overview-transaction-count', '50');
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account()])));
 
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
@@ -317,6 +759,8 @@ describe('HomePageComponent', () => {
     });
 
     it('persists transaction count changes and reloads the overview journal', () => {
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account()])));
+
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
         homeApi.getTransactions.mockClear();
@@ -327,6 +771,925 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions).toHaveBeenCalledWith(
             expect.objectContaining({ page: 1, size: 100 }),
         );
+    });
+
+    it('does not load tag details during the initial overview load', () => {
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(homeApi.getTags).not.toHaveBeenCalled();
+        expect(homeApi.getTagById).not.toHaveBeenCalled();
+    });
+
+    it('does not load categories during the initial overview load', () => {
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(homeApi.getCategories).not.toHaveBeenCalled();
+    });
+
+    it('loads transfer rates for the transfer form only after opening accounts', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    account({ id: 'byn-account', currencyCode: 'BYN', isPrimary: true }),
+                    account({ id: 'usd-account', currencyCode: 'USD', isPrimary: false }),
+                ]),
+            ),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) =>
+            of({
+                rate: fromAccountId === 'usd-account' && toAccountId === 'byn-account' ? 3 : 0.33,
+                fromCurrencyCode: fromAccountId === 'usd-account' ? 'USD' : 'BYN',
+                toCurrencyCode: toAccountId === 'usd-account' ? 'USD' : 'BYN',
+            }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(homeApi.getTransferRate).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('usd-account', 'byn-account');
+        expect(homeApi.getTransferRate).not.toHaveBeenCalledWith('byn-account', 'usd-account');
+
+        homeApi.getTransferRate.mockClear();
+
+        fixture.componentInstance.setActiveTab('accounts');
+
+        expect(homeApi.getTransferRate).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('byn-account', 'usd-account');
+        expect(fixture.componentInstance.transferDraft().rate).toBe(0.33);
+    });
+
+    it('loads categories when the transaction dialog opens from overview', () => {
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.getCategories.mockClear();
+
+        fixture.componentInstance.startAddingTransaction();
+
+        expect(homeApi.getCategories).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the selected transaction account currency in the transaction dialog', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    account({
+                        id: 'usd-account',
+                        name: 'USD account',
+                        currencyCode: 'USD',
+                        isPrimary: true,
+                    }),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.startAddingTransaction();
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const suffix = host.querySelector<HTMLElement>('.dialog__amount-currency');
+
+        expect(suffix?.textContent?.trim()).toBe('USD');
+    });
+
+    it('loads categories when a category-backed tab is opened', () => {
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.getCategories.mockClear();
+
+        fixture.componentInstance.setActiveTab('categories');
+
+        expect(homeApi.getCategories).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back from unsafe category option colors returned by the backend', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: 'url(https://example.test/tracker)',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setActiveTab('categories');
+
+        expect(fixture.componentInstance.allCategoryOptions()[0]?.color).toBe('#23c78b');
+    });
+
+    it('loads tag details once when a tag-backed tab is opened', () => {
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(homeApi.getTags).not.toHaveBeenCalled();
+
+        fixture.componentInstance.setActiveTab('categories');
+        fixture.componentInstance.setActiveTab('analytics');
+
+        expect(homeApi.getTags).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(1);
+    });
+
+    it('loads tag details sequentially instead of starting every tag detail request at once', () => {
+        const firstTagDetails$ = new Subject<TagDetailsResponse>();
+        homeApi.getTags.mockReturnValue(
+            of(
+                page<TagResponse>([
+                    { id: 'first-tag', name: 'Essentials', color: '#23c78b' },
+                    { id: 'second-tag', name: 'Subscriptions', color: '#e8b45d' },
+                ]),
+            ),
+        );
+        homeApi.getTagById.mockImplementation((tagId: string) => {
+            if (tagId === 'first-tag') {
+                return firstTagDetails$.asObservable();
+            }
+
+            return of<TagDetailsResponse>({
+                id: 'second-tag',
+                name: 'Subscriptions',
+                color: '#e8b45d',
+                isDeleted: false,
+                categories: [],
+            });
+        });
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setActiveTab('categories');
+
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTagById).toHaveBeenCalledWith('first-tag');
+
+        firstTagDetails$.next({
+            id: 'first-tag',
+            name: 'Essentials',
+            color: '#23c78b',
+            isDeleted: false,
+            categories: [],
+        });
+        firstTagDetails$.complete();
+
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(2);
+        expect(homeApi.getTagById).toHaveBeenCalledWith('second-tag');
+        expect(fixture.componentInstance.tagGroups().map((tag) => tag.id)).toEqual([
+            'first-tag',
+            'second-tag',
+        ]);
+    });
+
+    it('refreshes tag details after an in-flight tag load finishes when tags changed meanwhile', () => {
+        const pendingTagPage = new Subject<PagedResponse<TagResponse>>();
+        homeApi.getTags
+            .mockReturnValueOnce(pendingTagPage.asObservable())
+            .mockReturnValueOnce(
+                of(
+                    page<TagResponse>([
+                        { id: 'tag-id', name: 'Essentials', color: '#23c78b' },
+                        { id: 'new-tag-id', name: 'Subscriptions', color: '#e8b45d' },
+                    ]),
+                ),
+            );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setActiveTab('categories');
+        fixture.componentInstance.setNewTagGroup('Subscriptions');
+        fixture.componentInstance.setNewTagGroupColor('#e8b45d');
+        fixture.componentInstance.addTagGroup();
+
+        expect(homeApi.createTag).toHaveBeenCalledWith({
+            name: 'Subscriptions',
+            color: '#e8b45d',
+        });
+        expect(homeApi.getTags).toHaveBeenCalledTimes(1);
+
+        pendingTagPage.next(
+            page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }]),
+        );
+        pendingTagPage.complete();
+
+        expect(homeApi.getTags).toHaveBeenCalledTimes(2);
+    });
+
+    it('loads only selected month balances during the initial overview load', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-11T12:00:00'));
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'secondary-account',
+                        name: 'Card',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(2);
+        expect(homeApi.getMonthBalance).toHaveBeenCalledWith('main-account', 2026, 6);
+        expect(homeApi.getMonthBalance).toHaveBeenCalledWith('secondary-account', 2026, 6);
+
+        vi.useRealTimers();
+    });
+
+    it('loads selected month balances sequentially during the initial overview load', () => {
+        const firstBalance$ = new Subject<MonthBalanceResponse>();
+        const accounts: AccountResponse[] = [
+            {
+                id: 'main-account',
+                name: 'Main account',
+                currencyCode: 'BYN',
+                currentBalance: 0,
+                color: '#23c78b',
+                isArchived: false,
+                isPrimary: true,
+            },
+            {
+                id: 'secondary-account',
+                name: 'Card',
+                currencyCode: 'BYN',
+                currentBalance: 0,
+                color: '#67a6c1',
+                isArchived: false,
+                isPrimary: false,
+            },
+        ];
+
+        homeApi.getAccounts.mockReturnValue(of(page(accounts)));
+        homeApi.getMonthBalance.mockImplementation((accountId: string, year: number, month: number) => {
+            if (accountId === 'main-account') {
+                return firstBalance$.asObservable();
+            }
+
+            return of<MonthBalanceResponse>({
+                accountId,
+                accountName: 'Card',
+                currencyCode: 'BYN',
+                openingBalance: 0,
+                monthChange: 0,
+                closingBalance: 20,
+                year,
+                month,
+            });
+        });
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(1);
+        expect(homeApi.getMonthBalance).toHaveBeenCalledWith(
+            'main-account',
+            expect.any(Number),
+            expect.any(Number),
+        );
+
+        firstBalance$.next({
+            accountId: 'main-account',
+            accountName: 'Main account',
+            currencyCode: 'BYN',
+            openingBalance: 0,
+            monthChange: 0,
+            closingBalance: 10,
+            year: 2026,
+            month: 6,
+        });
+        firstBalance$.complete();
+
+        expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(2);
+        expect(homeApi.getMonthBalance).toHaveBeenCalledWith(
+            'secondary-account',
+            expect.any(Number),
+            expect.any(Number),
+        );
+    });
+
+    it('loads missing year balances when analytics is opened', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-11T12:00:00'));
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'secondary-account',
+                        name: 'Card',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.getMonthBalance.mockClear();
+
+        fixture.componentInstance.setActiveTab('analytics');
+
+        expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(22);
+        expect(homeApi.getMonthBalance).not.toHaveBeenCalledWith('main-account', 2026, 6);
+        expect(homeApi.getMonthBalance).not.toHaveBeenCalledWith('secondary-account', 2026, 6);
+        expect(homeApi.getMonthBalance).toHaveBeenCalledWith('main-account', 2026, 1);
+        expect(homeApi.getMonthBalance).toHaveBeenCalledWith('secondary-account', 2026, 12);
+
+        vi.useRealTimers();
+    });
+
+    it('falls back from unsafe analytics category row colors returned by the backend', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-11T12:00:00'));
+
+        const mainAccount = account();
+        const expenseCategory: CategoryResponse = {
+            id: 'food-id',
+            name: 'Food',
+            type: 'Debit',
+            color: 'linear-gradient(red, blue)',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page([mainAccount])));
+        homeApi.getCategories.mockReturnValue(of(page([expenseCategory])));
+        homeApi.getTransactions.mockReturnValue(
+            of(page([transaction('expense-id', mainAccount, expenseCategory, -42)])),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setActiveTab('analytics');
+
+        expect(fixture.componentInstance.categoryMonthTable().expenseRows[0]?.color).toBe(
+            '#23c78b',
+        );
+
+        vi.useRealTimers();
+    });
+
+    it('loads the next selected year balances even when the previous year is still loading', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-12-11T12:00:00'));
+
+        const pendingJanuary2026Balance = new Subject<MonthBalanceResponse>();
+        const account: AccountResponse = {
+            id: 'main-account',
+            name: 'Main account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+            isPrimary: true,
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account])));
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) => {
+                const response: MonthBalanceResponse = {
+                    accountId,
+                    accountName: 'Main account',
+                    currencyCode: 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: 0,
+                    year,
+                    month,
+                };
+
+                if (year === 2026 && month === 1) {
+                    return pendingJanuary2026Balance.asObservable();
+                }
+
+                return of(response);
+            },
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.getMonthBalance.mockClear();
+
+        fixture.componentInstance.setActiveTab('analytics');
+
+        expect(homeApi.getMonthBalance).toHaveBeenCalledWith('main-account', 2026, 1);
+
+        fixture.componentInstance.goToNextMonth();
+
+        expect(homeApi.getMonthBalance).toHaveBeenCalledWith('main-account', 2027, 1);
+
+        pendingJanuary2026Balance.next({
+            accountId: 'main-account',
+            accountName: 'Main account',
+            currencyCode: 'BYN',
+            openingBalance: 0,
+            monthChange: 0,
+            closingBalance: 0,
+            year: 2026,
+            month: 1,
+        });
+        pendingJanuary2026Balance.complete();
+
+        vi.useRealTimers();
+    });
+
+    it('keeps the newest selected-year transactions when year responses resolve out of order', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-12-11T12:00:00'));
+
+        const account: AccountResponse = {
+            id: 'main-account',
+            name: 'Main account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+            isPrimary: true,
+        };
+        const expenseCategory: CategoryResponse = {
+            id: 'expense-category',
+            name: 'Groceries',
+            type: 'Debit',
+            color: '#ff6f91',
+        };
+        const pendingYear2027Transactions = new Subject<PagedResponse<TransactionResponse>>();
+        const year2026Transaction = transaction('year-2026-expense', account, expenseCategory, -20);
+        const staleYear2027Transaction = {
+            ...transaction('year-2027-expense', account, expenseCategory, -999),
+            date: '2027-06-05T12:00:00',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([expenseCategory])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        homeApi.getTransactions.mockImplementation(
+            (query: { fromDate: string; toDate: string; page?: number }) => {
+                if (query.fromDate === '2027-01-01' && query.toDate === '2028-01-01') {
+                    return pendingYear2027Transactions.asObservable();
+                }
+
+                if (query.fromDate === '2026-01-01' && query.toDate === '2027-01-01') {
+                    return of(page<TransactionResponse>([year2026Transaction]));
+                }
+
+                return of(page<TransactionResponse>([]));
+            },
+        );
+
+        fixture.componentInstance.goToNextMonth();
+        fixture.componentInstance.goToPreviousMonth();
+
+        expect(fixture.componentInstance.monthlyExpensesChart().some((point) => point.value === 20)).toBe(
+            true,
+        );
+
+        pendingYear2027Transactions.next(page<TransactionResponse>([staleYear2027Transaction]));
+        pendingYear2027Transactions.complete();
+
+        expect(fixture.componentInstance.monthlyExpensesChart().some((point) => point.value === 20)).toBe(
+            true,
+        );
+
+        vi.useRealTimers();
+    });
+
+    it('reloads only the current transaction page when the account filter changes', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'secondary-account',
+                        name: 'Card',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        homeApi.getAccounts.mockClear();
+        homeApi.getCurrentUser.mockClear();
+        homeApi.getCategories.mockClear();
+        homeApi.getTags.mockClear();
+        homeApi.getTagById.mockClear();
+        homeApi.getMonthBalance.mockClear();
+        homeApi.getTransferRate.mockClear();
+        homeApi.getTransactions.mockClear();
+
+        fixture.componentInstance.setAccountFilter('secondary-account');
+
+        expect(homeApi.getTransactions).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({
+                accountId: 'secondary-account',
+                page: 1,
+                size: 25,
+            }),
+        );
+        expect(homeApi.getAccounts).not.toHaveBeenCalled();
+        expect(homeApi.getCurrentUser).not.toHaveBeenCalled();
+        expect(homeApi.getCategories).not.toHaveBeenCalled();
+        expect(homeApi.getTags).not.toHaveBeenCalled();
+        expect(homeApi.getTagById).not.toHaveBeenCalled();
+        expect(homeApi.getMonthBalance).not.toHaveBeenCalled();
+        expect(homeApi.getTransferRate).not.toHaveBeenCalled();
+    });
+
+    it('ignores unknown account filters without reloading transactions', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        homeApi.getTransactions.mockClear();
+
+        fixture.componentInstance.setAccountFilter('missing-account');
+
+        expect(fixture.componentInstance.selectedAccountId()).toBe('all');
+        expect(homeApi.getTransactions).not.toHaveBeenCalled();
+    });
+
+    it('keeps analytics account selection separate from overview and accounts filters', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    account({ id: 'main-account', name: 'Main account', isPrimary: true }),
+                    account({
+                        id: 'usd-account',
+                        name: 'USD card',
+                        currencyCode: 'USD',
+                        isPrimary: false,
+                    }),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.getTransactions.mockClear();
+
+        fixture.componentInstance.setAnalyticsAccountFilter('usd-account');
+
+        expect(fixture.componentInstance.analyticsSelectedAccountId()).toBe('usd-account');
+        expect(fixture.componentInstance.selectedAccountId()).toBe('all');
+        expect(fixture.componentInstance.accountsSelectedAccountId()).toBe('all');
+        expect(homeApi.getTransactions).not.toHaveBeenCalled();
+    });
+
+    it('calculates monthly income and expenses from the full period instead of the current page', () => {
+        const mainAccount = account({ id: 'main-account', name: 'Main account' });
+        const salaryCategory: CategoryResponse = {
+            id: 'salary',
+            name: 'Salary',
+            type: 'Credit',
+            color: '#23c78b',
+        };
+        const foodCategory: CategoryResponse = {
+            id: 'food',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff6f91',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
+        homeApi.getTransactions.mockImplementation(
+            (query: { size?: number; fromDate: string; toDate: string }) => {
+                if (query.size) {
+                    return of(page([transaction('visible-income', mainAccount, salaryCategory, 100)]));
+                }
+
+                return of(
+                    page([
+                        transaction('visible-income', mainAccount, salaryCategory, 100),
+                        transaction('period-expense', mainAccount, foodCategory, -40),
+                        transaction('next-page-expense', mainAccount, foodCategory, -60),
+                    ]),
+                );
+            },
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const cards = fixture.componentInstance.summaryCards();
+        const income = cards.find((card) => card.id === 'income');
+        const expense = cards.find((card) => card.id === 'expense');
+
+        expect(income?.value).toContain('100');
+        expect(expense?.value).toContain('100');
+    });
+
+    it('formats analytics for a selected account in that account currency', () => {
+        const bynAccount = account({ id: 'byn-account', name: 'BYN account', currencyCode: 'BYN' });
+        const usdAccount = account({
+            id: 'usd-account',
+            name: 'USD card',
+            currencyCode: 'USD',
+            isPrimary: false,
+        });
+        const salaryCategory: CategoryResponse = {
+            id: 'salary',
+            name: 'Salary',
+            type: 'Credit',
+            color: '#23c78b',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([bynAccount, usdAccount])));
+        homeApi.getTransferRate.mockReturnValue(
+            of({
+                rate: 3,
+                fromCurrencyCode: 'USD',
+                toCurrencyCode: 'BYN',
+            }),
+        );
+        homeApi.getTransactions.mockImplementation(
+            (query: { size?: number; fromDate: string; toDate: string }) => {
+                if (query.size) {
+                    return of(page<TransactionResponse>([]));
+                }
+
+                return of(page([transaction('usd-income', usdAccount, salaryCategory, 100)]));
+            },
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setAnalyticsAccountFilter('usd-account');
+
+        const income = fixture
+            .componentInstance
+            .analyticsMetrics()
+            .find((metric) => metric.id === 'metric-income');
+
+        expect(income?.value).toContain('$');
+        expect(income?.value).toContain('100');
+        expect(income?.value).not.toContain('300');
+    });
+
+    it('ignores stale transaction page responses after the account filter changes again', () => {
+        const firstAccount: AccountResponse = {
+            id: 'first-account',
+            name: 'First account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+            isPrimary: true,
+        };
+        const secondAccount: AccountResponse = {
+            id: 'second-account',
+            name: 'Second account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#67a6c1',
+            isArchived: false,
+            isPrimary: false,
+        };
+        const firstCategory: CategoryResponse = {
+            id: 'first-category',
+            name: 'First transaction',
+            type: 'Debit',
+            color: '#ff6f91',
+        };
+        const secondCategory: CategoryResponse = {
+            id: 'second-category',
+            name: 'Second transaction',
+            type: 'Debit',
+            color: '#e8b45d',
+        };
+        const firstFilterPage$ = new Subject<PagedResponse<TransactionResponse>>();
+        const secondFilterPage$ = new Subject<PagedResponse<TransactionResponse>>();
+
+        homeApi.getAccounts.mockReturnValue(of(page([firstAccount, secondAccount])));
+        homeApi.getCategories.mockReturnValue(of(page([firstCategory, secondCategory])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        homeApi.getTransactions.mockImplementation(
+            (query: { accountId?: string; fromDate: string; toDate: string }) => {
+                if (query.accountId === 'first-account') {
+                    return firstFilterPage$.asObservable();
+                }
+
+                if (query.accountId === 'second-account') {
+                    return secondFilterPage$.asObservable();
+                }
+
+                return of(page<TransactionResponse>([]));
+            },
+        );
+
+        fixture.componentInstance.setAccountFilter('first-account');
+        fixture.componentInstance.setAccountFilter('second-account');
+
+        secondFilterPage$.next(
+            page([transaction('second-transaction', secondAccount, secondCategory, -20)]),
+        );
+        secondFilterPage$.complete();
+
+        expect(fixture.componentInstance.filteredTransactions()[0]?.id).toBe('second-transaction');
+
+        firstFilterPage$.next(
+            page([transaction('first-transaction', firstAccount, firstCategory, -10)]),
+        );
+        firstFilterPage$.complete();
+
+        expect(fixture.componentInstance.filteredTransactions()[0]?.id).toBe('second-transaction');
+    });
+
+    it('reloads only the current transaction page and selected balance when moving inside a loaded year', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-11T12:00:00'));
+
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        homeApi.getAccounts.mockClear();
+        homeApi.getCurrentUser.mockClear();
+        homeApi.getCategories.mockClear();
+        homeApi.getTags.mockClear();
+        homeApi.getTagById.mockClear();
+        homeApi.getMonthBalance.mockClear();
+        homeApi.getTransferRate.mockClear();
+        homeApi.getTransactions.mockClear();
+
+        fixture.componentInstance.goToNextMonth();
+
+        expect(homeApi.getTransactions).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fromDate: '2026-07-01',
+                toDate: '2026-08-01',
+                page: 1,
+                size: 25,
+            }),
+        );
+        expect(homeApi.getAccounts).not.toHaveBeenCalled();
+        expect(homeApi.getCurrentUser).not.toHaveBeenCalled();
+        expect(homeApi.getCategories).not.toHaveBeenCalled();
+        expect(homeApi.getTags).not.toHaveBeenCalled();
+        expect(homeApi.getTagById).not.toHaveBeenCalled();
+        expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(1);
+        expect(homeApi.getMonthBalance).toHaveBeenCalledWith('main-account', 2026, 7);
+        expect(homeApi.getTransferRate).not.toHaveBeenCalled();
+
+        vi.useRealTimers();
+    });
+
+    it('reloads period data without a full dashboard reload when moving into a new year', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-12-11T12:00:00'));
+
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        homeApi.getAccounts.mockClear();
+        homeApi.getCurrentUser.mockClear();
+        homeApi.getCategories.mockClear();
+        homeApi.getTags.mockClear();
+        homeApi.getTagById.mockClear();
+        homeApi.getMonthBalance.mockClear();
+        homeApi.getTransferRate.mockClear();
+        homeApi.getTransactions.mockClear();
+
+        fixture.componentInstance.goToNextMonth();
+
+        expect(homeApi.getTransactions).toHaveBeenCalledTimes(2);
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fromDate: '2027-01-01',
+                toDate: '2027-02-01',
+                page: 1,
+                size: 25,
+            }),
+        );
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fromDate: '2027-01-01',
+                toDate: '2028-01-01',
+                page: 1,
+            }),
+        );
+        expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(1);
+        expect(homeApi.getMonthBalance).toHaveBeenCalledWith('main-account', 2027, 1);
+        expect(homeApi.getAccounts).not.toHaveBeenCalled();
+        expect(homeApi.getCurrentUser).not.toHaveBeenCalled();
+        expect(homeApi.getCategories).not.toHaveBeenCalled();
+        expect(homeApi.getTags).not.toHaveBeenCalled();
+        expect(homeApi.getTagById).not.toHaveBeenCalled();
+        expect(homeApi.getTransferRate).not.toHaveBeenCalled();
+
+        vi.useRealTimers();
     });
 
     it('hides the delete action for the primary account and refreshes accounts after deleting another account', () => {
@@ -367,10 +1730,225 @@ describe('HomePageComponent', () => {
         expect(deleteButtons).toHaveLength(1);
 
         const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
+        const initialUserCalls = homeApi.getCurrentUser.mock.calls.length;
+        const initialCategoryCalls = homeApi.getCategories.mock.calls.length;
+        const initialTagListCalls = homeApi.getTags.mock.calls.length;
+        const initialTagDetailsCalls = homeApi.getTagById.mock.calls.length;
         deleteButtons[0].click();
 
         expect(homeApi.deleteAccount).toHaveBeenCalledWith('secondary-account');
         expect(homeApi.getAccounts.mock.calls.length).toBeGreaterThan(initialAccountCalls);
+        expect(homeApi.getCurrentUser).toHaveBeenCalledTimes(initialUserCalls);
+        expect(homeApi.getCategories).toHaveBeenCalledTimes(initialCategoryCalls);
+        expect(homeApi.getTags).toHaveBeenCalledTimes(initialTagListCalls);
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(initialTagDetailsCalls);
+    });
+
+    it('ignores direct deletes for primary or unknown accounts', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    account({ id: 'primary-account', isPrimary: true }),
+                    account({ id: 'secondary-account', isPrimary: false }),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.deleteAccount('primary-account');
+        fixture.componentInstance.deleteAccount('missing-account');
+
+        expect(homeApi.deleteAccount).not.toHaveBeenCalled();
+    });
+
+    it('does not call the account delete API again while a mutation is pending', () => {
+        const pendingDelete$ = new Subject<string>();
+
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    account({ id: 'primary-account', isPrimary: true }),
+                    account({ id: 'secondary-account', isPrimary: false }),
+                ]),
+            ),
+        );
+        homeApi.deleteAccount.mockReturnValue(pendingDelete$.asObservable());
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.deleteAccount('secondary-account');
+        fixture.componentInstance.deleteAccount('secondary-account');
+
+        expect(homeApi.deleteAccount).toHaveBeenCalledTimes(1);
+
+        pendingDelete$.next('secondary-account');
+        pendingDelete$.complete();
+    });
+
+    it('does not reload account-dependent data after deleting the last account', () => {
+        const lastAccount = account({ id: 'last-account', isPrimary: false });
+
+        homeApi.getAccounts
+            .mockReturnValueOnce(of(page<AccountResponse>([lastAccount])))
+            .mockReturnValueOnce(of(page<AccountResponse>([])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        homeApi.getTransactions.mockClear();
+        homeApi.getMonthBalance.mockClear();
+        homeApi.getTransferRate.mockClear();
+
+        fixture.componentInstance.deleteAccount('last-account');
+
+        expect(homeApi.deleteAccount).toHaveBeenCalledWith('last-account');
+        expect(fixture.componentInstance.needsAccountSetup()).toBe(true);
+        expect(fixture.componentInstance.accounts()).toEqual([]);
+        expect(fixture.componentInstance.filteredTransactions()).toEqual([]);
+        expect(homeApi.getTransactions).not.toHaveBeenCalled();
+        expect(homeApi.getMonthBalance).not.toHaveBeenCalled();
+        expect(homeApi.getTransferRate).not.toHaveBeenCalled();
+    });
+
+    it('refreshes account-dependent data after creating an account without reloading stable dashboard data', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-11T12:00:00'));
+
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'primary-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 100,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setActiveTab('accounts');
+        fixture.componentInstance.setNewAccountName('Карта');
+
+        const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
+        const initialUserCalls = homeApi.getCurrentUser.mock.calls.length;
+        const initialCategoryCalls = homeApi.getCategories.mock.calls.length;
+        const initialTagListCalls = homeApi.getTags.mock.calls.length;
+        const initialTagDetailsCalls = homeApi.getTagById.mock.calls.length;
+        const initialTransactionCalls = homeApi.getTransactions.mock.calls.length;
+
+        fixture.componentInstance.createNewAccount();
+
+        expect(homeApi.createAccount).toHaveBeenCalledWith({
+            name: 'Карта',
+            currencyCode: 'BYN',
+            color: '#ffd166',
+        });
+        expect(homeApi.getAccounts.mock.calls.length).toBeGreaterThan(initialAccountCalls);
+        expect(homeApi.getCurrentUser).toHaveBeenCalledTimes(initialUserCalls);
+        expect(homeApi.getCategories).toHaveBeenCalledTimes(initialCategoryCalls);
+        expect(homeApi.getTags).toHaveBeenCalledTimes(initialTagListCalls);
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(initialTagDetailsCalls);
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
+        expect(homeApi.getTransactions).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+                fromDate: '2026-06-01',
+                toDate: '2026-07-01',
+                page: 1,
+                size: 25,
+            }),
+        );
+
+        homeApi.getTransactions.mockClear();
+
+        fixture.componentInstance.setActiveTab('analytics');
+
+        expect(homeApi.getTransactions).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fromDate: '2026-01-01',
+                toDate: '2027-01-01',
+                page: 1,
+            }),
+        );
+
+        vi.useRealTimers();
+    });
+
+    it('ignores unsupported new account currency codes', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.setActiveTab('accounts');
+        component.setNewAccountCurrency('ZZZ');
+        component.setNewAccountName('Карта');
+        component.createNewAccount();
+
+        expect(homeApi.createAccount).toHaveBeenCalledWith({
+            name: 'Карта',
+            currencyCode: 'BYN',
+            color: '#ffd166',
+        });
+    });
+
+    it('keeps the newest accounts when account refresh responses resolve out of order', () => {
+        const staleAccountRefresh$ = new Subject<PagedResponse<AccountResponse>>();
+        const primaryAccount: AccountResponse = {
+            id: 'primary-account',
+            name: 'Основной счёт',
+            currencyCode: 'BYN',
+            currentBalance: 100,
+            color: '#23c78b',
+            isArchived: false,
+            isPrimary: true,
+        };
+        const secondaryAccount: AccountResponse = {
+            id: 'secondary-account',
+            name: 'Карта',
+            currencyCode: 'BYN',
+            currentBalance: 50,
+            color: '#67a6c1',
+            isArchived: false,
+            isPrimary: false,
+        };
+
+        homeApi.getAccounts
+            .mockReturnValueOnce(of(page<AccountResponse>([primaryAccount, secondaryAccount])))
+            .mockReturnValueOnce(staleAccountRefresh$.asObservable())
+            .mockReturnValueOnce(of(page<AccountResponse>([primaryAccount])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.setNewAccountName('Карта');
+        component.createNewAccount();
+
+        expect(homeApi.getAccounts).toHaveBeenCalledTimes(2);
+
+        component.deleteAccount('secondary-account');
+
+        expect(homeApi.getAccounts).toHaveBeenCalledTimes(3);
+        expect(component.accounts().map((account) => account.id)).toEqual(['primary-account']);
+
+        staleAccountRefresh$.next(page<AccountResponse>([primaryAccount, secondaryAccount]));
+        staleAccountRefresh$.complete();
+
+        expect(component.accounts().map((account) => account.id)).toEqual(['primary-account']);
     });
 
     it('prefills the transfer rate from the backend when selected accounts change', () => {
@@ -416,6 +1994,187 @@ describe('HomePageComponent', () => {
 
         expect(homeApi.getTransferRate).toHaveBeenCalledWith('usd-account', 'byn-account');
         expect(fixture.componentInstance.transferDraft().rate).toBe(3.25);
+    });
+
+    it('clears a stale transfer rate while loading a rate for a newly selected account pair', () => {
+        const pendingNextRate$ = new Subject<{
+            rate: number;
+            fromCurrencyCode: string;
+            toCurrencyCode: string;
+        }>();
+
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'BYN',
+                        currencyCode: 'BYN',
+                        currentBalance: 100,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'usd-account',
+                        name: 'USD',
+                        currencyCode: 'USD',
+                        currentBalance: 50,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                    {
+                        id: 'eur-account',
+                        name: 'EUR',
+                        currencyCode: 'EUR',
+                        currentBalance: 40,
+                        color: '#e8b45d',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) => {
+            if (fromAccountId === 'eur-account' && toAccountId === 'byn-account') {
+                return pendingNextRate$.asObservable();
+            }
+
+            return of({
+                rate: 3.25,
+                fromCurrencyCode: 'USD',
+                toCurrencyCode: 'BYN',
+            });
+        });
+        homeApi.getTransferRate.mockClear();
+
+        fixture.componentInstance.updateTransferDraft({
+            fromAccountId: 'usd-account',
+            toAccountId: 'byn-account',
+            amount: 100,
+            rate: 3.25,
+            description: '',
+        });
+
+        expect(fixture.componentInstance.transferDraft().rate).toBe(3.25);
+
+        homeApi.getTransferRate.mockClear();
+        fixture.componentInstance.updateTransferDraft({
+            ...fixture.componentInstance.transferDraft(),
+            fromAccountId: 'eur-account',
+            toAccountId: 'byn-account',
+        });
+
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('eur-account', 'byn-account');
+        expect(fixture.componentInstance.transferDraft().rate).toBeNull();
+
+        fixture.componentInstance.transferBetweenAccounts();
+
+        expect(homeApi.createTransfer).not.toHaveBeenCalled();
+
+        pendingNextRate$.next({
+            rate: 2.9,
+            fromCurrencyCode: 'EUR',
+            toCurrencyCode: 'BYN',
+        });
+        pendingNextRate$.complete();
+
+        expect(fixture.componentInstance.transferDraft().rate).toBe(2.9);
+    });
+
+    it('ignores stale transfer rate errors after the selected accounts change again', () => {
+        const staleRate$ = new Subject<{
+            rate: number;
+            fromCurrencyCode: string;
+            toCurrencyCode: string;
+        }>();
+
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'USD',
+            }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-cash',
+                        name: 'BYN cash',
+                        currencyCode: 'BYN',
+                        currentBalance: 100,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'byn-card',
+                        name: 'BYN card',
+                        currencyCode: 'BYN',
+                        currentBalance: 50,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                    {
+                        id: 'usd-account',
+                        name: 'USD',
+                        currencyCode: 'USD',
+                        currentBalance: 25,
+                        color: '#e8b45d',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) => {
+            if (fromAccountId === 'usd-account' && toAccountId === 'byn-cash') {
+                return staleRate$.asObservable();
+            }
+
+            return of({
+                rate: 0.31,
+                fromCurrencyCode: 'BYN',
+                toCurrencyCode: 'USD',
+            });
+        });
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.getTransferRate.mockClear();
+
+        fixture.componentInstance.updateTransferDraft({
+            fromAccountId: 'usd-account',
+            toAccountId: 'byn-cash',
+            amount: 0,
+            rate: null,
+            description: '',
+        });
+        fixture.componentInstance.updateTransferDraft({
+            fromAccountId: 'byn-cash',
+            toAccountId: 'usd-account',
+            amount: 0,
+            rate: null,
+            description: '',
+        });
+
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('usd-account', 'byn-cash');
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('byn-cash', 'usd-account');
+        expect(fixture.componentInstance.transferDraft().rate).toBe(0.31);
+
+        staleRate$.error(new HttpErrorResponse({ status: 500, statusText: 'Server error' }));
+
+        expect(fixture.componentInstance.transferDraft().rate).toBe(0.31);
+        expect(fixture.componentInstance.transferRateError()).toBe('');
+        expect(fixture.componentInstance.errorMessage()).toBe('');
     });
 
     it('shows the primary account balance in the summary and the aggregate balance in accounts', () => {
@@ -516,7 +2275,119 @@ describe('HomePageComponent', () => {
         expect(balanceCard?.value).not.toContain('$');
     });
 
-    it('shows balance after closing debt categories in summary cards', () => {
+    it('falls back to the primary account currency when the saved application currency has no matching account', () => {
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'EUR',
+            }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: 'Основной счёт',
+                    currencyCode: 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: 10,
+                    year,
+                    month,
+                }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('BYN');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('Br');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).not.toContain('€');
+        expect(homeApi.getTransferRate).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the primary account currency after deleting the last account in the application currency', () => {
+        const primaryAccount: AccountResponse = {
+            id: 'byn-account',
+            name: 'Main BYN account',
+            currencyCode: 'BYN',
+            currentBalance: 10,
+            color: '#23c78b',
+            isArchived: false,
+            isPrimary: true,
+        };
+        const eurAccount: AccountResponse = {
+            id: 'eur-account',
+            name: 'EUR reserve',
+            currencyCode: 'EUR',
+            currentBalance: 5,
+            color: '#67a6c1',
+            isArchived: false,
+            isPrimary: false,
+        };
+
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'EUR',
+            }),
+        );
+        homeApi.getAccounts
+            .mockReturnValueOnce(of(page<AccountResponse>([primaryAccount, eurAccount])))
+            .mockReturnValueOnce(of(page<AccountResponse>([primaryAccount])));
+        homeApi.getTransferRate.mockReturnValue(
+            of({
+                rate: 0.25,
+                fromCurrencyCode: 'BYN',
+                toCurrencyCode: 'EUR',
+            }),
+        );
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId === 'eur-account' ? 'EUR reserve' : 'Main BYN account',
+                    currencyCode: accountId === 'eur-account' ? 'EUR' : 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: accountId === 'eur-account' ? 5 : 10,
+                    year,
+                    month,
+                }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
+
+        fixture.componentInstance.deleteAccount('eur-account');
+
+        expect(homeApi.deleteAccount).toHaveBeenCalledWith('eur-account');
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('BYN');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('Br');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).not.toContain('â‚¬');
+    });
+
+    it('shows the primary account balance after closing debt categories in summary cards', () => {
         const account: AccountResponse = {
             id: 'main-account',
             name: 'Основной счёт',
@@ -525,6 +2396,15 @@ describe('HomePageComponent', () => {
             color: '#23c78b',
             isArchived: false,
             isPrimary: true,
+        };
+        const secondaryAccount: AccountResponse = {
+            id: 'secondary-account',
+            name: 'Savings',
+            currencyCode: 'BYN',
+            currentBalance: 1000,
+            color: '#67a6c1',
+            isArchived: false,
+            isPrimary: false,
         };
         const categories: CategoryResponse[] = [
             {
@@ -563,7 +2443,7 @@ describe('HomePageComponent', () => {
             transaction('paid-back', account, categories[3], 50),
         ];
 
-        homeApi.getAccounts.mockReturnValue(of(page([account])));
+        homeApi.getAccounts.mockReturnValue(of(page([account, secondaryAccount])));
         homeApi.getCategories.mockReturnValue(of(page(categories)));
         homeApi.getTransactions.mockReturnValue(of(page(transactions)));
         homeApi.getMonthBalance.mockImplementation(
@@ -587,8 +2467,7 @@ describe('HomePageComponent', () => {
             .summaryCards()
             .find((card) => card.id === 'debt-balance');
 
-        expect(debtCard?.value).toContain('950');
-        expect(debtCard?.value).toContain('Br');
+        expect(debtCard?.value).toBe('950,00 Br');
         expect(debtCard?.helper).toBe('Баланс после закрытия долгов');
         expect(debtCard?.helperLines).toHaveLength(2);
         expect(debtCard?.helperLines?.[0]).toContain('200');
@@ -664,6 +2543,121 @@ describe('HomePageComponent', () => {
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
     });
 
+    it('loads application exchange rates sequentially instead of starting every rate request at once', () => {
+        const bynRate$ = new Subject<{
+            rate: number;
+            fromCurrencyCode: string;
+            toCurrencyCode: string;
+        }>();
+        const usdRate$ = new Subject<{
+            rate: number;
+            fromCurrencyCode: string;
+            toCurrencyCode: string;
+        }>();
+
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'EUR',
+            }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'BYN account',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'usd-account',
+                        name: 'USD account',
+                        currencyCode: 'USD',
+                        currentBalance: 20,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                    {
+                        id: 'eur-account',
+                        name: 'EUR account',
+                        currencyCode: 'EUR',
+                        currentBalance: 5,
+                        color: '#e8b45d',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId,
+                    currencyCode:
+                        accountId === 'eur-account'
+                            ? 'EUR'
+                            : accountId === 'usd-account'
+                              ? 'USD'
+                              : 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance:
+                        accountId === 'eur-account' ? 5 : accountId === 'usd-account' ? 20 : 10,
+                    year,
+                    month,
+                }),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string) => {
+            if (fromAccountId === 'byn-account') {
+                return bynRate$.asObservable();
+            }
+
+            if (fromAccountId === 'usd-account') {
+                return usdRate$.asObservable();
+            }
+
+            return of({
+                rate: 1,
+                fromCurrencyCode: 'EUR',
+                toCurrencyCode: 'EUR',
+            });
+        });
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(homeApi.getTransferRate).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('byn-account', 'eur-account');
+
+        bynRate$.next({
+            rate: 0.25,
+            fromCurrencyCode: 'BYN',
+            toCurrencyCode: 'EUR',
+        });
+        bynRate$.complete();
+
+        expect(homeApi.getTransferRate).toHaveBeenCalledTimes(2);
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('usd-account', 'eur-account');
+
+        usdRate$.next({
+            rate: 0.1,
+            fromCurrencyCode: 'USD',
+            toCurrencyCode: 'EUR',
+        });
+        usdRate$.complete();
+
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('9,50');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
+    });
+
     it('marks the primary balance summary as negative when the primary account is below zero', () => {
         homeApi.getAccounts.mockReturnValue(
             of(
@@ -705,37 +2699,238 @@ describe('HomePageComponent', () => {
         expect(balanceCard?.tone).toBe('negative');
     });
 
-    it('saves application currency changes from settings and reloads dashboard data', () => {
-        homeApi.getCurrentUser
-            .mockReturnValueOnce(
-                of<CurrentUserResponse>({
-                    id: 'user-123',
-                    username: 'Alex',
-                    email: 'alex@example.com',
-                    applicationCurrencyCode: 'BYN',
+    it('saves application currency changes and refreshes only exchange rates', () => {
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'BYN',
+            }),
+        );
+        homeApi.updateApplicationCurrency.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'EUR',
+            }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'eur-account',
+                        name: 'EUR reserve',
+                        currencyCode: 'EUR',
+                        currentBalance: 5,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) =>
+            of({
+                rate: fromAccountId === 'byn-account' && toAccountId === 'eur-account' ? 0.25 : 1,
+                fromCurrencyCode: fromAccountId === 'byn-account' ? 'BYN' : 'EUR',
+                toCurrencyCode: toAccountId === 'eur-account' ? 'EUR' : 'BYN',
+            }),
+        );
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId,
+                    currencyCode: accountId === 'eur-account' ? 'EUR' : 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: accountId === 'eur-account' ? 5 : 10,
+                    year,
+                    month,
                 }),
-            )
-            .mockReturnValue(
-                of<CurrentUserResponse>({
-                    id: 'user-123',
-                    username: 'Alex',
-                    email: 'alex@example.com',
-                    applicationCurrencyCode: 'JPY',
-                }),
-            );
+        );
 
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
-        const initialUserCalls = homeApi.getCurrentUser.mock.calls.length;
+        homeApi.getAccounts.mockClear();
+        homeApi.getCurrentUser.mockClear();
+        homeApi.getCategories.mockClear();
+        homeApi.getTransactions.mockClear();
+        homeApi.getMonthBalance.mockClear();
+        homeApi.getTransferRate.mockClear();
 
-        fixture.componentInstance.updateApplicationCurrency('JPY');
+        fixture.componentInstance.updateApplicationCurrency('EUR');
 
         expect(homeApi.updateApplicationCurrency).toHaveBeenCalledWith({
-            applicationCurrencyCode: 'JPY',
+            applicationCurrencyCode: 'EUR',
         });
-        expect(homeApi.getCurrentUser.mock.calls.length).toBeGreaterThan(initialUserCalls);
-        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('JPY');
+        expect(homeApi.getTransferRate).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('byn-account', 'eur-account');
+        expect(homeApi.getAccounts).not.toHaveBeenCalled();
+        expect(homeApi.getCurrentUser).not.toHaveBeenCalled();
+        expect(homeApi.getCategories).not.toHaveBeenCalled();
+        expect(homeApi.getTransactions).not.toHaveBeenCalled();
+        expect(homeApi.getMonthBalance).not.toHaveBeenCalled();
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('7,50');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
+    });
+
+    it('ignores unsupported application currency codes', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'byn-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        homeApi.updateApplicationCurrency.mockClear();
+        homeApi.getTransferRate.mockClear();
+
+        fixture.componentInstance.updateApplicationCurrency('ZZZ');
+
+        expect(homeApi.updateApplicationCurrency).not.toHaveBeenCalled();
+        expect(homeApi.getTransferRate).not.toHaveBeenCalled();
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('BYN');
+    });
+
+    it('keeps the newest application currency when exchange-rate refreshes resolve out of order', () => {
+        const staleEurRate$ = new Subject<{
+            rate: number;
+            fromCurrencyCode: string;
+            toCurrencyCode: string;
+        }>();
+
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'BYN',
+            }),
+        );
+        homeApi.updateApplicationCurrency.mockImplementation(
+            (payload: { applicationCurrencyCode: string }) =>
+                of<CurrentUserResponse>({
+                    id: 'user-123',
+                    username: 'Alex',
+                    email: 'alex@example.com',
+                    applicationCurrencyCode: payload.applicationCurrencyCode,
+                }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'BYN account',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'eur-account',
+                        name: 'EUR account',
+                        currencyCode: 'EUR',
+                        currentBalance: 5,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                    {
+                        id: 'usd-account',
+                        name: 'USD account',
+                        currencyCode: 'USD',
+                        currentBalance: 20,
+                        color: '#e8b45d',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) => {
+            if (fromAccountId === 'byn-account' && toAccountId === 'eur-account') {
+                return staleEurRate$.asObservable();
+            }
+
+            return of({
+                rate: toAccountId === 'usd-account' ? 0.5 : 1,
+                fromCurrencyCode:
+                    fromAccountId === 'eur-account'
+                        ? 'EUR'
+                        : fromAccountId === 'usd-account'
+                          ? 'USD'
+                          : 'BYN',
+                toCurrencyCode:
+                    toAccountId === 'eur-account'
+                        ? 'EUR'
+                        : toAccountId === 'usd-account'
+                          ? 'USD'
+                          : 'BYN',
+            });
+        });
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId,
+                    currencyCode:
+                        accountId === 'eur-account'
+                            ? 'EUR'
+                            : accountId === 'usd-account'
+                              ? 'USD'
+                              : 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance:
+                        accountId === 'eur-account' ? 5 : accountId === 'usd-account' ? 20 : 10,
+                    year,
+                    month,
+                }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.updateApplicationCurrency('EUR');
+        fixture.componentInstance.updateApplicationCurrency('USD');
+
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('USD');
+
+        staleEurRate$.next({
+            rate: 0.25,
+            fromCurrencyCode: 'BYN',
+            toCurrencyCode: 'EUR',
+        });
+        staleEurRate$.complete();
+
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('USD');
     });
 
     it('renders settings as a full tab with only the application currency', () => {
@@ -873,6 +3068,261 @@ describe('HomePageComponent', () => {
         });
     });
 
+    it('does not save a transaction when the amount is not a positive finite number', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'expense-category',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff8fab',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        [-12.35, Number.NaN, Number.POSITIVE_INFINITY].forEach((amount) => {
+            fixture.componentInstance.updateTransactionDraft({
+                type: 'expense',
+                accountId: 'main-account',
+                categoryId: 'expense-category',
+                amount,
+                date: '05.06.2026',
+                description: 'Lunch',
+            });
+            fixture.componentInstance.saveTransaction();
+        });
+
+        expect(homeApi.createTransaction).not.toHaveBeenCalled();
+    });
+
+    it('does not save a transaction for an unknown account', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'expense-category',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff8fab',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.updateTransactionDraft({
+            type: 'expense',
+            accountId: 'missing-account',
+            categoryId: 'expense-category',
+            amount: 12.35,
+            date: '05.06.2026',
+            description: 'Lunch',
+        });
+        fixture.componentInstance.saveTransaction();
+
+        expect(homeApi.createTransaction).not.toHaveBeenCalled();
+    });
+
+    it('does not save a transaction for an unknown category', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'expense-category',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff8fab',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.updateTransactionDraft({
+            type: 'expense',
+            accountId: 'main-account',
+            categoryId: 'missing-category',
+            amount: 12.35,
+            date: '05.06.2026',
+            description: 'Lunch',
+        });
+        fixture.componentInstance.saveTransaction();
+
+        expect(homeApi.createTransaction).not.toHaveBeenCalled();
+    });
+
+    it('refreshes transaction data after saving without reloading static dashboard data', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'expense-category',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff8fab',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.startAddingTransaction();
+
+        const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
+        const initialCurrentUserCalls = homeApi.getCurrentUser.mock.calls.length;
+        const initialCategoryCalls = homeApi.getCategories.mock.calls.length;
+        const initialTransactionCalls = homeApi.getTransactions.mock.calls.length;
+        const initialBalanceCalls = homeApi.getMonthBalance.mock.calls.length;
+
+        fixture.componentInstance.updateTransactionDraft({
+            type: 'expense',
+            accountId: 'main-account',
+            categoryId: 'expense-category',
+            amount: 12.35,
+            date: '05.06.2026',
+            description: 'Lunch',
+        });
+        fixture.componentInstance.saveTransaction();
+
+        expect(homeApi.createTransaction).toHaveBeenCalled();
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
+        expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls + 1);
+        expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
+        expect(homeApi.getCurrentUser.mock.calls.length).toBe(initialCurrentUserCalls);
+        expect(homeApi.getCategories.mock.calls.length).toBe(initialCategoryCalls);
+
+        homeApi.getTransactions.mockClear();
+
+        fixture.componentInstance.setActiveTab('analytics');
+
+        expect(homeApi.getTransactions).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTransactions).toHaveBeenCalledWith(
+            expect.objectContaining({
+                fromDate: '2026-01-01',
+                toDate: '2027-01-01',
+                page: 1,
+            }),
+        );
+    });
+
+    it('keeps the newest selected month balance when balance refreshes resolve out of order', () => {
+        const staleBalanceRefresh$ = new Subject<MonthBalanceResponse>();
+        const account: AccountResponse = {
+            id: 'main-account',
+            name: 'Main account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+            isPrimary: true,
+        };
+        const expenseCategory: CategoryResponse = {
+            id: 'expense-category',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff8fab',
+        };
+        let balanceCall = 0;
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([expenseCategory])));
+        homeApi.getMonthBalance.mockImplementation((accountId: string, year: number, month: number) => {
+            balanceCall += 1;
+
+            const response = (closingBalance: number): MonthBalanceResponse => ({
+                accountId,
+                accountName: 'Main account',
+                currencyCode: 'BYN',
+                openingBalance: 0,
+                monthChange: closingBalance,
+                closingBalance,
+                year,
+                month,
+            });
+
+            if (balanceCall === 2) {
+                return staleBalanceRefresh$.asObservable();
+            }
+
+            if (balanceCall === 3) {
+                return of(response(200));
+            }
+
+            return of(response(0));
+        });
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.updateTransactionDraft({
+            type: 'expense',
+            accountId: 'main-account',
+            categoryId: 'expense-category',
+            amount: 10,
+            date: '05.06.2026',
+            description: 'Lunch',
+        });
+        component.saveTransaction();
+
+        expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(2);
+
+        component.updateTransactionDraft({
+            type: 'expense',
+            accountId: 'main-account',
+            categoryId: 'expense-category',
+            amount: 20,
+            date: '05.06.2026',
+            description: 'Dinner',
+        });
+        component.saveTransaction();
+
+        expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(3);
+        expect(component.accounts()[0].balanceValue).toBe(200);
+
+        staleBalanceRefresh$.next({
+            accountId: 'main-account',
+            accountName: 'Main account',
+            currencyCode: 'BYN',
+            openingBalance: 0,
+            monthChange: 50,
+            closingBalance: 50,
+            year: 2026,
+            month: 6,
+        });
+        staleBalanceRefresh$.complete();
+
+        expect(component.accounts()[0].balanceValue).toBe(200);
+    });
+
     it('preserves transaction time when saving a transaction', () => {
         homeApi.getAccounts.mockReturnValue(
             of(
@@ -988,6 +3438,171 @@ describe('HomePageComponent', () => {
         expect(homeApi.createTransaction).not.toHaveBeenCalled();
     });
 
+    it('refreshes transaction data after updating without reloading static dashboard data', () => {
+        const account: AccountResponse = {
+            id: 'main-account',
+            name: 'Main account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+        };
+        const expenseCategory: CategoryResponse = {
+            id: 'expense-category',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff8fab',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([expenseCategory])));
+        homeApi.getTransactions.mockReturnValue(
+            of(
+                page<TransactionResponse>([
+                    transaction('expense-transaction', account, expenseCategory, -25),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+        component.startEditingTransaction(component.filteredTransactions()[0]);
+        component.updateTransactionDraft({
+            ...component.transactionDraft(),
+            amount: 30,
+            description: 'Updated lunch',
+        });
+
+        const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
+        const initialCurrentUserCalls = homeApi.getCurrentUser.mock.calls.length;
+        const initialCategoryCalls = homeApi.getCategories.mock.calls.length;
+        const initialTransactionCalls = homeApi.getTransactions.mock.calls.length;
+        const initialBalanceCalls = homeApi.getMonthBalance.mock.calls.length;
+
+        component.saveTransaction();
+
+        expect(homeApi.updateTransaction).toHaveBeenCalled();
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
+        expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls + 1);
+        expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
+        expect(homeApi.getCurrentUser.mock.calls.length).toBe(initialCurrentUserCalls);
+        expect(homeApi.getCategories.mock.calls.length).toBe(initialCategoryCalls);
+    });
+
+    it('refreshes transaction data after deleting without reloading static dashboard data', () => {
+        const account: AccountResponse = {
+            id: 'main-account',
+            name: 'Main account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+        };
+        const expenseCategory: CategoryResponse = {
+            id: 'expense-category',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff8fab',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([expenseCategory])));
+        homeApi.getTransactions.mockReturnValue(
+            of(
+                page<TransactionResponse>([
+                    transaction('expense-transaction', account, expenseCategory, -25),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
+        const initialCurrentUserCalls = homeApi.getCurrentUser.mock.calls.length;
+        const initialCategoryCalls = homeApi.getCategories.mock.calls.length;
+        const initialTransactionCalls = homeApi.getTransactions.mock.calls.length;
+        const initialBalanceCalls = homeApi.getMonthBalance.mock.calls.length;
+
+        fixture.componentInstance.deleteTransaction('expense-transaction');
+
+        expect(homeApi.deleteTransaction).toHaveBeenCalledWith('expense-transaction');
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
+        expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls + 1);
+        expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
+        expect(homeApi.getCurrentUser.mock.calls.length).toBe(initialCurrentUserCalls);
+        expect(homeApi.getCategories.mock.calls.length).toBe(initialCategoryCalls);
+    });
+
+    it('does not delete unknown transaction rows directly', () => {
+        const account: AccountResponse = {
+            id: 'main-account',
+            name: 'Main account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+        };
+        const expenseCategory: CategoryResponse = {
+            id: 'expense-category',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff8fab',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([expenseCategory])));
+        homeApi.getTransactions.mockReturnValue(
+            of(
+                page<TransactionResponse>([
+                    transaction('expense-transaction', account, expenseCategory, -25),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.deleteTransaction('missing-transaction');
+
+        expect(homeApi.deleteTransaction).not.toHaveBeenCalled();
+    });
+
+    it('does not delete transfer transaction rows individually', () => {
+        const account: AccountResponse = {
+            id: 'main-account',
+            name: 'Main account',
+            currencyCode: 'BYN',
+            currentBalance: 0,
+            color: '#23c78b',
+            isArchived: false,
+        };
+        const transferCategory: CategoryResponse = {
+            id: 'transfer-expense',
+            name: 'Transfer out',
+            type: 'TransferExpense',
+            color: '#67a6c1',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account])));
+        homeApi.getTransactions.mockReturnValue(
+            of(
+                page<TransactionResponse>([
+                    transaction('transfer-transaction', account, transferCategory, -25),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.deleteTransaction('transfer-transaction');
+
+        expect(homeApi.deleteTransaction).not.toHaveBeenCalled();
+    });
+
     it('opens the edit dialog from the rendered transaction action', () => {
         const account: AccountResponse = {
             id: 'main-account',
@@ -1060,6 +3675,26 @@ describe('HomePageComponent', () => {
         vi.useRealTimers();
     });
 
+    it('does not dismiss a loading error after the page is destroyed', () => {
+        vi.useFakeTimers();
+        homeApi.getAccounts.mockReturnValue(throwError(() => new Error('network')));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+        const initialError = component.errorMessage();
+
+        component.dismissError();
+        fixture.destroy();
+
+        vi.advanceTimersByTime(220);
+
+        expect(component.errorMessage()).toBe(initialError);
+
+        vi.useRealTimers();
+    });
+
     it('refreshes only tag data when assigning a category to a tag', () => {
         homeApi.getAccounts.mockReturnValue(
             of(
@@ -1093,6 +3728,7 @@ describe('HomePageComponent', () => {
 
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
 
         const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
         const initialCategoryCalls = homeApi.getCategories.mock.calls.length;
@@ -1113,6 +3749,453 @@ describe('HomePageComponent', () => {
         expect(homeApi.getCategories.mock.calls.length).toBe(initialCategoryCalls);
         expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls);
         expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls);
+    });
+
+    it('ignores unknown tag/category assignment changes without calling the backend', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                    },
+                ]),
+            ),
+        );
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
+        homeApi.assignTagCategories.mockClear();
+
+        fixture.componentInstance.assignCategoryToTag({
+            tagId: 'tag-id',
+            categoryId: 'missing-category',
+        });
+        fixture.componentInstance.assignCategoryToTag({
+            tagId: 'missing-tag',
+            categoryId: 'food-id',
+        });
+        fixture.componentInstance.removeCategoryFromTag({
+            tagId: 'tag-id',
+            categoryId: 'missing-category',
+        });
+        fixture.componentInstance.removeCategoryFromTag({
+            tagId: 'missing-tag',
+            categoryId: 'food-id',
+        });
+
+        expect(homeApi.assignTagCategories).not.toHaveBeenCalled();
+    });
+
+    it('ignores direct deletes for unknown tags', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
+        homeApi.deleteTag.mockClear();
+
+        fixture.componentInstance.deleteTag('missing-tag');
+
+        expect(homeApi.deleteTag).not.toHaveBeenCalled();
+    });
+
+    it('does not reassign a category that is already linked to a tag', () => {
+        const linkedCategory: CategoryResponse = {
+            id: 'food-id',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff6f91',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([linkedCategory])));
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+        homeApi.getTagById.mockReturnValue(
+            of<TagDetailsResponse>({
+                id: 'tag-id',
+                name: 'Essentials',
+                color: '#23c78b',
+                isDeleted: false,
+                categories: [
+                    {
+                        id: linkedCategory.id,
+                        name: linkedCategory.name,
+                        color: linkedCategory.color,
+                        type: linkedCategory.type,
+                        isDeleted: false,
+                    },
+                ],
+            }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
+        homeApi.assignTagCategories.mockClear();
+
+        fixture.componentInstance.assignCategoryToTag({
+            tagId: 'tag-id',
+            categoryId: 'food-id',
+        });
+
+        expect(homeApi.assignTagCategories).not.toHaveBeenCalled();
+    });
+
+    it('ignores direct deletes for system or unknown categories', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'system-category',
+                        name: 'System',
+                        type: 'Debit',
+                        color: '#67a6c1',
+                        isSystem: true,
+                    },
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                        isSystem: false,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
+
+        fixture.componentInstance.deleteCategory('system-category');
+        fixture.componentInstance.deleteCategory('missing-category');
+
+        expect(homeApi.deleteCategory).not.toHaveBeenCalled();
+    });
+
+    it('refreshes loaded tag data after deleting a category without reloading the whole dashboard', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                    },
+                ]),
+            ),
+        );
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
+
+        const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
+        const initialTransactionCalls = homeApi.getTransactions.mock.calls.length;
+        const initialBalanceCalls = homeApi.getMonthBalance.mock.calls.length;
+        const initialTagCalls = homeApi.getTags.mock.calls.length;
+        homeApi.getCategories.mockClear();
+
+        fixture.componentInstance.deleteCategory('food-id');
+
+        expect(homeApi.deleteCategory).toHaveBeenCalledWith('food-id');
+        expect(homeApi.getCategories).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTags.mock.calls.length).toBe(initialTagCalls + 1);
+        expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls);
+        expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls);
+    });
+
+    it('does not apply stale tag details while a newer tag refresh is queued', () => {
+        const staleTagDetails$ = new Subject<TagDetailsResponse>();
+        const freshTagDetails$ = new Subject<TagDetailsResponse>();
+
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                    },
+                ]),
+            ),
+        );
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+        homeApi.getTagById
+            .mockReturnValueOnce(staleTagDetails$.asObservable())
+            .mockReturnValueOnce(freshTagDetails$.asObservable());
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
+
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(1);
+
+        fixture.componentInstance.deleteCategory('food-id');
+
+        staleTagDetails$.next({
+            id: 'tag-id',
+            name: 'Essentials',
+            color: '#23c78b',
+            isDeleted: false,
+            categories: [
+                {
+                    id: 'food-id',
+                    name: 'Food',
+                    color: '#ff6f91',
+                    type: 'Debit',
+                    isDeleted: false,
+                },
+            ],
+        });
+        staleTagDetails$.complete();
+
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(2);
+        expect(fixture.componentInstance.tagGroups().flatMap((tag) => tag.categories)).toEqual([]);
+
+        freshTagDetails$.next({
+            id: 'tag-id',
+            name: 'Essentials',
+            color: '#23c78b',
+            isDeleted: false,
+            categories: [],
+        });
+        freshTagDetails$.complete();
+
+        expect(fixture.componentInstance.tagGroups()[0]?.categories).toEqual([]);
+    });
+
+    it('does not start a queued tag refresh after the page is destroyed', () => {
+        const staleTagDetails$ = new Subject<TagDetailsResponse>();
+
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                    },
+                ]),
+            ),
+        );
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+        homeApi.getTagById.mockReturnValue(staleTagDetails$.asObservable());
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
+
+        expect(homeApi.getTags).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(1);
+
+        fixture.componentInstance.deleteCategory('food-id');
+        fixture.destroy();
+
+        expect(homeApi.getTags).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(1);
+    });
+
+    it('refreshes categories after creating a category without reloading the whole dashboard', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                    },
+                ]),
+            ),
+        );
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
+
+        const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
+        const initialTransactionCalls = homeApi.getTransactions.mock.calls.length;
+        const initialBalanceCalls = homeApi.getMonthBalance.mock.calls.length;
+        const initialTagCalls = homeApi.getTags.mock.calls.length;
+        homeApi.getCategories.mockClear();
+
+        fixture.componentInstance.setNewExpenseCategory('Bills');
+        fixture.componentInstance.setNewExpenseCategoryColor('#e8b45d');
+        fixture.componentInstance.addExpenseCategory();
+
+        expect(homeApi.createCategory).toHaveBeenCalledWith({
+            name: 'Bills',
+            type: 'Debit',
+            color: '#e8b45d',
+        });
+        expect(homeApi.getCategories).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTags.mock.calls.length).toBe(initialTagCalls + 1);
+        expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls);
+        expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls);
+    });
+
+    it('ignores unsupported category color values', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.setActiveTab('categories');
+        component.setNewExpenseCategory('Bills');
+        component.setNewExpenseCategoryColor('url(https://example.test/tracker)');
+        component.addExpenseCategory();
+
+        expect(homeApi.createCategory).toHaveBeenCalledWith({
+            name: 'Bills',
+            type: 'Debit',
+            color: '#ff6f91',
+        });
+    });
+
+    it('keeps the newest categories when category refresh responses resolve out of order', () => {
+        const staleCategoryRefresh$ = new Subject<PagedResponse<CategoryResponse>>();
+        const billsCategory: CategoryResponse = {
+            id: 'bills-id',
+            name: 'Bills',
+            type: 'Debit',
+            color: '#ff6f91',
+            isSystem: false,
+        };
+
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Main account',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ]),
+            ),
+        );
+        homeApi.getCategories
+            .mockReturnValueOnce(of(page<CategoryResponse>([billsCategory])))
+            .mockReturnValueOnce(staleCategoryRefresh$.asObservable())
+            .mockReturnValueOnce(of(page<CategoryResponse>([])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
+
+        fixture.componentInstance.setNewExpenseCategory('Bills');
+        fixture.componentInstance.addExpenseCategory();
+
+        expect(homeApi.getCategories).toHaveBeenCalledTimes(2);
+
+        fixture.componentInstance.deleteCategory('bills-id');
+
+        expect(homeApi.getCategories).toHaveBeenCalledTimes(3);
+        expect(fixture.componentInstance.expenseCategories().map((category) => category.name)).not.toContain(
+            'Bills',
+        );
+
+        staleCategoryRefresh$.next(
+            page<CategoryResponse>([
+                billsCategory,
+            ]),
+        );
+        staleCategoryRefresh$.complete();
+
+        expect(fixture.componentInstance.expenseCategories().map((category) => category.name)).not.toContain(
+            'Bills',
+        );
     });
 
     it('creates a tag with the selected color', () => {
@@ -1141,6 +4224,24 @@ describe('HomePageComponent', () => {
         expect(homeApi.createTag).toHaveBeenCalledWith({
             name: 'Subscriptions',
             color: '#e8b45d',
+        });
+    });
+
+    it('ignores unsupported tag color values', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.setNewTagGroup('Subscriptions');
+        component.setNewTagGroupColor('linear-gradient(red, blue)');
+        component.addTagGroup();
+
+        expect(homeApi.createTag).toHaveBeenCalledWith({
+            name: 'Subscriptions',
+            color: '#67a6c1',
         });
     });
 

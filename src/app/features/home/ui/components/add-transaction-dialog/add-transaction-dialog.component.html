@@ -1,10 +1,13 @@
 @if (open()) {
-    <div
-        class="dialog-backdrop"
-        (pointerdown)="onBackdropPointerDown($event)"
-        (click)="onBackdropClick($event)"
-    >
-        <section class="dialog" (click)="$event.stopPropagation()">
+    <ms-dialog-shell backdropClass="dialog-backdrop" (closed)="close.emit()">
+        <section
+            class="dialog"
+            [class.dialog--income]="draft().type === 'income'"
+            [class.dialog--expense]="draft().type === 'expense'"
+            role="dialog"
+            aria-modal="true"
+            (click)="$event.stopPropagation()"
+        >
             <header class="dialog__header">
                 <div>
                     <h2>{{ dialogTitle() }}</h2>
@@ -44,17 +47,23 @@
 
             <div class="dialog__fields">
                 @if (hasAccounts()) {
-                    <ms-select
-                        label="Счёт"
-                        [options]="accountOptions()"
-                        [value]="draft().accountId"
-                        [disabled]="isEditMode()"
-                        placeholder="Выберите счёт"
-                        (valueChange)="draftChange.emit({ ...draft(), accountId: $event })"
-                    ></ms-select>
+                    <div class="dialog__account-section">
+                        <ms-select
+                            label="Счёт"
+                            [options]="accountOptions()"
+                            [value]="draft().accountId"
+                            [disabled]="isEditMode()"
+                            placeholder="Выберите счёт"
+                            (valueChange)="draftChange.emit({ ...draft(), accountId: $event })"
+                        ></ms-select>
+                    </div>
 
-                    <div class="dialog__grid">
-                        <div class="dialog__field dialog__amount-card">
+                    <div class="dialog__amount-section">
+                        <div
+                            class="dialog__field dialog__amount-card"
+                            [class.dialog__amount-card--income]="draft().type === 'income'"
+                            [class.dialog__amount-card--expense]="draft().type === 'expense'"
+                        >
                             <span class="dialog__field-label">Сумма</span>
                             <ms-input
                                 [ngModel]="amountText()"
@@ -63,9 +72,17 @@
                                 (ngModelChange)="onAmountInput($event)"
                                 inputMode="decimal"
                                 placeholder="0.00"
-                            ></ms-input>
+                            >
+                                <ng-template #afterInput>
+                                    <span class="dialog__amount-currency">
+                                        {{ normalizedCurrencyCode() }}
+                                    </span>
+                                </ng-template>
+                            </ms-input>
                         </div>
+                    </div>
 
+                    <div class="dialog__grid">
                         <ms-select
                             label="Категория"
                             [options]="categoryOptions()"
@@ -74,14 +91,100 @@
                             (valueChange)="draftChange.emit({ ...draft(), categoryId: $event })"
                         ></ms-select>
 
-                        <div class="dialog__field">
+                        <div class="dialog__field dialog__date-field">
                             <span class="dialog__field-label">Дата и время</span>
-                            <input
-                                class="dialog__native-input"
-                                type="datetime-local"
-                                [ngModel]="draft().date"
-                                (ngModelChange)="draftChange.emit({ ...draft(), date: $event })"
-                            />
+                            <div
+                                class="dialog__date-control"
+                                [class.dialog__date-control--open]="datePickerOpen()"
+                                (click)="$event.stopPropagation()"
+                            >
+                                <button
+                                    type="button"
+                                    class="dialog__date-trigger"
+                                    [class.dialog__date-trigger--open]="datePickerOpen()"
+                                    [attr.aria-expanded]="datePickerOpen()"
+                                    aria-haspopup="dialog"
+                                    (click)="toggleDatePicker()"
+                                >
+                                    <span class="material-symbols-outlined" aria-hidden="true">
+                                        calendar_month
+                                    </span>
+                                    <span class="dialog__date-trigger-copy">
+                                        <input
+                                            class="dialog__date-trigger-input"
+                                            type="text"
+                                            [value]="dateTimeInputValue()"
+                                            readonly
+                                            tabindex="-1"
+                                            aria-label="Дата и время"
+                                        />
+                                    </span>
+                                    <span
+                                        class="material-symbols-outlined dialog__date-trigger-icon"
+                                        aria-hidden="true"
+                                    >
+                                        expand_more
+                                    </span>
+                                </button>
+
+                                @if (datePickerOpen()) {
+                                    <div class="dialog__date-picker" role="group">
+                                        <div class="dialog__date-picker-actions">
+                                            <button
+                                                type="button"
+                                                class="dialog__date-chip"
+                                                (click)="setDateOffset(0)"
+                                            >
+                                                Сегодня
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="dialog__date-chip"
+                                                (click)="setDateOffset(-1)"
+                                            >
+                                                Вчера
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="dialog__date-chip"
+                                                (click)="setTimeToNow()"
+                                            >
+                                                Сейчас
+                                            </button>
+                                        </div>
+
+                                        <div class="dialog__date-picker-grid">
+                                            <label class="dialog__date-part-input">
+                                                <span>Дата</span>
+                                                <input
+                                                    type="text"
+                                                    [value]="dateText()"
+                                                    inputmode="numeric"
+                                                    maxlength="10"
+                                                    placeholder="дд.мм.гггг"
+                                                    (input)="
+                                                        onDatePartInputEvent($event)
+                                                    "
+                                                />
+                                            </label>
+
+                                            <label class="dialog__time-part-input">
+                                                <span>Время</span>
+                                                <input
+                                                    type="text"
+                                                    [value]="timeText()"
+                                                    inputmode="numeric"
+                                                    maxlength="5"
+                                                    placeholder="чч:мм"
+                                                    (input)="
+                                                        onTimePartInputEvent($event)
+                                                    "
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
                         </div>
 
                         <div class="dialog__field dialog__field--wide">
@@ -123,5 +226,5 @@
                 </ms-button>
             </div>
         </section>
-    </div>
+    </ms-dialog-shell>
 }

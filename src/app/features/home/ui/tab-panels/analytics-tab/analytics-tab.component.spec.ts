@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MS_CATEGORY_COLORS, MS_CATEGORY_OTHER_COLOR } from '../../../../../shared/theme/theme-colors';
 import { AnalyticsTabComponent } from './analytics-tab.component';
 
 describe('AnalyticsTabComponent', () => {
@@ -30,6 +31,34 @@ describe('AnalyticsTabComponent', () => {
         fixture.componentRef.setInput('topExpenses', []);
         fixture.componentRef.setInput('accountOptions', [{ value: 'all', label: 'All' }]);
         fixture.componentRef.setInput('selectedAccountId', 'all');
+    });
+
+    it('uses concise singular labels for month and year view tabs', () => {
+        expect(component.analyticsViews.slice(0, 2).map((view) => view.label)).toEqual([
+            'Месяц',
+            'Год',
+        ]);
+    });
+
+    it('renders the monthly slice section with an even set of useful charts', () => {
+        fixture.componentRef.setInput('expenseCategories', [
+            category('food', 'Food', 75, '#ff6f91'),
+        ]);
+        fixture.componentRef.setInput('incomeCategories', [
+            category('salary', 'Salary', 120, '#23c78b', 'income'),
+        ]);
+        fixture.componentRef.setInput('topExpenses', [category('food', 'Food', 75, '#ff6f91')]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const chartTitles = Array.from(host.querySelectorAll('ms-chart-card h3')).map((title) =>
+            title.textContent?.trim(),
+        );
+
+        expect(host.textContent ?? '').toContain('Месячный срез');
+        expect(host.querySelectorAll('.analytics-section ms-chart-card')).toHaveLength(4);
+        expect(chartTitles).toContain('Доходы и расходы');
     });
 
     it('builds one doughnut dataset with one value and color per expense category', () => {
@@ -87,7 +116,7 @@ describe('AnalyticsTabComponent', () => {
         expect(component.netCashFlowDatasets()[0].data).toEqual([40, -30]);
     });
 
-    it('renders tag filters below the tag expense chart', () => {
+    it('renders the tag chart without the redundant tag filter strip', () => {
         fixture.componentRef.setInput('tagExpenses', [
             category('home-tag', 'Home', 120, '#67a6c1'),
             category('transport-tag', 'Transport', 40, '#23c78b'),
@@ -101,9 +130,8 @@ describe('AnalyticsTabComponent', () => {
         const filterStrip = host.querySelector('.tag-filter-strip');
 
         expect(chart).not.toBeNull();
-        expect(filterStrip).not.toBeNull();
-        expect(chart!.compareDocumentPosition(filterStrip!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-        expect(host.querySelectorAll('.tag-filter-button')).toHaveLength(3);
+        expect(filterStrip).toBeNull();
+        expect(host.querySelectorAll('.tag-filter-button')).toHaveLength(0);
     });
 
     it('keeps the analytics tab layout stretched instead of collapsing around wide content', () => {
@@ -128,6 +156,20 @@ describe('AnalyticsTabComponent', () => {
         expect(component.expenseCategoryLabels()).toHaveLength(10);
         expect(component.expenseCategoryLabels()).toContain('Прочее');
         expect(component.expenseCategoryDatasets()[0].data.at(-1)).toBe(330);
+    });
+
+    it('uses the shared fallback palette for generated analytics category colors', () => {
+        fixture.componentRef.setInput(
+            'expenseCategories',
+            Array.from({ length: 12 }, (_, index) =>
+                category(`category-${index}`, `Category ${index}`, 120 - index, ''),
+            ),
+        );
+
+        const colors = component.expenseCategoryDatasets()[0].colors ?? [];
+
+        expect(colors.slice(0, 3)).toEqual(MS_CATEGORY_COLORS.slice(0, 3));
+        expect(colors.at(-1)).toBe(MS_CATEGORY_OTHER_COLOR);
     });
 
     it('renders month-by-category tables in the tables view', () => {
@@ -168,7 +210,7 @@ describe('AnalyticsTabComponent', () => {
 
         const host = fixture.nativeElement as HTMLElement;
 
-        expect(host.querySelectorAll('.analytics-table')).toHaveLength(2);
+        expect(host.querySelectorAll('.analytics-table')).toHaveLength(3);
         expect(host.textContent ?? '').toContain('Расходы по категориям');
         expect(host.textContent ?? '').toContain('Доходы по категориям');
         expect(host.textContent ?? '').toContain('Food');

@@ -1,36 +1,12 @@
 <div class="home-page" [class.home-page--setup]="needsAccountSetup()">
     @if (needsAccountSetup()) {
-        <section class="first-account-setup first-account-setup--screen">
-            <div class="first-account-setup__copy">
-                <span class="first-account-setup__icon material-symbols-outlined">
-                    account_balance_wallet
-                </span>
-                <p class="eyebrow">Первый шаг</p>
-                <h2>Создайте основной счёт</h2>
-                <p>
-                    Выберите валюту, в которой чаще всего ведёте учёт. Мы создадим стартовый счёт, а
-                    позже вы сможете добавить карты, наличные и резервы в других валютах.
-                </p>
-            </div>
-
-            <div class="first-account-setup__form">
-                <ms-select
-                    label="Валюта основного счёта"
-                    [options]="currencyOptions"
-                    [value]="newAccountCurrency()"
-                    (valueChange)="setNewAccountCurrency($event)"
-                ></ms-select>
-
-                <ms-button
-                    variant="primary"
-                    [fullWidth]="true"
-                    [loading]="isSaving()"
-                    (onClick)="createPrimaryAccount()"
-                >
-                    Создать основной счёт
-                </ms-button>
-            </div>
-        </section>
+        <ms-first-account-setup
+            [currencyOptions]="currencyOptions"
+            [selectedCurrency]="newAccountCurrency()"
+            [saving]="isSaving()"
+            (currencyChange)="setNewAccountCurrency($event)"
+            (createAccount)="createPrimaryAccount()"
+        ></ms-first-account-setup>
     } @else {
         <div class="home-page__container">
             <div class="home-page__shell">
@@ -60,38 +36,15 @@
                             <h1>{{ activeTabTitle() }}</h1>
                             <p>{{ activeTabDescription() }}</p>
                         </div>
-
-                        @if (errorMessage()) {
-                            <ms-button
-                                appearance="ghost"
-                                variant="neutral"
-                                size="sm"
-                                (onClick)="reloadDashboard()"
-                            >
-                                Обновить
-                            </ms-button>
-                        }
                     </header>
 
                     @if (errorMessage()) {
-                        <div
-                            class="home-alert"
-                            [class.home-alert--leaving]="isErrorDismissing()"
-                            role="alert"
-                        >
-                            <span class="material-symbols-outlined">error</span>
-                            <span>{{ errorMessage() }}</span>
-                            <ms-button
-                                appearance="icon"
-                                variant="danger"
-                                size="sm"
-                                data-testid="dismiss-error"
-                                aria-label="Закрыть сообщение"
-                                (onClick)="dismissError()"
-                            >
-                                <span class="material-symbols-outlined">close</span>
-                            </ms-button>
-                        </div>
+                        <ms-home-error-alert
+                            [message]="errorMessage()"
+                            [dismissing]="isErrorDismissing()"
+                            (retry)="reloadDashboard()"
+                            (dismiss)="dismissError()"
+                        ></ms-home-error-alert>
                     }
 
                     @if (isLoading()) {
@@ -115,10 +68,12 @@
                                     [accountOptions]="toolbarAccountOptions()"
                                     [selectedAccountId]="selectedAccountId()"
                                     [pageSize]="transactionPageSize()"
+                                    [pagination]="transactionPagination()"
                                     [pageSizeOptions]="transactionPageSizeOptions"
                                     [saving]="isSaving()"
                                     (accountChange)="setAccountFilter($event)"
                                     (pageSizeChange)="setTransactionPageSize($event)"
+                                    (pageChange)="goToTransactionPage($event)"
                                     (editTransaction)="startEditingTransaction($event)"
                                     (deleteTransaction)="deleteTransaction($event)"
                                 ></ms-overview-tab>
@@ -133,7 +88,7 @@
                                     [accountOptions]="accountOptions()"
                                     [accountFilterOptions]="toolbarAccountOptions()"
                                     [searchControl]="accountSearchControl"
-                                    [selectedAccountId]="selectedAccountId()"
+                                    [selectedAccountId]="accountsSelectedAccountId()"
                                     [summaryBalanceLabel]="accountSummaryBalanceLabel()"
                                     [summaryBalanceValue]="accountSummaryBalance()"
                                     [newAccountName]="newAccountName()"
@@ -142,7 +97,7 @@
                                     [transferRateError]="transferRateError()"
                                     [rateLoading]="isTransferRateLoading()"
                                     [saving]="isSaving()"
-                                    (accountChange)="setAccountFilter($event)"
+                                    (accountChange)="setAccountsAccountFilter($event)"
                                     (transferDraftChange)="updateTransferDraft($event)"
                                     (newAccountNameChange)="setNewAccountName($event)"
                                     (newAccountCurrencyChange)="setNewAccountCurrency($event)"
@@ -157,16 +112,16 @@
                                     [metrics]="analyticsMetrics()"
                                     [incomeVsExpense]="incomeVsExpense()"
                                     [categoryMonthTable]="categoryMonthTable()"
-                                    [expenseCategories]="expenseCategories()"
-                                    [incomeCategories]="incomeCategories()"
+                                    [expenseCategories]="analyticsExpenseCategories()"
+                                    [incomeCategories]="analyticsIncomeCategories()"
                                     [monthlyExpenses]="monthlyExpensesChart()"
                                     [balanceDynamics]="balanceDynamicsChart()"
                                     [savingsRate]="savingsRateChart()"
                                     [tagExpenses]="tagExpensesChart()"
                                     [topExpenses]="topExpensesChart()"
                                     [accountOptions]="toolbarAccountOptions()"
-                                    [selectedAccountId]="selectedAccountId()"
-                                    (accountChange)="setAccountFilter($event)"
+                                    [selectedAccountId]="analyticsSelectedAccountId()"
+                                    (accountChange)="setAnalyticsAccountFilter($event)"
                                 ></ms-analytics-tab>
                             }
 
@@ -208,7 +163,6 @@
                                 <ms-settings-tab
                                     [applicationCurrencyCode]="applicationCurrencyCode()"
                                     [currencyOptions]="currencyOptions"
-                                    [accounts]="accounts()"
                                     [saving]="isSaving()"
                                     (applicationCurrencyChange)="updateApplicationCurrency($event)"
                                 ></ms-settings-tab>
@@ -226,6 +180,7 @@
         [mode]="isEditingTransaction() ? 'edit' : 'create'"
         [draft]="transactionDraft()"
         [accountOptions]="accountOptions()"
+        [currencyCode]="transactionCurrencyCode()"
         [incomeCategoryOptions]="incomeCategoryOptions()"
         [expenseCategoryOptions]="expenseCategoryOptions()"
         (close)="closeTransactionDialog()"

@@ -10,7 +10,7 @@
     border: 1px solid var(--color-ms-border);
     border-radius: 0.5rem;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+        linear-gradient(180deg, var(--color-ms-white-alpha-04), var(--color-ms-white-alpha-015)),
         color-mix(in oklab, var(--color-ms-surface), transparent 12%);
     scrollbar-width: none;
 }

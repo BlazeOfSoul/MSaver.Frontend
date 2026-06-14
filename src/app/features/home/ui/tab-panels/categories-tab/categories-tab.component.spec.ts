@@ -162,9 +162,9 @@ describe('CategoriesTabComponent', () => {
         );
 
         expect(footerButtons).toHaveLength(2);
-        expect(footerButtons.every((button) => button.classList.contains('ms-btn-full-width'))).toBe(
-            true,
-        );
+        expect(
+            footerButtons.every((button) => button.classList.contains('ms-btn-full-width')),
+        ).toBe(true);
 
         component.closeCategoryDialog();
         fixture.detectChanges();
@@ -177,9 +177,9 @@ describe('CategoriesTabComponent', () => {
         );
 
         expect(footerButtons).toHaveLength(2);
-        expect(footerButtons.every((button) => button.classList.contains('ms-btn-full-width'))).toBe(
-            true,
-        );
+        expect(
+            footerButtons.every((button) => button.classList.contains('ms-btn-full-width')),
+        ).toBe(true);
     });
 
     it('does not render delete actions for system categories', () => {
@@ -248,36 +248,64 @@ describe('CategoriesTabComponent', () => {
     });
 
     it('keeps the tag modal open when pointer selection starts inside and ends on the backdrop', () => {
-        const backdrop = document.createElement('div');
-        const dialog = document.createElement('section');
+        fixture.detectChanges();
 
-        component.openTagDialog();
+        const host = fixture.nativeElement as HTMLElement;
 
-        component.onTagDialogBackdropPointerDown({
-            target: dialog,
-            currentTarget: backdrop,
-        } as unknown as PointerEvent);
-        component.onTagDialogBackdropClick({
-            target: backdrop,
-            currentTarget: backdrop,
-        } as unknown as MouseEvent);
+        host.querySelector<HTMLButtonElement>('[data-testid="open-tag-dialog"]')?.click();
+        fixture.detectChanges();
+
+        const backdrop = host.querySelector<HTMLElement>('.category-dialog-backdrop');
+        const dialog = host.querySelector<HTMLElement>('.tag-dialog');
+
+        expect(backdrop).not.toBeNull();
+        expect(dialog).not.toBeNull();
+
+        dialog!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        backdrop!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        fixture.detectChanges();
 
         expect(component.isTagDialogOpen()).toBe(true);
     });
 
+    it('keeps the category modal open when pointer selection starts inside and ends on the backdrop', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>(
+            '[data-testid="open-income-category-dialog"]',
+        )?.click();
+        fixture.detectChanges();
+
+        const backdrop = host.querySelector<HTMLElement>('.category-dialog-backdrop');
+        const dialog = host.querySelector<HTMLElement>('.category-dialog');
+
+        expect(backdrop).not.toBeNull();
+        expect(dialog).not.toBeNull();
+
+        dialog!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        backdrop!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        fixture.detectChanges();
+
+        expect(component.isCategoryDialogOpen()).toBe(true);
+    });
+
     it('closes the tag modal only when the pointer starts on the backdrop', () => {
-        const backdrop = document.createElement('div');
+        fixture.detectChanges();
 
-        component.openTagDialog();
+        const host = fixture.nativeElement as HTMLElement;
 
-        component.onTagDialogBackdropPointerDown({
-            target: backdrop,
-            currentTarget: backdrop,
-        } as unknown as PointerEvent);
-        component.onTagDialogBackdropClick({
-            target: backdrop,
-            currentTarget: backdrop,
-        } as unknown as MouseEvent);
+        host.querySelector<HTMLButtonElement>('[data-testid="open-tag-dialog"]')?.click();
+        fixture.detectChanges();
+
+        const backdrop = host.querySelector<HTMLElement>('.category-dialog-backdrop');
+
+        expect(backdrop).not.toBeNull();
+
+        backdrop!.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        backdrop!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        fixture.detectChanges();
 
         expect(component.isTagDialogOpen()).toBe(false);
     });
@@ -298,14 +326,4 @@ describe('CategoriesTabComponent', () => {
         expect(options).toEqual([{ value: 'rent-id', label: 'Rent' }]);
     });
 
-    it('emits selected category for a tag and ignores empty selections', () => {
-        const emitSpy = vi.fn();
-        component.assignCategoryToTag.subscribe(emitSpy);
-
-        component.onAssignCategoryToTag('tag-id', '');
-        component.onAssignCategoryToTag('tag-id', 'rent-id');
-
-        expect(emitSpy).toHaveBeenCalledTimes(1);
-        expect(emitSpy).toHaveBeenCalledWith({ tagId: 'tag-id', categoryId: 'rent-id' });
-    });
 });

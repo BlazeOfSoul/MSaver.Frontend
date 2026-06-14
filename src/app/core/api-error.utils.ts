@@ -12,17 +12,16 @@ const CONNECTION_ERROR_MESSAGE =
     'Не удалось получить данные. Проверьте подключение и попробуйте ещё раз.';
 
 export function readApiError(error: unknown): ApiErrorResponse | null {
-    if (!(error instanceof HttpErrorResponse) || !error.error || typeof error.error !== 'object') {
+    if (!(error instanceof HttpErrorResponse) || !isRecord(error.error)) {
         return null;
     }
 
-    const apiError = error.error as Partial<ApiErrorResponse>;
+    const apiError = error.error;
 
     return {
-        code: typeof apiError.code === 'string' ? apiError.code : '',
-        message: typeof apiError.message === 'string' ? apiError.message : '',
-        details:
-            apiError.details && typeof apiError.details === 'object' ? apiError.details : {},
+        code: typeof apiError['code'] === 'string' ? apiError['code'] : '',
+        message: typeof apiError['message'] === 'string' ? apiError['message'] : '',
+        details: readApiErrorDetails(apiError['details']),
     };
 }
 
@@ -59,4 +58,31 @@ function isTechnicalErrorMessage(message: string): boolean {
         normalized.includes('load failed') ||
         normalized.includes('unknown error')
     );
+}
+
+function readApiErrorDetails(value: unknown): ApiErrorDetails {
+    if (!isRecord(value)) {
+        return {};
+    }
+
+    return Object.entries(value).reduce<ApiErrorDetails>((details, [field, messages]) => {
+        if (!Array.isArray(messages)) {
+            return details;
+        }
+
+        const safeMessages = messages.filter(
+            (message): message is string => typeof message === 'string',
+        );
+
+        if (!safeMessages.length) {
+            return details;
+        }
+
+        details[field] = safeMessages;
+        return details;
+    }, {});
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
 }

@@ -1,0 +1,93 @@
+@for (item of transactions(); track item.id) {
+    <tr>
+        <td data-label="Дата">
+            <span class="transaction-date">{{ item.dateTimeLabel }}</span>
+        </td>
+        <td data-label="Операция">
+            <div class="transaction-name">
+                <span class="transaction-name__icon" [attr.data-tone]="item.tone">
+                    <span class="material-symbols-outlined">
+                        {{ item.tone === 'income' ? 'south_west' : 'north_east' }}
+                    </span>
+                </span>
+                <div>
+                    <strong>{{ item.title }}</strong>
+                </div>
+            </div>
+        </td>
+        <td data-label="Категория">
+            <span class="transaction-category" [style.--category-color]="item.categoryColor">
+                {{ item.category }}
+            </span>
+        </td>
+        <td data-label="Счёт">{{ item.accountName }}</td>
+        <td data-label="Сумма" class="transactions-table__amount">
+            <strong [attr.data-tone]="item.tone">{{ item.amountLabel }}</strong>
+        </td>
+        <td
+            data-label="Действия"
+            class="transactions-table__actions transactions-table__actions--inline"
+            [class.transactions-table__actions--with-edit]="isTransactionEditable(item)"
+            [class.transactions-table__actions--split]="!isTransactionEditable(item)"
+        >
+            <ms-button
+                appearance="icon"
+                variant="neutral"
+                size="sm"
+                data-testid="toggle-transaction-details"
+                (onClick)="toggleDetails.emit(item.id)"
+                [attr.aria-expanded]="isTransactionExpanded(item.id)"
+                aria-label="Показать подробности транзакции"
+            >
+                <span class="material-symbols-outlined">
+                    {{ isTransactionExpanded(item.id) ? 'expand_less' : 'expand_more' }}
+                </span>
+            </ms-button>
+
+            @if (isTransactionEditable(item)) {
+                <ms-button
+                    appearance="ghost"
+                    variant="neutral"
+                    size="sm"
+                    class="transaction-edit-action transaction-edit-action--readable"
+                    data-testid="edit-transaction"
+                    [disabled]="saving()"
+                    (onClick)="editTransaction.emit(item)"
+                    aria-label="Редактировать транзакцию"
+                >
+                    <span class="material-symbols-outlined">tune</span>
+                    <span class="transaction-edit-action__label">Изменить</span>
+                </ms-button>
+            }
+
+            @if (canDeleteTransaction(item)) {
+                <ms-button
+                    appearance="icon"
+                    variant="danger"
+                    size="sm"
+                    data-testid="delete-transaction"
+                    [disabled]="saving()"
+                    (onClick)="deleteTransaction.emit(item.id)"
+                    aria-label="Удалить транзакцию"
+                >
+                    <span class="material-symbols-outlined">delete</span>
+                </ms-button>
+            }
+        </td>
+    </tr>
+
+    @if (isTransactionExpanded(item.id)) {
+        <tr class="transaction-details-row">
+            <td colspan="6">
+                <div class="transaction-details">
+                    <div class="transaction-details__description">
+                        <span>Описание</span>
+                        <strong>
+                            {{ item.description || 'Описание не указано' }}
+                        </strong>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    }
+}

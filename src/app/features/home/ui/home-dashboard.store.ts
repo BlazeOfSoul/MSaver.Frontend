@@ -1,6 +1,17 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Observable, forkJoin, map, of, switchMap, finalize } from 'rxjs';
+import {
+    Observable,
+    concatMap,
+    finalize,
+    forkJoin,
+    from,
+    map,
+    of,
+    range,
+    reduce,
+    switchMap,
+} from 'rxjs';
 import {
     AccountResponse,
     CategoryResponse,
@@ -30,7 +41,7 @@ import {
     TransactionItem,
     TransferDraft,
 } from './home-page.models';
-import { ACCOUNT_COLORS, CATEGORY_COLORS } from './home-page.constants';
+import { ACCOUNT_COLORS, CATEGORY_COLORS, CURRENCY_OPTIONS } from './home-page.constants';
 import { getApiFieldError, toFriendlyApiError } from '../../../core/api-error.utils';
 import {
     addMonths,
@@ -46,6 +57,30 @@ import {
     toIsoDateTimeLocal,
 } from './home-date.utils';
 import { formatMoney } from './home-formatters';
+import { resolveHexColor, safeHexColor } from './home-color.utils';
+import {
+    findMissingBalanceMonths,
+    keepSelectedMonthBalanceForYear,
+    mergeMonthBalanceCache,
+} from './home-balance-cache.utils';
+import { isPositiveFiniteAmount } from './home-amount.utils';
+import {
+    TRANSACTION_PAGE_SIZE_OPTIONS,
+    normalizeTransactionPageSize,
+    readStoredTransactionPageSize,
+    writeStoredTransactionPageSize,
+} from './home-transaction-page-size-storage.utils';
+import {
+    createEmptyTransactionPage,
+    mapTransactionPagination,
+} from './home-transaction-pagination.utils';
+import {
+    DebtCategoryKind,
+    DebtSummary,
+    calculateDebtSummary,
+    calculateDebtTotalsUntilMonth,
+    resolveDebtCategoryKind,
+} from './home-debt.utils';
 import {
     categoryTotals,
     isExpenseCategory,
@@ -58,36 +93,34 @@ import {
 const FRIENDLY_LOAD_ERROR_MESSAGE =
     'Не получилось загрузить данные. Проверьте подключение и попробуйте ещё раз.';
 const PRIMARY_ACCOUNT_NAME = 'Основной счёт';
-const TRANSACTION_PAGE_SIZE_STORAGE_KEY = 'msaver:overview-transaction-count';
-const TRANSACTION_PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const SUPPORTED_CURRENCY_CODES = new Set(CURRENCY_OPTIONS.map((option) => option.value));
+
+function toSupportedCurrencyCode(value: string): string | null {
+    const nextCode = value.trim().toUpperCase();
+
+    return SUPPORTED_CURRENCY_CODES.has(nextCode) ? nextCode : null;
+}
 
 interface DashboardPayload {
     accounts: AccountResponse[];
     currentUser: CurrentUserResponse;
-    categories: CategoryResponse[];
-    tags: TagDetailsResponse[];
-    transactions: TransactionResponse[];
+    transactionPage: PagedResponse<TransactionResponse>;
     yearTransactions: TransactionResponse[];
     yearBalances: MonthBalanceResponse[];
     exchangeRatesByAccountId: Map<string, number>;
 }
 
-interface DebtSummary {
-    owedByMe: number;
-    owedToMe: number;
-    balanceAfterClosing: number;
-}
-
-type DebtCategoryKind = 'taken' | 'returned' | 'given' | 'received';
-
 @Injectable()
 export class HomeDashboardStore {
     private readonly homeApi = inject(HomeApiService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly initialTransactionPageSize = readStoredTransactionPageSize();
 
     readonly activeTab = signal<HomeTabId>('overview');
     readonly selectedMonth = signal(startOfMonth(new Date()));
     readonly selectedAccountId = signal('all');
+    readonly accountsSelectedAccountId = signal('all');
+    readonly analyticsSelectedAccountId = signal('all');
     readonly searchQuery = signal('');
     readonly accountSearchQuery = signal('');
     readonly categorySearchQuery = signal('');
@@ -101,7 +134,10 @@ export class HomeDashboardStore {
     readonly isTransactionDialogOpen = signal(false);
     readonly editingTransactionId = signal<string | null>(null);
     readonly isEditingTransaction = computed(() => this.editingTransactionId() !== null);
-    readonly transactionPageSize = signal(this.readStoredTransactionPageSize());
+    readonly transactionPageSize = signal(this.initialTransactionPageSize);
+    readonly transactionPagination = signal(
+        mapTransactionPagination(createEmptyTransactionPage(this.initialTransactionPageSize)),
+    );
     readonly transactionPageSizeOptions: ReadonlyArray<MsSelectOption> =
         TRANSACTION_PAGE_SIZE_OPTIONS.map((size) => ({
             value: size.toString(),
@@ -132,6 +168,25 @@ export class HomeDashboardStore {
     private readonly yearBalanceResponses = signal<MonthBalanceResponse[]>([]);
     private readonly exchangeRatesByAccountId = signal(new Map<string, number>());
     private readonly applicationCurrencyCodeSignal = signal('BYN');
+    private readonly hasLoadedTagDetails = signal(false);
+    private hasLoadedCategories = false;
+    private isCategoryDataLoading = false;
+    private isTagDetailsLoading = false;
+    private isYearTransactionsLoading = false;
+    private shouldRefreshTagDetailsAfterLoad = false;
+    private areYearTransactionsStale = false;
+    private isDestroyed = false;
+    private loadedFullBalanceYear: number | null = null;
+    private loadingYearBalanceYear: number | null = null;
+    private dashboardLoadRequestId = 0;
+    private yearBalanceRequestId = 0;
+    private selectedMonthBalanceRequestId = 0;
+    private accountDataRequestId = 0;
+    private applicationExchangeRatesRequestId = 0;
+    private categoryReloadRequestId = 0;
+    private currentTransactionPageRequestId = 0;
+    private selectedYearTransactionsRequestId = 0;
+    private transferRateRequestId = 0;
 
     readonly monthLabel = computed(() => monthLabel(this.selectedMonth()));
     readonly applicationCurrencyCode = computed(() => this.applicationCurrencyCodeSignal());
@@ -160,7 +215,9 @@ export class HomeDashboardStore {
     );
     readonly visibleAccounts = computed(() =>
         this.accounts().filter(
-            (item) => this.selectedAccountId() === 'all' || item.id === this.selectedAccountId(),
+            (item) =>
+                this.accountsSelectedAccountId() === 'all' ||
+                item.id === this.accountsSelectedAccountId(),
         ),
     );
     readonly accountList = computed(() =>
@@ -173,28 +230,83 @@ export class HomeDashboardStore {
     readonly transactions = computed<TransactionItem[]>(() =>
         this.transactionResponses().map((transaction) => mapTransaction(transaction)),
     );
+    readonly selectedYearTransactions = computed(() => {
+        const selectedAccountId = this.analyticsSelectedAccountId();
+
+        if (selectedAccountId === 'all') {
+            return this.yearTransactionResponses();
+        }
+
+        return this.yearTransactionResponses().filter(
+            (transaction) => transaction.account.id === selectedAccountId,
+        );
+    });
+    readonly selectedMonthTransactions = computed(() => {
+        const key = monthKey(this.selectedMonth());
+
+        return this.yearTransactionResponses().filter(
+            (transaction) => monthKey(new Date(transaction.date)) === key,
+        );
+    });
+    readonly analyticsMonthTransactions = computed(() => {
+        const key = monthKey(this.selectedMonth());
+
+        return this.selectedYearTransactions().filter(
+            (transaction) => monthKey(new Date(transaction.date)) === key,
+        );
+    });
     readonly filteredTransactions = computed(() =>
         this.filterByQuery(
             this.transactions(),
             (item) => `${item.title} ${item.category} ${item.description} ${item.accountName}`,
         ),
     );
+    readonly analyticsCurrencyCode = computed(() => {
+        const selectedAccountId = this.analyticsSelectedAccountId();
+
+        if (selectedAccountId === 'all') {
+            return this.applicationCurrencyCode();
+        }
+
+        return (
+            this.accounts().find((account) => account.id === selectedAccountId)?.currencyCode ??
+            this.applicationCurrencyCode()
+        );
+    });
     readonly incomeCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
             this.categoryResponses(),
-            this.transactionResponses(),
+            this.selectedMonthTransactions(),
             'income',
             this.applicationCurrencyCode(),
-            (transaction) => Math.abs(this.convertTransactionAmount(transaction)),
+            (transaction) => Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
         ),
     );
     readonly expenseCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
             this.categoryResponses(),
-            this.transactionResponses(),
+            this.selectedMonthTransactions(),
             'expense',
             this.applicationCurrencyCode(),
             (transaction) => Math.abs(this.convertTransactionAmount(transaction)),
+        ),
+    );
+    readonly analyticsIncomeCategories = computed<CategoryBreakdownItem[]>(() =>
+        mapCategories(
+            this.categoryResponses(),
+            this.analyticsMonthTransactions(),
+            'income',
+            this.analyticsCurrencyCode(),
+            (transaction) => Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
+        ),
+    );
+    readonly analyticsExpenseCategories = computed<CategoryBreakdownItem[]>(() =>
+        mapCategories(
+            this.categoryResponses(),
+            this.analyticsMonthTransactions(),
+            'expense',
+            this.analyticsCurrencyCode(),
+            (transaction) => Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
         ),
     );
     readonly filteredIncomeCategories = computed(() =>
@@ -217,7 +329,7 @@ export class HomeDashboardStore {
             .map((category) => ({
                 value: category.id,
                 label: category.name,
-                color: category.color,
+                color: safeHexColor(category.color, CATEGORY_COLORS[0]),
             })),
     );
     readonly tagGroups = computed<TagGroupItem[]>(() => mapTags(this.tagDetailsResponses()));
@@ -253,10 +365,17 @@ export class HomeDashboardStore {
         })),
     );
     readonly totalBalance = computed(() =>
-        this.visibleAccounts().reduce(
-            (sum, account) => sum + this.convertAccountAmount(account.id, account.balanceValue),
-            0,
-        ),
+        this.accounts()
+            .filter(
+                (account) =>
+                    this.analyticsSelectedAccountId() === 'all' ||
+                    account.id === this.analyticsSelectedAccountId(),
+            )
+            .reduce(
+                (sum, account) =>
+                    sum + this.convertAnalyticsAccountAmount(account.id, account.balanceValue),
+                0,
+            ),
     );
     readonly accountSummaryBalance = computed(() =>
         this.accounts().reduce(
@@ -268,44 +387,34 @@ export class HomeDashboardStore {
         formatMoney(this.accountSummaryBalance(), this.applicationCurrencyCode()),
     );
     readonly incomeTotal = computed(() =>
-        this.transactionResponses()
+        this.selectedMonthTransactions()
             .filter((item) => !isExpenseCategory(item.category.type))
             .reduce((sum, item) => sum + Math.abs(this.convertTransactionAmount(item)), 0),
     );
     readonly expenseTotal = computed(() =>
-        this.transactionResponses()
+        this.selectedMonthTransactions()
             .filter((item) => isExpenseCategory(item.category.type))
             .reduce((sum, item) => sum + Math.abs(this.convertTransactionAmount(item)), 0),
     );
+    readonly analyticsIncomeTotal = computed(() =>
+        this.analyticsMonthTransactions()
+            .filter((item) => !isExpenseCategory(item.category.type))
+            .reduce((sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)), 0),
+    );
+    readonly analyticsExpenseTotal = computed(() =>
+        this.analyticsMonthTransactions()
+            .filter((item) => isExpenseCategory(item.category.type))
+            .reduce((sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)), 0),
+    );
     readonly debtSummary = computed<DebtSummary>(() => {
-        const totals = new Map<DebtCategoryKind, number>([
-            ['taken', 0],
-            ['returned', 0],
-            ['given', 0],
-            ['received', 0],
-        ]);
+        const primaryAccount = this.primaryAccount();
+        const primaryBalance = primaryAccount
+            ? this.convertAccountAmount(primaryAccount.id, primaryAccount.balanceValue)
+            : 0;
 
-        this.yearTransactionResponses().forEach((transaction) => {
-            const kind = this.resolveDebtCategoryKind(transaction.category.name);
-
-            if (!kind) {
-                return;
-            }
-
-            totals.set(
-                kind,
-                (totals.get(kind) ?? 0) + Math.abs(this.convertTransactionAmount(transaction)),
-            );
-        });
-
-        const owedByMe = Math.max(0, (totals.get('taken') ?? 0) - (totals.get('returned') ?? 0));
-        const owedToMe = Math.max(0, (totals.get('given') ?? 0) - (totals.get('received') ?? 0));
-
-        return {
-            owedByMe,
-            owedToMe,
-            balanceAfterClosing: this.totalBalance() - owedByMe + owedToMe,
-        };
+        return calculateDebtSummary(this.yearTransactionResponses(), primaryBalance, (transaction) =>
+            this.convertTransactionAmount(transaction),
+        );
     });
     readonly incomeVsExpense = computed<ReadonlyArray<AnalyticsStackedPoint>>(() =>
         this.monthsForSelectedYear().map((month) => {
@@ -315,10 +424,16 @@ export class HomeDashboardStore {
                 label: compactMonthLabel(month),
                 income: transactions
                     .filter((item) => !isExpenseCategory(item.category.type))
-                    .reduce((sum, item) => sum + Math.abs(this.convertTransactionAmount(item)), 0),
+                    .reduce(
+                        (sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)),
+                        0,
+                    ),
                 expense: transactions
                     .filter((item) => isExpenseCategory(item.category.type))
-                    .reduce((sum, item) => sum + Math.abs(this.convertTransactionAmount(item)), 0),
+                    .reduce(
+                        (sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)),
+                        0,
+                    ),
             };
         }),
     );
@@ -348,12 +463,16 @@ export class HomeDashboardStore {
                 .filter((balance) => apiMonthKey(balance.year, balance.month) === key)
                 .filter(
                     (balance) =>
-                        this.selectedAccountId() === 'all' ||
-                        balance.accountId === this.selectedAccountId(),
+                        this.analyticsSelectedAccountId() === 'all' ||
+                        balance.accountId === this.analyticsSelectedAccountId(),
                 )
                 .reduce(
                     (sum, balance) =>
-                        sum + this.convertAccountAmount(balance.accountId, balance.closingBalance),
+                        sum +
+                        this.convertAnalyticsAccountAmount(
+                            balance.accountId,
+                            balance.closingBalance,
+                        ),
                     0,
                 );
 
@@ -374,7 +493,7 @@ export class HomeDashboardStore {
     );
     readonly tagExpensesChart = computed<ReadonlyArray<CategoryBreakdownItem>>(() => {
         const totals = categoryTotals(
-            this.yearTransactionResponses().filter((transaction) =>
+            this.selectedYearTransactions().filter((transaction) =>
                 isExpenseCategory(transaction.category.type),
             ),
             (transaction) => Math.abs(this.convertTransactionAmount(transaction)),
@@ -397,7 +516,7 @@ export class HomeDashboardStore {
                 return {
                     id: tag.id,
                     name: tag.name,
-                    amount: formatMoney(amountValue, this.applicationCurrencyCode()),
+                    amount: formatMoney(amountValue, this.analyticsCurrencyCode()),
                     amountValue,
                     progress: Math.round((amountValue / max) * 100),
                     color: tag.color,
@@ -409,36 +528,39 @@ export class HomeDashboardStore {
             .filter((item) => item.amountValue > 0);
     });
     readonly topExpensesChart = computed<ReadonlyArray<CategoryBreakdownItem>>(() =>
-        [...this.expenseCategories()].sort((a, b) => b.amountValue - a.amountValue).slice(0, 5),
+        [...this.analyticsExpenseCategories()]
+            .sort((a, b) => b.amountValue - a.amountValue)
+            .slice(0, 5),
     );
     readonly analyticsMetrics = computed<ReadonlyArray<AnalyticsMetricCard>>(() => {
-        const income = this.incomeTotal();
-        const expense = this.expenseTotal();
+        const income = this.analyticsIncomeTotal();
+        const expense = this.analyticsExpenseTotal();
         const net = income - expense;
+        const currencyCode = this.analyticsCurrencyCode();
 
         return [
             {
                 id: 'metric-income',
                 label: 'Доходы',
-                value: formatMoney(income, this.applicationCurrencyCode()),
+                value: formatMoney(income, currencyCode),
                 caption: 'Поступления за выбранный период',
             },
             {
                 id: 'metric-expense',
                 label: 'Расходы',
-                value: formatMoney(expense, this.applicationCurrencyCode()),
+                value: formatMoney(expense, currencyCode),
                 caption: 'Списания за выбранный период',
             },
             {
                 id: 'metric-net',
                 label: 'Чистый итог',
-                value: formatMoney(net, this.applicationCurrencyCode()),
+                value: formatMoney(net, currencyCode),
                 caption: net >= 0 ? 'Период закрывается в плюс' : 'Расходы выше доходов',
             },
             {
                 id: 'metric-balance',
                 label: 'Баланс',
-                value: formatMoney(this.totalBalance(), this.applicationCurrencyCode()),
+                value: formatMoney(this.totalBalance(), currencyCode),
                 caption: 'Закрывающий баланс выбранного месяца',
             },
         ];
@@ -528,25 +650,47 @@ export class HomeDashboardStore {
         }
     });
 
+    constructor() {
+        this.destroyRef.onDestroy(() => {
+            this.isDestroyed = true;
+            this.shouldRefreshTagDetailsAfterLoad = false;
+        });
+    }
+
     loadDashboard(showLoader = true): void {
+        if (showLoader && this.isLoading()) {
+            return;
+        }
+
         if (showLoader) {
             this.isLoading.set(true);
         }
 
         this.errorMessage.set('');
+        const requestId = ++this.dashboardLoadRequestId;
 
         this.loadDashboardPayload()
             .pipe(
                 finalize(() => {
-                    if (showLoader) {
+                    if (requestId === this.dashboardLoadRequestId) {
                         this.isLoading.set(false);
                     }
                 }),
                 takeUntilDestroyed(this.destroyRef),
             )
             .subscribe({
-                next: (payload) => this.setPayload(payload),
+                next: (payload) => {
+                    if (requestId !== this.dashboardLoadRequestId) {
+                        return;
+                    }
+
+                    this.setPayload(payload);
+                },
                 error: (error) => {
+                    if (requestId !== this.dashboardLoadRequestId) {
+                        return;
+                    }
+
                     this.clearPayload();
                     this.errorMessage.set(toFriendlyApiError(error, FRIENDLY_LOAD_ERROR_MESSAGE));
                     this.hasLoaded.set(false);
@@ -556,6 +700,11 @@ export class HomeDashboardStore {
 
     setActiveTab(tab: HomeTabId): void {
         this.activeTab.set(tab);
+        this.loadCategoriesForTab(tab);
+        this.loadTagDetailsForTab(tab);
+        this.loadYearTransactionsForTab(tab);
+        this.loadYearBalancesForTab(tab);
+        this.prefillTransferRateForTab(tab);
     }
 
     setSearchQuery(value: string): void {
@@ -575,38 +724,72 @@ export class HomeDashboardStore {
     }
 
     setAccountFilter(accountId: string): void {
+        if (!this.canUseAccountFilter(accountId)) {
+            return;
+        }
+
+        if (accountId === this.selectedAccountId()) {
+            return;
+        }
+
         this.selectedAccountId.set(accountId);
-        this.loadDashboard(false);
+        this.reloadCurrentTransactionPage();
+    }
+
+    setAccountsAccountFilter(accountId: string): void {
+        if (!this.canUseAccountFilter(accountId)) {
+            return;
+        }
+
+        this.accountsSelectedAccountId.set(accountId);
+    }
+
+    setAnalyticsAccountFilter(accountId: string): void {
+        if (!this.canUseAccountFilter(accountId)) {
+            return;
+        }
+
+        this.analyticsSelectedAccountId.set(accountId);
     }
 
     setTransactionPageSize(size: number): void {
-        const nextSize = this.normalizeTransactionPageSize(size);
+        const nextSize = normalizeTransactionPageSize(size);
 
         if (nextSize === this.transactionPageSize()) {
             return;
         }
 
         this.transactionPageSize.set(nextSize);
-        this.writeStoredTransactionPageSize(nextSize);
+        writeStoredTransactionPageSize(nextSize);
 
-        this.loadTransactionPage(this.transactionQuery(), nextSize)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-                next: (transactions) => this.transactionResponses.set(transactions),
-                error: (error) =>
-                    this.errorMessage.set(
-                        toFriendlyApiError(
-                            error,
-                            'Не удалось обновить список транзакций. Проверьте подключение и попробуйте ещё раз.',
-                        ),
-                    ),
-            });
+        this.reloadCurrentTransactionPage();
+    }
+
+    goToTransactionPage(page: number): void {
+        if (!Number.isFinite(page)) {
+            return;
+        }
+
+        const nextPage = Math.min(
+            Math.max(1, Math.trunc(page)),
+            this.transactionPagination().totalPages,
+        );
+
+        if (nextPage === this.transactionPagination().page) {
+            return;
+        }
+
+        this.reloadCurrentTransactionPage(nextPage);
     }
 
     setApplicationCurrencyCode(currencyCode: string): void {
-        const nextCode = currencyCode.trim().toUpperCase();
+        const nextCode = toSupportedCurrencyCode(currencyCode);
 
-        if (!nextCode || nextCode === this.applicationCurrencyCode() || this.isSaving()) {
+        if (
+            !nextCode ||
+            nextCode === this.applicationCurrencyCode() ||
+            this.isSaving()
+        ) {
             return;
         }
 
@@ -614,20 +797,22 @@ export class HomeDashboardStore {
             this.homeApi.updateApplicationCurrency({ applicationCurrencyCode: nextCode }),
             'Не удалось обновить валюту приложения.',
             (currentUser) => {
-                this.applicationCurrencyCodeSignal.set(currentUser.applicationCurrencyCode);
-                this.loadDashboard(false);
+                const applicationCurrencyCode = this.resolvePayloadApplicationCurrencyCode(
+                    currentUser,
+                    this.accountResponses(),
+                );
+
+                this.refreshApplicationExchangeRates(applicationCurrencyCode);
             },
         );
     }
 
     goToPreviousMonth(): void {
-        this.selectedMonth.update((value) => addMonths(value, -1));
-        this.loadDashboard();
+        this.goToMonth(addMonths(this.selectedMonth(), -1));
     }
 
     goToNextMonth(): void {
-        this.selectedMonth.update((value) => addMonths(value, 1));
-        this.loadDashboard();
+        this.goToMonth(addMonths(this.selectedMonth(), 1));
     }
 
     startAddingTransaction(): void {
@@ -635,6 +820,7 @@ export class HomeDashboardStore {
         this.editingTransactionId.set(null);
         this.transactionDraft.set(this.getDefaultTransactionDraft());
         this.isTransactionDialogOpen.set(true);
+        this.ensureCategoriesLoaded();
     }
 
     startEditingTransaction(transaction: TransactionItem | string): void {
@@ -652,6 +838,7 @@ export class HomeDashboardStore {
         this.editingTransactionId.set(transactionId);
         this.transactionDraft.set(draft);
         this.isTransactionDialogOpen.set(true);
+        this.ensureCategoriesLoaded();
     }
 
     closeTransactionDialog(): void {
@@ -663,7 +850,9 @@ export class HomeDashboardStore {
         const validCategories =
             draft.type === 'income' ? this.incomeCategoryOptions() : this.expenseCategoryOptions();
         const nextCategoryId =
-            validCategories.some((option) => option.value === draft.categoryId) && draft.categoryId
+            !this.hasLoadedCategories ||
+            (validCategories.some((option) => option.value === draft.categoryId) &&
+                draft.categoryId)
                 ? draft.categoryId
                 : (validCategories[0]?.value ?? '');
 
@@ -674,7 +863,11 @@ export class HomeDashboardStore {
         const draft = this.transactionDraft();
         const editingTransactionId = this.editingTransactionId();
 
-        if (!draft.accountId || !draft.categoryId || !draft.amount || this.isSaving()) {
+        if (!this.hasLoadedCategories) {
+            this.ensureCategoriesLoaded();
+        }
+
+        if (!this.canSaveTransactionDraft(draft) || this.isSaving()) {
             return;
         }
 
@@ -686,6 +879,11 @@ export class HomeDashboardStore {
         };
 
         if (editingTransactionId) {
+            const shouldReloadYearTransactions = this.shouldRefreshYearTransactionsForDraft(
+                draft,
+                editingTransactionId,
+            );
+
             this.runMutation(
                 this.homeApi.updateTransaction(editingTransactionId, payload),
                 'Не удалось обновить транзакцию.',
@@ -693,11 +891,13 @@ export class HomeDashboardStore {
                     this.isTransactionDialogOpen.set(false);
                     this.editingTransactionId.set(null);
                     this.transactionDraft.set(this.getDefaultTransactionDraft());
-                    this.loadDashboard(false);
+                    this.refreshTransactionData(shouldReloadYearTransactions);
                 },
             );
             return;
         }
+
+        const shouldReloadYearTransactions = this.shouldRefreshYearTransactionsForDraft(draft);
 
         this.runMutation(
             this.homeApi.createTransaction({
@@ -709,28 +909,38 @@ export class HomeDashboardStore {
                 this.isTransactionDialogOpen.set(false);
                 this.editingTransactionId.set(null);
                 this.transactionDraft.set(this.getDefaultTransactionDraft());
-                this.loadDashboard(false);
+                this.refreshTransactionData(shouldReloadYearTransactions);
             },
         );
     }
 
     deleteTransaction(transactionId: string): void {
+        const transaction =
+            this.transactionResponses().find((item) => item.id === transactionId) ??
+            this.yearTransactionResponses().find((item) => item.id === transactionId);
+
+        if (!transaction || this.isTransferTransaction(transaction) || this.isSaving()) {
+            return;
+        }
+
         this.runMutation(
             this.homeApi.deleteTransaction(transactionId),
             'Не удалось удалить транзакцию.',
-            () => this.loadDashboard(false),
+            () => this.refreshTransactionData(this.shouldRefreshYearTransactionsForTransaction(transaction)),
         );
     }
 
     updateTransferDraft(draft: TransferDraft): void {
         const previous = this.transferDraft();
-        this.transferDraft.set(draft);
-
-        if (
+        const hasAccountPairChanged =
             previous.fromAccountId !== draft.fromAccountId ||
-            previous.toAccountId !== draft.toAccountId
-        ) {
-            this.prefillTransferRate(draft);
+            previous.toAccountId !== draft.toAccountId;
+        const nextDraft = hasAccountPairChanged ? { ...draft, rate: null } : draft;
+
+        this.transferDraft.set(nextDraft);
+
+        if (hasAccountPairChanged) {
+            this.prefillTransferRate(nextDraft);
         }
     }
 
@@ -740,7 +950,7 @@ export class HomeDashboardStore {
         const toAccount = this.accounts().find((account) => account.id === draft.toAccountId);
 
         if (
-            !draft.amount ||
+            !isPositiveFiniteAmount(draft.amount) ||
             !fromAccount ||
             !toAccount ||
             draft.fromAccountId === draft.toAccountId ||
@@ -750,14 +960,18 @@ export class HomeDashboardStore {
         }
 
         const usesSameCurrency = fromAccount.currencyCode === toAccount.currencyCode;
-        const rate = usesSameCurrency ? null : draft.rate && draft.rate > 0 ? draft.rate : null;
+        if (!usesSameCurrency && (!draft.rate || draft.rate <= 0)) {
+            return;
+        }
+
+        const rate = usesSameCurrency ? null : draft.rate;
         const description = draft.description.trim() || 'Перевод между счетами';
 
         this.runMutation(
             this.homeApi.createTransfer({
                 fromAccountId: draft.fromAccountId,
                 toAccountId: draft.toAccountId,
-                amount: Math.abs(draft.amount),
+                amount: draft.amount,
                 date: this.defaultDateForSelectedMonth(),
                 rate,
                 description,
@@ -770,7 +984,7 @@ export class HomeDashboardStore {
                     rate: null,
                     description: '',
                 }));
-                this.loadDashboard(false);
+                this.refreshTransactionData(this.activeTab() === 'analytics');
             },
         );
     }
@@ -781,7 +995,13 @@ export class HomeDashboardStore {
     }
 
     setNewAccountCurrency(value: string): void {
-        this.newAccountCurrency.set(value);
+        const nextCode = toSupportedCurrencyCode(value);
+
+        if (!nextCode) {
+            return;
+        }
+
+        this.newAccountCurrency.set(nextCode);
     }
 
     createPrimaryAccount(): void {
@@ -799,7 +1019,8 @@ export class HomeDashboardStore {
             () => {
                 this.newAccountName.set('');
                 this.accountNameError.set('');
-                this.loadDashboard(false);
+                this.dashboardLoadRequestId++;
+                this.refreshAccountData({ reloadYearTransactions: false });
             },
         );
     }
@@ -821,7 +1042,7 @@ export class HomeDashboardStore {
             () => {
                 this.newAccountName.set('');
                 this.accountNameError.set('');
-                this.loadDashboard(false);
+                this.refreshAccountData({ reloadYearTransactions: false });
             },
             (error) => {
                 this.accountNameError.set(
@@ -833,8 +1054,14 @@ export class HomeDashboardStore {
     }
 
     deleteAccount(accountId: string): void {
+        const account = this.accountResponses().find((item) => item.id === accountId);
+
+        if (!account || account.isPrimary || this.isSaving()) {
+            return;
+        }
+
         this.runMutation(this.homeApi.deleteAccount(accountId), 'Не удалось удалить счёт.', () =>
-            this.loadDashboard(false),
+            this.refreshAccountData(),
         );
     }
 
@@ -847,11 +1074,23 @@ export class HomeDashboardStore {
     }
 
     setNewIncomeCategoryColor(value: string): void {
-        this.newIncomeCategoryColor.set(value);
+        const nextColor = resolveHexColor(value);
+
+        if (!nextColor) {
+            return;
+        }
+
+        this.newIncomeCategoryColor.set(nextColor);
     }
 
     setNewExpenseCategoryColor(value: string): void {
-        this.newExpenseCategoryColor.set(value);
+        const nextColor = resolveHexColor(value);
+
+        if (!nextColor) {
+            return;
+        }
+
+        this.newExpenseCategoryColor.set(nextColor);
     }
 
     setNewTagGroup(value: string): void {
@@ -859,7 +1098,13 @@ export class HomeDashboardStore {
     }
 
     setNewTagGroupColor(value: string): void {
-        this.newTagGroupColor.set(value);
+        const nextColor = resolveHexColor(value);
+
+        if (!nextColor) {
+            return;
+        }
+
+        this.newTagGroupColor.set(nextColor);
     }
 
     addIncomeCategory(): void {
@@ -871,10 +1116,19 @@ export class HomeDashboardStore {
     }
 
     deleteCategory(categoryId: string): void {
+        const category = this.categoryResponses().find((item) => item.id === categoryId);
+
+        if (!category || category.isSystem || this.isSaving()) {
+            return;
+        }
+
         this.runMutation(
             this.homeApi.deleteCategory(categoryId),
             'Не удалось удалить категорию.',
-            () => this.loadDashboard(false),
+            () => {
+                this.reloadCategories();
+                this.refreshLoadedTagDetails();
+            },
         );
     }
 
@@ -899,18 +1153,29 @@ export class HomeDashboardStore {
     }
 
     deleteTag(tagId: string): void {
+        const tag = this.tagDetailsResponses().find((item) => item.id === tagId && !item.isDeleted);
+
+        if (!tag || this.isSaving()) {
+            return;
+        }
+
         this.runMutation(this.homeApi.deleteTag(tagId), 'Не удалось удалить тег.', () =>
             this.reloadTags(),
         );
     }
 
     assignCategoryToTag(tagId: string, categoryId: string): void {
-        if (!categoryId) {
+        const tag = this.tagGroups().find((item) => item.id === tagId);
+
+        if (
+            !tag ||
+            !this.isAssignableTagCategory(categoryId) ||
+            tag.categories.some((category) => category.id === categoryId)
+        ) {
             return;
         }
 
-        const tag = this.tagGroups().find((item) => item.id === tagId);
-        const categoryIds = new Set(tag?.categories.map((category) => category.id) ?? []);
+        const categoryIds = new Set(tag.categories.map((category) => category.id));
         categoryIds.add(categoryId);
 
         this.assignTagCategories(tagId, [...categoryIds]);
@@ -918,6 +1183,11 @@ export class HomeDashboardStore {
 
     removeCategoryFromTag(tagId: string, categoryId: string): void {
         const tag = this.tagGroups().find((item) => item.id === tagId);
+
+        if (!tag || !tag.categories.some((category) => category.id === categoryId)) {
+            return;
+        }
+
         const categoryIds = (tag?.categories ?? [])
             .map((category) => category.id)
             .filter((id) => id !== categoryId);
@@ -931,31 +1201,41 @@ export class HomeDashboardStore {
             currentUser: this.homeApi.getCurrentUser(),
         }).pipe(
             switchMap(({ accounts, currentUser }) => {
-                const yearMonths = this.monthsForSelectedYear();
+                const selectedMonth = this.selectedMonth();
                 const applicationCurrencyCode = this.resolvePayloadApplicationCurrencyCode(
                     currentUser,
                     accounts,
                 );
+
+                if (!accounts.length) {
+                    return of<DashboardPayload>({
+                        accounts,
+                        currentUser: {
+                            ...currentUser,
+                            applicationCurrencyCode,
+                        },
+                        transactionPage: createEmptyTransactionPage(this.transactionPageSize()),
+                        yearTransactions: [],
+                        yearBalances: [],
+                        exchangeRatesByAccountId: new Map<string, number>(),
+                    });
+                }
 
                 return forkJoin({
                     exchangeRatesByAccountId: this.loadApplicationExchangeRates(
                         accounts,
                         applicationCurrencyCode,
                     ),
-                    categories: this.loadCategories(),
-                    tagDetails: this.loadTagDetails(),
                     transactions: this.loadTransactionPage(
                         this.transactionQuery(),
                         this.transactionPageSize(),
                     ),
                     yearTransactions: this.loadTransactions(this.yearTransactionQuery()),
-                    yearBalances: this.loadMonthBalances(accounts, yearMonths),
+                    yearBalances: this.loadMonthBalances(accounts, [selectedMonth]),
                 }).pipe(
                     map(
                         ({
                             exchangeRatesByAccountId,
-                            categories,
-                            tagDetails,
                             transactions,
                             yearTransactions,
                             yearBalances,
@@ -965,9 +1245,7 @@ export class HomeDashboardStore {
                                 ...currentUser,
                                 applicationCurrencyCode,
                             },
-                            categories,
-                            tags: tagDetails,
-                            transactions,
+                            transactionPage: transactions,
                             yearTransactions,
                             yearBalances,
                             exchangeRatesByAccountId,
@@ -993,7 +1271,13 @@ export class HomeDashboardStore {
                     return of<TagDetailsResponse[]>([]);
                 }
 
-                return forkJoin(tags.map((tag) => this.toTagDetails(tag)));
+                return from(tags).pipe(
+                    concatMap((tag) => this.toTagDetails(tag)),
+                    reduce(
+                        (details, tagDetails) => [...details, tagDetails],
+                        [] as TagDetailsResponse[],
+                    ),
+                );
             }),
         );
     }
@@ -1007,10 +1291,9 @@ export class HomeDashboardStore {
     private loadTransactionPage(
         query: { accountId?: string; fromDate: string; toDate: string },
         size: number,
-    ): Observable<TransactionResponse[]> {
-        return this.homeApi
-            .getTransactions({ ...query, page: 1, size })
-            .pipe(map((response) => response.items));
+        page = 1,
+    ): Observable<PagedResponse<TransactionResponse>> {
+        return this.homeApi.getTransactions({ ...query, page, size });
     }
 
     private loadApplicationExchangeRates(
@@ -1026,20 +1309,21 @@ export class HomeDashboardStore {
             return of(new Map<string, number>());
         }
 
-        const requests = accounts.map((account) => {
-            if (
-                account.id === applicationAccount.id ||
-                account.currencyCode === applicationAccount.currencyCode
-            ) {
-                return of([account.id, 1] as const);
-            }
+        return from(accounts).pipe(
+            concatMap((account) => {
+                if (
+                    account.id === applicationAccount.id ||
+                    account.currencyCode === applicationAccount.currencyCode
+                ) {
+                    return of([account.id, 1] as const);
+                }
 
-            return this.homeApi
-                .getTransferRate(account.id, applicationAccount.id)
-                .pipe(map((response) => [account.id, response.rate] as const));
-        });
-
-        return forkJoin(requests).pipe(map((entries) => new Map<string, number>(entries)));
+                return this.homeApi
+                    .getTransferRate(account.id, applicationAccount.id)
+                    .pipe(map((response) => [account.id, response.rate] as const));
+            }),
+            reduce((rates, [accountId, rate]) => rates.set(accountId, rate), new Map<string, number>()),
+        );
     }
 
     private loadAllPages<T>(
@@ -1051,12 +1335,12 @@ export class HomeDashboardStore {
                     return of(firstPage.items);
                 }
 
-                const rest = Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
-                    loadPage(index + 2),
-                );
-
-                return forkJoin(rest).pipe(
-                    map((pages) => [firstPage, ...pages].flatMap((page) => page.items)),
+                return range(2, firstPage.totalPages - 1).pipe(
+                    concatMap((page) => loadPage(page)),
+                    reduce(
+                        (items: T[], page) => [...items, ...page.items],
+                        [...firstPage.items],
+                    ),
                 );
             }),
         );
@@ -1068,40 +1352,65 @@ export class HomeDashboardStore {
 
     private loadMonthBalances(accounts: AccountResponse[], months: Date[]) {
         const requests = accounts.flatMap((account) =>
-            months.map((month) =>
-                this.homeApi.getMonthBalance(account.id, month.getFullYear(), month.getMonth() + 1),
-            ),
+            months.map((month) => ({
+                accountId: account.id,
+                year: month.getFullYear(),
+                month: month.getMonth() + 1,
+            })),
         );
 
         if (!requests.length) {
             return of<MonthBalanceResponse[]>([]);
         }
 
-        return forkJoin(requests);
+        return from(requests).pipe(
+            concatMap((request) =>
+                this.homeApi.getMonthBalance(request.accountId, request.year, request.month),
+            ),
+            reduce(
+                (balances, balance) => [...balances, balance],
+                [] as MonthBalanceResponse[],
+            ),
+        );
     }
 
     private setPayload(payload: DashboardPayload): void {
         this.accountResponses.set(payload.accounts);
         this.applicationCurrencyCodeSignal.set(payload.currentUser.applicationCurrencyCode);
         this.exchangeRatesByAccountId.set(payload.exchangeRatesByAccountId);
-        this.categoryResponses.set(payload.categories);
-        this.tagDetailsResponses.set(payload.tags);
-        this.transactionResponses.set(payload.transactions);
+        this.setTransactionPage(payload.transactionPage);
         this.yearTransactionResponses.set(payload.yearTransactions);
+        this.areYearTransactionsStale = false;
         this.yearBalanceResponses.set(payload.yearBalances);
+        this.loadedFullBalanceYear = null;
         this.hasLoaded.set(true);
         this.ensureSelectedAccountExists();
         this.ensureDraftDefaults();
+        this.loadYearBalancesForTab(this.activeTab());
     }
 
     private clearPayload(): void {
         this.accountResponses.set([]);
         this.categoryResponses.set([]);
         this.tagDetailsResponses.set([]);
-        this.transactionResponses.set([]);
+        this.selectedAccountId.set('all');
+        this.accountsSelectedAccountId.set('all');
+        this.analyticsSelectedAccountId.set('all');
+        this.hasLoadedCategories = false;
+        this.isCategoryDataLoading = false;
+        this.hasLoadedTagDetails.set(false);
+        this.isYearTransactionsLoading = false;
+        this.areYearTransactionsStale = false;
+        this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()));
         this.yearTransactionResponses.set([]);
         this.yearBalanceResponses.set([]);
         this.exchangeRatesByAccountId.set(new Map<string, number>());
+        this.loadedFullBalanceYear = null;
+    }
+
+    private setTransactionPage(page: PagedResponse<TransactionResponse>): void {
+        this.transactionResponses.set(page.items);
+        this.transactionPagination.set(mapTransactionPagination(page));
     }
 
     private createCategory(nameValue: string, type: CategoryType, color: string): void {
@@ -1125,12 +1434,553 @@ export class HomeDashboardStore {
                     this.newExpenseCategory.set('');
                 }
 
-                this.loadDashboard(false);
+                this.reloadCategories();
+                this.refreshLoadedTagDetails();
             },
         );
     }
 
+    private goToMonth(nextMonth: Date): void {
+        const currentYear = this.selectedMonth().getFullYear();
+        const nextYear = nextMonth.getFullYear();
+
+        this.selectedMonth.set(nextMonth);
+
+        if (!this.hasLoaded()) {
+            this.loadDashboard();
+            return;
+        }
+
+        if (currentYear === nextYear) {
+            this.reloadCurrentTransactionPage();
+            this.loadSelectedMonthBalances();
+            return;
+        }
+
+        this.refreshPeriodData();
+    }
+
+    private reloadCurrentTransactionPage(page = 1): void {
+        this.errorMessage.set('');
+        const requestId = ++this.currentTransactionPageRequestId;
+
+        if (!this.accountResponses().length) {
+            this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()));
+            return;
+        }
+
+        this.loadTransactionPage(this.transactionQuery(), this.transactionPageSize(), page)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+                next: (transactionPage) => {
+                    if (requestId !== this.currentTransactionPageRequestId) {
+                        return;
+                    }
+
+                    this.setTransactionPage(transactionPage);
+                },
+                error: (error) => {
+                    if (requestId !== this.currentTransactionPageRequestId) {
+                        return;
+                    }
+
+                    this.errorMessage.set(
+                        toFriendlyApiError(
+                            error,
+                            'Не удалось обновить список транзакций. Проверьте подключение и попробуйте ещё раз.',
+                        ),
+                    );
+                },
+            });
+    }
+
+    private reloadSelectedYearTransactions(): void {
+        this.errorMessage.set('');
+        const requestId = ++this.selectedYearTransactionsRequestId;
+
+        if (!this.accountResponses().length) {
+            this.yearTransactionResponses.set([]);
+            this.areYearTransactionsStale = false;
+            return;
+        }
+
+        this.isYearTransactionsLoading = true;
+
+        this.loadTransactions(this.yearTransactionQuery())
+            .pipe(
+                finalize(() => {
+                    if (requestId === this.selectedYearTransactionsRequestId) {
+                        this.isYearTransactionsLoading = false;
+                    }
+                }),
+                takeUntilDestroyed(this.destroyRef),
+            )
+            .subscribe({
+                next: (transactions) => {
+                    if (requestId !== this.selectedYearTransactionsRequestId) {
+                        return;
+                    }
+
+                    this.yearTransactionResponses.set(transactions);
+                    this.areYearTransactionsStale = false;
+                },
+                error: (error) => {
+                    if (requestId !== this.selectedYearTransactionsRequestId) {
+                        return;
+                    }
+
+                    this.errorMessage.set(toFriendlyApiError(error, FRIENDLY_LOAD_ERROR_MESSAGE));
+                },
+            });
+    }
+
+    private reloadCategories(): void {
+        this.errorMessage.set('');
+        const requestId = ++this.categoryReloadRequestId;
+        this.isCategoryDataLoading = true;
+
+        this.loadCategories()
+            .pipe(
+                finalize(() => {
+                    if (requestId === this.categoryReloadRequestId) {
+                        this.isCategoryDataLoading = false;
+                    }
+                }),
+                takeUntilDestroyed(this.destroyRef),
+            )
+            .subscribe({
+                next: (categories) => {
+                    if (requestId !== this.categoryReloadRequestId) {
+                        return;
+                    }
+
+                    this.categoryResponses.set(categories);
+                    this.hasLoadedCategories = true;
+                    this.ensureDraftDefaults();
+                },
+                error: (error) => {
+                    if (requestId !== this.categoryReloadRequestId) {
+                        return;
+                    }
+
+                    this.errorMessage.set(
+                        toFriendlyApiError(
+                            error,
+                            'Не удалось обновить категории. Проверьте подключение и попробуйте ещё раз.',
+                        ),
+                    );
+                },
+            });
+    }
+
+    private loadCategoriesForTab(tab: HomeTabId): void {
+        if (tab !== 'analytics' && tab !== 'categories') {
+            return;
+        }
+
+        this.ensureCategoriesLoaded();
+    }
+
+    private ensureCategoriesLoaded(): void {
+        if (this.hasLoadedCategories || this.isCategoryDataLoading || this.isDestroyed) {
+            return;
+        }
+
+        this.reloadCategories();
+    }
+
+    private refreshSelectedMonthBalances(): void {
+        const requestId = ++this.selectedMonthBalanceRequestId;
+
+        this.loadMonthBalances(this.accountResponses(), [this.selectedMonth()])
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+                next: (balances) => {
+                    if (requestId !== this.selectedMonthBalanceRequestId) {
+                        return;
+                    }
+
+                    this.mergeMonthBalances(balances);
+                },
+                error: (error) => {
+                    if (requestId !== this.selectedMonthBalanceRequestId) {
+                        return;
+                    }
+
+                    this.errorMessage.set(toFriendlyApiError(error, FRIENDLY_LOAD_ERROR_MESSAGE));
+                },
+            });
+    }
+
+    private refreshTransactionData(reloadYearTransactions: boolean): void {
+        this.reloadCurrentTransactionPage();
+
+        if (reloadYearTransactions || this.activeTab() === 'analytics') {
+            this.reloadSelectedYearTransactions();
+        } else {
+            this.areYearTransactionsStale = true;
+        }
+
+        if (this.activeTab() === 'analytics') {
+            this.reloadSelectedYearBalances();
+            return;
+        }
+
+        this.keepOnlySelectedMonthBalancesForSelectedYear();
+        this.refreshSelectedMonthBalances();
+    }
+
+    private refreshPeriodData(): void {
+        if (!this.accountResponses().length) {
+            this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()));
+            this.yearTransactionResponses.set([]);
+            this.yearBalanceResponses.set([]);
+            this.loadedFullBalanceYear = null;
+            return;
+        }
+
+        this.reloadCurrentTransactionPage();
+        this.reloadSelectedYearTransactions();
+        this.yearBalanceResponses.set([]);
+        this.loadedFullBalanceYear = null;
+
+        if (this.activeTab() === 'analytics') {
+            this.loadYearBalancesForSelectedYear();
+            return;
+        }
+
+        this.loadSelectedMonthBalances();
+    }
+
+    private loadYearTransactionsForTab(tab: HomeTabId): void {
+        if (tab !== 'analytics' || !this.areYearTransactionsStale || this.isYearTransactionsLoading) {
+            return;
+        }
+
+        this.reloadSelectedYearTransactions();
+    }
+
+    private refreshApplicationExchangeRates(applicationCurrencyCode: string): void {
+        this.errorMessage.set('');
+        const requestId = ++this.applicationExchangeRatesRequestId;
+
+        this.loadApplicationExchangeRates(this.accountResponses(), applicationCurrencyCode)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+                next: (exchangeRatesByAccountId) => {
+                    if (requestId !== this.applicationExchangeRatesRequestId) {
+                        return;
+                    }
+
+                    this.applicationCurrencyCodeSignal.set(applicationCurrencyCode);
+                    this.exchangeRatesByAccountId.set(exchangeRatesByAccountId);
+                },
+                error: (error) => {
+                    if (requestId !== this.applicationExchangeRatesRequestId) {
+                        return;
+                    }
+
+                    this.errorMessage.set(toFriendlyApiError(error, FRIENDLY_LOAD_ERROR_MESSAGE));
+                },
+            });
+    }
+
+    private refreshAccountData(
+        options: { reloadYearTransactions?: boolean } = {},
+    ): void {
+        this.errorMessage.set('');
+        const requestId = ++this.accountDataRequestId;
+        const reloadYearTransactions = options.reloadYearTransactions ?? true;
+
+        this.loadAccounts()
+            .pipe(
+                switchMap((accounts) => {
+                    const selectedAccountId = this.selectedAccountIdForAccounts(accounts);
+                    const accountsSelectedAccountId = this.accountFilterIdForAccounts(
+                        this.accountsSelectedAccountId(),
+                        accounts,
+                    );
+                    const analyticsSelectedAccountId = this.accountFilterIdForAccounts(
+                        this.analyticsSelectedAccountId(),
+                        accounts,
+                    );
+                    const applicationCurrencyCode = this.resolveApplicationCurrencyCode(
+                        this.applicationCurrencyCode(),
+                        accounts,
+                    );
+
+                    if (!accounts.length) {
+                        return of({
+                            accounts,
+                            selectedAccountId,
+                            accountsSelectedAccountId,
+                            analyticsSelectedAccountId,
+                            applicationCurrencyCode,
+                            exchangeRatesByAccountId: new Map<string, number>(),
+                            transactionPage: createEmptyTransactionPage(this.transactionPageSize()),
+                            yearTransactions: [],
+                            yearBalances: [],
+                        });
+                    }
+
+                    const balanceMonths =
+                        this.activeTab() === 'analytics'
+                            ? this.monthsForSelectedYear()
+                            : [this.selectedMonth()];
+
+                    return forkJoin({
+                        exchangeRatesByAccountId: this.loadApplicationExchangeRates(
+                            accounts,
+                            applicationCurrencyCode,
+                        ),
+                        transactions: this.loadTransactionPage(
+                            this.transactionQuery(selectedAccountId),
+                            this.transactionPageSize(),
+                        ),
+                        yearTransactions: reloadYearTransactions
+                            ? this.loadTransactions(this.yearTransactionQuery())
+                            : of(this.yearTransactionResponses()),
+                        yearBalances: this.loadMonthBalances(accounts, balanceMonths),
+                    }).pipe(
+                        map(
+                            ({
+                            exchangeRatesByAccountId,
+                            transactions,
+                            yearTransactions,
+                            yearBalances,
+                        }) => ({
+                            accounts,
+                            selectedAccountId,
+                            accountsSelectedAccountId,
+                            analyticsSelectedAccountId,
+                            applicationCurrencyCode,
+                            exchangeRatesByAccountId,
+                            transactionPage: transactions,
+                            yearTransactions,
+                            yearBalances,
+                        }),
+                    ),
+                );
+                }),
+                takeUntilDestroyed(this.destroyRef),
+            )
+            .subscribe({
+                next: ({
+                    accounts,
+                    selectedAccountId,
+                    accountsSelectedAccountId,
+                    analyticsSelectedAccountId,
+                    applicationCurrencyCode,
+                    exchangeRatesByAccountId,
+                    transactionPage,
+                    yearTransactions,
+                    yearBalances,
+                }) => {
+                    if (requestId !== this.accountDataRequestId) {
+                        return;
+                    }
+
+                    this.accountResponses.set(accounts);
+                    this.selectedAccountId.set(selectedAccountId);
+                    this.accountsSelectedAccountId.set(accountsSelectedAccountId);
+                    this.analyticsSelectedAccountId.set(analyticsSelectedAccountId);
+                    this.applicationCurrencyCodeSignal.set(applicationCurrencyCode);
+                    this.exchangeRatesByAccountId.set(exchangeRatesByAccountId);
+                    this.setTransactionPage(transactionPage);
+                    this.yearTransactionResponses.set(yearTransactions);
+                    this.areYearTransactionsStale = accounts.length > 0 && !reloadYearTransactions;
+                    this.yearBalanceResponses.set(yearBalances);
+                    this.hasLoaded.set(true);
+                    this.loadedFullBalanceYear =
+                        accounts.length > 0 && this.activeTab() === 'analytics'
+                            ? this.selectedMonth().getFullYear()
+                            : null;
+                    this.ensureDraftDefaults();
+                },
+                error: (error) => {
+                    if (requestId !== this.accountDataRequestId) {
+                        return;
+                    }
+
+                    this.errorMessage.set(toFriendlyApiError(error, FRIENDLY_LOAD_ERROR_MESSAGE));
+                },
+            });
+    }
+
+    private loadSelectedMonthBalances(): void {
+        const requestId = ++this.selectedMonthBalanceRequestId;
+        const missingMonths = this.monthsMissingBalances([this.selectedMonth()]);
+
+        if (!missingMonths.length) {
+            return;
+        }
+
+        this.loadMonthBalances(this.accountResponses(), missingMonths)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+                next: (balances) => {
+                    if (requestId !== this.selectedMonthBalanceRequestId) {
+                        return;
+                    }
+
+                    this.mergeMonthBalances(balances);
+                },
+                error: (error) => {
+                    if (requestId !== this.selectedMonthBalanceRequestId) {
+                        return;
+                    }
+
+                    this.errorMessage.set(
+                        toFriendlyApiError(
+                            error,
+                            'Не удалось обновить балансы счетов. Проверьте подключение и попробуйте ещё раз.',
+                        ),
+                    );
+                },
+            });
+    }
+
+    private loadYearBalancesForTab(tab: HomeTabId): void {
+        if (tab !== 'analytics') {
+            return;
+        }
+
+        this.loadYearBalancesForSelectedYear();
+    }
+
+    private prefillTransferRateForTab(tab: HomeTabId): void {
+        if (tab !== 'accounts') {
+            return;
+        }
+
+        const draft = this.transferDraft();
+
+        if (!this.shouldPrefillTransferRate(draft)) {
+            return;
+        }
+
+        this.prefillTransferRate(draft);
+    }
+
+    private loadYearBalancesForSelectedYear(): void {
+        const selectedYear = this.selectedMonth().getFullYear();
+
+        if (
+            this.loadedFullBalanceYear === selectedYear ||
+            this.loadingYearBalanceYear === selectedYear
+        ) {
+            return;
+        }
+
+        const missingMonths = this.monthsMissingBalances(this.monthsForSelectedYear());
+
+        if (!missingMonths.length) {
+            this.loadedFullBalanceYear = selectedYear;
+            return;
+        }
+
+        const requestId = ++this.yearBalanceRequestId;
+        this.loadingYearBalanceYear = selectedYear;
+
+        this.loadMonthBalances(this.accountResponses(), missingMonths)
+            .pipe(
+                finalize(() => {
+                    if (requestId === this.yearBalanceRequestId) {
+                        this.loadingYearBalanceYear = null;
+                    }
+                }),
+                takeUntilDestroyed(this.destroyRef),
+            )
+            .subscribe({
+                next: (balances) => {
+                    if (requestId !== this.yearBalanceRequestId) {
+                        return;
+                    }
+
+                    this.mergeMonthBalances(balances);
+                    this.loadedFullBalanceYear = selectedYear;
+                },
+                error: (error) => {
+                    if (requestId !== this.yearBalanceRequestId) {
+                        return;
+                    }
+
+                    this.errorMessage.set(
+                        toFriendlyApiError(
+                            error,
+                            'Не удалось загрузить годовую динамику балансов. Проверьте подключение и попробуйте ещё раз.',
+                        ),
+                    );
+                },
+            });
+    }
+
+    private reloadSelectedYearBalances(): void {
+        const selectedYear = this.selectedMonth().getFullYear();
+
+        if (this.loadingYearBalanceYear === selectedYear) {
+            return;
+        }
+
+        const requestId = ++this.yearBalanceRequestId;
+        this.loadingYearBalanceYear = selectedYear;
+
+        this.loadMonthBalances(this.accountResponses(), this.monthsForSelectedYear())
+            .pipe(
+                finalize(() => {
+                    if (requestId === this.yearBalanceRequestId) {
+                        this.loadingYearBalanceYear = null;
+                    }
+                }),
+                takeUntilDestroyed(this.destroyRef),
+            )
+            .subscribe({
+                next: (balances) => {
+                    if (requestId !== this.yearBalanceRequestId) {
+                        return;
+                    }
+
+                    this.mergeMonthBalances(balances);
+                    this.loadedFullBalanceYear = selectedYear;
+                },
+                error: (error) => {
+                    if (requestId !== this.yearBalanceRequestId) {
+                        return;
+                    }
+
+                    this.errorMessage.set(toFriendlyApiError(error, FRIENDLY_LOAD_ERROR_MESSAGE));
+                },
+            });
+    }
+
+    private monthsMissingBalances(months: ReadonlyArray<Date>): Date[] {
+        return findMissingBalanceMonths(
+            this.accountResponses(),
+            this.yearBalanceResponses(),
+            months,
+        );
+    }
+
+    private mergeMonthBalances(balances: ReadonlyArray<MonthBalanceResponse>): void {
+        if (!balances.length) {
+            return;
+        }
+
+        this.yearBalanceResponses.set(mergeMonthBalanceCache(this.yearBalanceResponses(), balances));
+    }
+
+    private keepOnlySelectedMonthBalancesForSelectedYear(): void {
+        this.yearBalanceResponses.set(
+            keepSelectedMonthBalanceForYear(this.yearBalanceResponses(), this.selectedMonth()),
+        );
+        this.loadedFullBalanceYear = null;
+    }
+
     private assignTagCategories(tagId: string, categoryIds: string[]): void {
+        if (this.isSaving()) {
+            return;
+        }
+
         this.runMutation(
             this.homeApi.assignTagCategories(tagId, { categoryIds }),
             'Не удалось обновить категории тега.',
@@ -1138,18 +1988,70 @@ export class HomeDashboardStore {
         );
     }
 
+    private loadTagDetailsForTab(tab: HomeTabId): void {
+        if (tab !== 'analytics' && tab !== 'categories') {
+            return;
+        }
+
+        if (this.hasLoadedTagDetails() || this.isTagDetailsLoading) {
+            return;
+        }
+
+        this.reloadTags();
+    }
+
+    private refreshLoadedTagDetails(): void {
+        if (!this.hasLoadedTagDetails() && !this.isTagDetailsLoading) {
+            return;
+        }
+
+        this.reloadTags();
+    }
+
     private reloadTags(): void {
+        if (this.isDestroyed) {
+            return;
+        }
+
+        if (this.isTagDetailsLoading) {
+            this.shouldRefreshTagDetailsAfterLoad = true;
+            return;
+        }
+
+        this.isTagDetailsLoading = true;
+
         this.loadTagDetails()
-            .pipe(takeUntilDestroyed(this.destroyRef))
+            .pipe(
+                finalize(() => {
+                    this.isTagDetailsLoading = false;
+                    if (!this.isDestroyed && this.shouldRefreshTagDetailsAfterLoad) {
+                        this.shouldRefreshTagDetailsAfterLoad = false;
+                        this.reloadTags();
+                    }
+                }),
+                takeUntilDestroyed(this.destroyRef),
+            )
             .subscribe({
-                next: (tags) => this.tagDetailsResponses.set(tags),
-                error: (error) =>
+                next: (tags) => {
+                    if (this.shouldRefreshTagDetailsAfterLoad) {
+                        return;
+                    }
+
+                    this.tagDetailsResponses.set(tags);
+                    this.hasLoadedTagDetails.set(true);
+                },
+                error: (error) => {
+                    if (this.shouldRefreshTagDetailsAfterLoad) {
+                        return;
+                    }
+
                     this.errorMessage.set(
                         toFriendlyApiError(
                             error,
                             'Не удалось обновить теги. Проверьте подключение и попробуйте ещё раз.',
                         ),
-                    ),
+                    );
+                },
             });
     }
 
@@ -1182,12 +2084,14 @@ export class HomeDashboardStore {
     }
 
     private prefillTransferRate(draft: TransferDraft): void {
+        const requestId = ++this.transferRateRequestId;
         const fromAccount = this.accounts().find((account) => account.id === draft.fromAccountId);
         const toAccount = this.accounts().find((account) => account.id === draft.toAccountId);
 
         this.transferRateError.set('');
 
         if (!fromAccount || !toAccount || draft.fromAccountId === draft.toAccountId) {
+            this.isTransferRateLoading.set(false);
             return;
         }
 
@@ -1196,6 +2100,7 @@ export class HomeDashboardStore {
                 ...value,
                 rate: null,
             }));
+            this.isTransferRateLoading.set(false);
             return;
         }
 
@@ -1204,7 +2109,11 @@ export class HomeDashboardStore {
         this.homeApi
             .getTransferRate(draft.fromAccountId, draft.toAccountId)
             .pipe(
-                finalize(() => this.isTransferRateLoading.set(false)),
+                finalize(() => {
+                    if (requestId === this.transferRateRequestId) {
+                        this.isTransferRateLoading.set(false);
+                    }
+                }),
                 takeUntilDestroyed(this.destroyRef),
             )
             .subscribe({
@@ -1212,6 +2121,7 @@ export class HomeDashboardStore {
                     const current = this.transferDraft();
 
                     if (
+                        requestId !== this.transferRateRequestId ||
                         current.fromAccountId !== draft.fromAccountId ||
                         current.toAccountId !== draft.toAccountId
                     ) {
@@ -1224,6 +2134,10 @@ export class HomeDashboardStore {
                     });
                 },
                 error: (error) => {
+                    if (requestId !== this.transferRateRequestId) {
+                        return;
+                    }
+
                     const message = toFriendlyApiError(
                         error,
                         'Не удалось получить курс. Можно указать курс вручную.',
@@ -1238,36 +2152,22 @@ export class HomeDashboardStore {
         return this.convertAccountAmount(transaction.account.id, transaction.amount);
     }
 
+    private convertAnalyticsTransactionAmount(transaction: TransactionResponse): number {
+        return this.convertAnalyticsAccountAmount(transaction.account.id, transaction.amount);
+    }
+
     private convertAccountAmount(accountId: string, amount: number): number {
         const rate = this.exchangeRatesByAccountId().get(accountId) ?? 1;
 
         return amount * rate;
     }
 
-    private resolveDebtCategoryKind(categoryName: string): DebtCategoryKind | null {
-        const normalized = categoryName.trim().toLowerCase();
-
-        if (normalized.includes('взято в долг')) {
-            return 'taken';
+    private convertAnalyticsAccountAmount(accountId: string, amount: number): number {
+        if (this.analyticsSelectedAccountId() !== 'all') {
+            return amount;
         }
 
-        if (normalized.includes('возвращено по долгу')) {
-            return 'returned';
-        }
-
-        if (normalized.includes('дано в долг')) {
-            return 'given';
-        }
-
-        if (
-            normalized.includes('отдано по долгу') ||
-            normalized.includes('получено по долгу') ||
-            normalized.includes('вернули долг')
-        ) {
-            return 'received';
-        }
-
-        return null;
+        return this.convertAccountAmount(accountId, amount);
     }
 
     private resolveApplicationAccount(
@@ -1286,37 +2186,22 @@ export class HomeDashboardStore {
         currentUser: CurrentUserResponse,
         accounts: AccountResponse[],
     ): string {
+        return this.resolveApplicationCurrencyCode(currentUser.applicationCurrencyCode, accounts);
+    }
+
+    private resolveApplicationCurrencyCode(
+        currencyCode: string | null | undefined,
+        accounts: AccountResponse[],
+    ): string {
+        const sortedAccounts = this.sortAccounts(accounts);
+        const savedCurrencyCode = currencyCode?.trim().toUpperCase();
+
         return (
-            currentUser.applicationCurrencyCode?.trim().toUpperCase() ||
-            this.sortAccounts(accounts)[0]?.currencyCode ||
+            sortedAccounts.find((account) => account.currencyCode === savedCurrencyCode)
+                ?.currencyCode ||
+            sortedAccounts[0]?.currencyCode ||
             'BYN'
         );
-    }
-
-    private readStoredTransactionPageSize(): number {
-        try {
-            const storedValue = globalThis.localStorage?.getItem(TRANSACTION_PAGE_SIZE_STORAGE_KEY);
-
-            return this.normalizeTransactionPageSize(Number(storedValue));
-        } catch {
-            return TRANSACTION_PAGE_SIZE_OPTIONS[1];
-        }
-    }
-
-    private writeStoredTransactionPageSize(size: number): void {
-        try {
-            globalThis.localStorage?.setItem(TRANSACTION_PAGE_SIZE_STORAGE_KEY, size.toString());
-        } catch {
-            return;
-        }
-    }
-
-    private normalizeTransactionPageSize(size: number): number {
-        return TRANSACTION_PAGE_SIZE_OPTIONS.includes(
-            size as (typeof TRANSACTION_PAGE_SIZE_OPTIONS)[number],
-        )
-            ? size
-            : TRANSACTION_PAGE_SIZE_OPTIONS[1];
     }
 
     private sortAccounts(accounts: ReadonlyArray<AccountResponse>): AccountResponse[] {
@@ -1330,14 +2215,104 @@ export class HomeDashboardStore {
     }
 
     private ensureSelectedAccountExists(): void {
+        if (!this.canUseAccountFilter(this.selectedAccountId())) {
+            this.selectedAccountId.set('all');
+        }
+
+        if (!this.canUseAccountFilter(this.accountsSelectedAccountId())) {
+            this.accountsSelectedAccountId.set('all');
+        }
+
+        if (!this.canUseAccountFilter(this.analyticsSelectedAccountId())) {
+            this.analyticsSelectedAccountId.set('all');
+        }
+    }
+
+    private selectedAccountIdForAccounts(accounts: ReadonlyArray<AccountResponse>): string {
         const selectedAccountId = this.selectedAccountId();
 
         if (
             selectedAccountId !== 'all' &&
-            !this.accountResponses().some((account) => account.id === selectedAccountId)
+            !accounts.some((account) => account.id === selectedAccountId)
         ) {
-            this.selectedAccountId.set('all');
+            return 'all';
         }
+
+        return selectedAccountId;
+    }
+
+    private accountFilterIdForAccounts(
+        accountId: string,
+        accounts: ReadonlyArray<AccountResponse>,
+    ): string {
+        if (accountId !== 'all' && !accounts.some((account) => account.id === accountId)) {
+            return 'all';
+        }
+
+        return accountId;
+    }
+
+    private canUseAccountFilter(accountId: string): boolean {
+        return (
+            accountId === 'all' ||
+            this.accountResponses().some((account) => account.id === accountId)
+        );
+    }
+
+    private isAssignableTagCategory(categoryId: string): boolean {
+        return this.allCategoryOptions().some((category) => category.value === categoryId);
+    }
+
+    private shouldRefreshYearTransactionsForDraft(
+        draft: TransactionDraft,
+        editingTransactionId?: string | null,
+    ): boolean {
+        if (this.activeTab() === 'analytics') {
+            return true;
+        }
+
+        const category = this.categoryResponses().find((item) => item.id === draft.categoryId);
+
+        if (category && this.isDebtCategoryName(category.name)) {
+            return true;
+        }
+
+        const editedTransaction = editingTransactionId
+            ? this.findLoadedTransaction(editingTransactionId)
+            : null;
+
+        return editedTransaction ? this.shouldRefreshYearTransactionsForTransaction(editedTransaction) : false;
+    }
+
+    private shouldRefreshYearTransactionsForTransaction(transaction: TransactionResponse): boolean {
+        return this.activeTab() === 'analytics' || this.isDebtCategoryName(transaction.category.name);
+    }
+
+    private findLoadedTransaction(transactionId: string): TransactionResponse | null {
+        return (
+            this.transactionResponses().find((item) => item.id === transactionId) ??
+            this.yearTransactionResponses().find((item) => item.id === transactionId) ??
+            null
+        );
+    }
+
+    private isDebtCategoryName(categoryName: string): boolean {
+        return resolveDebtCategoryKind(categoryName) !== null;
+    }
+
+    private canSaveTransactionDraft(draft: TransactionDraft): boolean {
+        if (!draft.accountId || !draft.categoryId || !isPositiveFiniteAmount(draft.amount)) {
+            return false;
+        }
+
+        if (!this.accountResponses().some((account) => account.id === draft.accountId)) {
+            return false;
+        }
+
+        const categoryOptions =
+            draft.type === 'income' ? this.incomeCategoryOptions() : this.expenseCategoryOptions();
+
+        return categoryOptions.some((category) => category.value === draft.categoryId);
     }
 
     private ensureDraftDefaults(): void {
@@ -1358,31 +2333,36 @@ export class HomeDashboardStore {
 
         const accountOptions = this.accountOptions();
         const transferDraft = this.transferDraft();
+        const nextFromAccountId = accountOptions.some(
+            (option) => option.value === transferDraft.fromAccountId,
+        )
+            ? transferDraft.fromAccountId
+            : (accountOptions[0]?.value ?? '');
+        const nextToAccountId = accountOptions.some(
+            (option) => option.value === transferDraft.toAccountId,
+        )
+            ? transferDraft.toAccountId
+            : (accountOptions[1]?.value ?? accountOptions[0]?.value ?? '');
+        const hasTransferPairChanged =
+            transferDraft.fromAccountId !== nextFromAccountId ||
+            transferDraft.toAccountId !== nextToAccountId;
         const nextTransferDraft = {
-            fromAccountId: accountOptions.some(
-                (option) => option.value === transferDraft.fromAccountId,
-            )
-                ? transferDraft.fromAccountId
-                : (accountOptions[0]?.value ?? ''),
-            toAccountId: accountOptions.some((option) => option.value === transferDraft.toAccountId)
-                ? transferDraft.toAccountId
-                : (accountOptions[1]?.value ?? accountOptions[0]?.value ?? ''),
+            fromAccountId: nextFromAccountId,
+            toAccountId: nextToAccountId,
             amount: transferDraft.amount,
-            rate: transferDraft.rate,
+            rate: hasTransferPairChanged ? null : transferDraft.rate,
             description: transferDraft.description,
         };
 
         this.transferDraft.set(nextTransferDraft);
 
-        if (
-            nextTransferDraft.fromAccountId &&
-            nextTransferDraft.toAccountId &&
-            (!nextTransferDraft.rate ||
-                transferDraft.fromAccountId !== nextTransferDraft.fromAccountId ||
-                transferDraft.toAccountId !== nextTransferDraft.toAccountId)
-        ) {
+        if (this.activeTab() === 'accounts' && this.shouldPrefillTransferRate(nextTransferDraft)) {
             this.prefillTransferRate(nextTransferDraft);
         }
+    }
+
+    private shouldPrefillTransferRate(draft: TransferDraft): boolean {
+        return Boolean(draft.fromAccountId && draft.toAccountId && !draft.rate);
     }
 
     private filterByQuery<T>(
@@ -1402,7 +2382,7 @@ export class HomeDashboardStore {
     private transactionsForMonth(month: Date): TransactionResponse[] {
         const key = monthKey(month);
 
-        return this.yearTransactionResponses().filter(
+        return this.selectedYearTransactions().filter(
             (transaction) => monthKey(new Date(transaction.date)) === key,
         );
     }
@@ -1421,12 +2401,12 @@ export class HomeDashboardStore {
         return categories
             .map((category) => {
                 const cells = monthKeys.map((key, index) => {
-                    const value = this.yearTransactionResponses()
+                    const value = this.selectedYearTransactions()
                         .filter((transaction) => transaction.category.id === category.id)
                         .filter((transaction) => monthKey(new Date(transaction.date)) === key)
                         .reduce(
                             (sum, transaction) =>
-                                sum + Math.abs(this.convertTransactionAmount(transaction)),
+                                sum + Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
                             0,
                         );
 
@@ -1434,7 +2414,7 @@ export class HomeDashboardStore {
                         label: compactMonthLabel(months[index]),
                         value,
                         formattedValue: value
-                            ? formatMoney(value, this.applicationCurrencyCode())
+                            ? formatMoney(value, this.analyticsCurrencyCode())
                             : '—',
                     };
                 });
@@ -1444,14 +2424,14 @@ export class HomeDashboardStore {
                 return {
                     id: category.id,
                     name: category.name,
-                    color: category.color,
+                    color: safeHexColor(category.color, CATEGORY_COLORS[0]),
                     type,
                     cells,
                     totalValue,
-                    formattedTotal: formatMoney(totalValue, this.applicationCurrencyCode()),
+                    formattedTotal: formatMoney(totalValue, this.analyticsCurrencyCode()),
                     averageValue,
                     formattedAverage: averageValue
-                        ? formatMoney(averageValue, this.applicationCurrencyCode())
+                        ? formatMoney(averageValue, this.analyticsCurrencyCode())
                         : '—',
                 };
             })
@@ -1480,14 +2460,18 @@ export class HomeDashboardStore {
         return debtRows
             .map((row) => {
                 const cells = months.map((month) => {
-                    const totals = this.debtTotalsUntilMonth(month);
+                    const totals = calculateDebtTotalsUntilMonth(
+                        this.selectedYearTransactions(),
+                        month,
+                        (transaction) => this.convertAnalyticsTransactionAmount(transaction),
+                    );
                     const value = row.readValue(totals);
 
                     return {
                         label: compactMonthLabel(month),
                         value,
                         formattedValue: value
-                            ? formatMoney(value, this.applicationCurrencyCode())
+                            ? formatMoney(value, this.analyticsCurrencyCode())
                             : '—',
                     };
                 });
@@ -1502,11 +2486,11 @@ export class HomeDashboardStore {
                     cells,
                     totalValue,
                     formattedTotal: totalValue
-                        ? formatMoney(totalValue, this.applicationCurrencyCode())
+                        ? formatMoney(totalValue, this.analyticsCurrencyCode())
                         : '—',
                     averageValue,
                     formattedAverage: averageValue
-                        ? formatMoney(averageValue, this.applicationCurrencyCode())
+                        ? formatMoney(averageValue, this.analyticsCurrencyCode())
                         : '—',
                 };
             })
@@ -1524,7 +2508,7 @@ export class HomeDashboardStore {
             return {
                 label: compactMonthLabel(month),
                 value,
-                formattedValue: value ? formatMoney(value, this.applicationCurrencyCode()) : '—',
+                formattedValue: value ? formatMoney(value, this.analyticsCurrencyCode()) : '—',
             };
         });
         const totalValue = options.totalFromLastCell
@@ -1536,40 +2520,13 @@ export class HomeDashboardStore {
             cells,
             totalValue,
             formattedTotal: totalValue
-                ? formatMoney(totalValue, this.applicationCurrencyCode())
+                ? formatMoney(totalValue, this.analyticsCurrencyCode())
                 : '—',
             averageValue,
             formattedAverage: averageValue
-                ? formatMoney(averageValue, this.applicationCurrencyCode())
+                ? formatMoney(averageValue, this.analyticsCurrencyCode())
                 : '—',
         };
-    }
-
-    private debtTotalsUntilMonth(month: Date): Map<DebtCategoryKind, number> {
-        const limitKey = monthKey(month);
-        const totals = new Map<DebtCategoryKind, number>([
-            ['taken', 0],
-            ['returned', 0],
-            ['given', 0],
-            ['received', 0],
-        ]);
-
-        this.yearTransactionResponses()
-            .filter((transaction) => monthKey(new Date(transaction.date)) <= limitKey)
-            .forEach((transaction) => {
-                const kind = this.resolveDebtCategoryKind(transaction.category.name);
-
-                if (!kind) {
-                    return;
-                }
-
-                totals.set(
-                    kind,
-                    (totals.get(kind) ?? 0) + Math.abs(this.convertTransactionAmount(transaction)),
-                );
-            });
-
-        return totals;
     }
 
     private averageActiveValue(values: ReadonlyArray<number>): number {
@@ -1584,10 +2541,11 @@ export class HomeDashboardStore {
         return Math.round((total / activeValues.length) * 100) / 100;
     }
 
-    private transactionQuery(): { accountId?: string; fromDate: string; toDate: string } {
+    private transactionQuery(
+        selectedAccountId = this.selectedAccountId(),
+    ): { accountId?: string; fromDate: string; toDate: string } {
         const monthStart = this.selectedMonth();
         const nextMonthStart = addMonths(monthStart, 1);
-        const selectedAccountId = this.selectedAccountId();
 
         return {
             accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
@@ -1597,16 +2555,13 @@ export class HomeDashboardStore {
     }
 
     private yearTransactionQuery(): {
-        accountId?: string;
         fromDate: string;
         toDate: string;
     } {
         const yearStart = startOfYear(this.selectedMonth());
         const nextYearStart = addMonths(yearStart, 12);
-        const selectedAccountId = this.selectedAccountId();
 
         return {
-            accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
             fromDate: toIsoDate(yearStart),
             toDate: toIsoDate(nextYearStart),
         };

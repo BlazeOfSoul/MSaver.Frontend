@@ -12,7 +12,7 @@
     text-align: center;
     color: var(--color-ms-light-dark);
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+        linear-gradient(180deg, var(--color-ms-white-alpha-03), var(--color-ms-white-alpha-01)),
         color-mix(in oklab, var(--color-ms-surface), transparent 8%);
 }
 
@@ -24,7 +24,7 @@
     justify-content: center;
     border-radius: 999px;
     color: var(--color-ms-primary);
-    background: rgba(35, 199, 139, 0.08);
+    background: var(--color-ms-primary-alpha-08);
 }
 
 .empty-state strong {

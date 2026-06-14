@@ -6,98 +6,31 @@
         ></ms-input>
     </div>
 
-    <article class="panel">
-        <div class="panel__header">
-            <div>
-                <h2>Доходы</h2>
-                <p>Категории поступлений для быстрых операций и отчётов.</p>
-            </div>
+    <ms-category-group-panel
+        title="Доходы"
+        description="Категории поступлений для быстрых операций и отчётов."
+        addButtonTestId="open-income-category-dialog"
+        addButtonAriaLabel="Добавить категорию доходов"
+        railAriaLabel="Категории доходов"
+        emptyText="Категорий доходов пока нет."
+        [categories]="incomeCategories()"
+        [saving]="saving()"
+        (add)="openCategoryDialog('income')"
+        (deleteCategory)="deleteCategory.emit($event)"
+    ></ms-category-group-panel>
 
-            <ms-button
-                appearance="icon"
-                variant="primary"
-                size="lg"
-                data-testid="open-income-category-dialog"
-                [disabled]="saving()"
-                (onClick)="openCategoryDialog('income')"
-                aria-label="Добавить категорию доходов"
-            >
-                <span class="material-symbols-outlined">add</span>
-            </ms-button>
-        </div>
-
-        @if (incomeCategories().length) {
-            <div class="category-rail" aria-label="Категории доходов">
-                @for (category of incomeCategories(); track category.id) {
-                    <span class="category-chip" [style.--category-color]="category.color">
-                        <span>{{ category.name }}</span>
-                        @if (!category.isSystem) {
-                            <ms-button
-                                appearance="icon"
-                                variant="neutral"
-                                size="xs"
-                                class="category-chip__action"
-                                [disabled]="saving()"
-                                (onClick)="deleteCategory.emit(category.id)"
-                                aria-label="Удалить категорию"
-                            >
-                                <span class="material-symbols-outlined">close</span>
-                            </ms-button>
-                        }
-                    </span>
-                }
-            </div>
-        } @else {
-            <div class="categories-empty">Категорий доходов пока нет.</div>
-        }
-    </article>
-
-    <article class="panel">
-        <div class="panel__header">
-            <div>
-                <h2>Расходы</h2>
-                <p>Статьи затрат для операций, бюджета и аналитики.</p>
-            </div>
-
-            <ms-button
-                appearance="icon"
-                variant="primary"
-                size="lg"
-                data-testid="open-expense-category-dialog"
-                [disabled]="saving()"
-                (onClick)="openCategoryDialog('expense')"
-                aria-label="Добавить категорию расходов"
-            >
-                <span class="material-symbols-outlined">add</span>
-            </ms-button>
-        </div>
-
-        @if (expenseCategories().length) {
-            <div class="category-rail" aria-label="Категории расходов">
-                @for (category of expenseCategories(); track category.id) {
-                    <span class="category-chip" [style.--category-color]="category.color">
-                        <span>{{ category.name }}</span>
-                        @if (!category.isSystem) {
-                            <ms-button
-                                appearance="icon"
-                                variant="neutral"
-                                size="xs"
-                                class="category-chip__action"
-                                [disabled]="saving()"
-                                (onClick)="deleteCategory.emit(category.id)"
-                                aria-label="Удалить категорию"
-                            >
-                                <span class="material-symbols-outlined">close</span>
-                            </ms-button>
-                        }
-                    </span>
-                }
-            </div>
-        } @else {
-            <div class="categories-empty">Категорий расходов пока нет.</div>
-        }
-    </article>
-
+    <ms-category-group-panel
+        title="Расходы"
+        description="Статьи затрат для операций, бюджета и аналитики."
+        addButtonTestId="open-expense-category-dialog"
+        addButtonAriaLabel="Добавить категорию расходов"
+        railAriaLabel="Категории расходов"
+        emptyText="Категорий расходов пока нет."
+        [categories]="expenseCategories()"
+        [saving]="saving()"
+        (add)="openCategoryDialog('expense')"
+        (deleteCategory)="deleteCategory.emit($event)"
+    ></ms-category-group-panel>
     <article class="panel panel--wide">
         <div class="panel__header">
             <div>
@@ -121,78 +54,14 @@
         @if (tagGroups().length) {
             <div class="tag-group-list">
                 @for (group of tagGroups(); track group.id) {
-                    <article class="tag-group-card" [style.--tag-color]="group.color">
-                        <div class="tag-group-card__header">
-                            <strong class="tag-group-card__title">
-                                <i aria-hidden="true"></i>
-                                <span># {{ group.name }}</span>
-                            </strong>
-                            <ms-button
-                                appearance="icon"
-                                variant="danger"
-                                size="sm"
-                                [disabled]="saving()"
-                                (onClick)="deleteTag.emit(group.id)"
-                                aria-label="Удалить тег"
-                            >
-                                <span class="material-symbols-outlined">delete</span>
-                            </ms-button>
-                        </div>
-
-                        @if (categoryOptionsForTag(group).length) {
-                            <ms-select
-                                label="Добавить категорию"
-                                [options]="categoryOptionsForTag(group)"
-                                value=""
-                                placeholder="Выберите категорию"
-                                (valueChange)="onAssignCategoryToTag(group.id, $event)"
-                            ></ms-select>
-                        } @else {
-                            <div class="categories-empty categories-empty--compact">
-                                Все доступные категории уже в этом теге.
-                            </div>
-                        }
-
-                        <div class="tag-group-card__categories">
-                            <span class="tag-group-card__label">
-                                Категории в теге · {{ group.categories.length }}
-                            </span>
-
-                            @if (group.categories.length) {
-                                <div class="tag-category-list">
-                                    @for (category of group.categories; track category.id) {
-                                        <span
-                                            class="tag-category-pill"
-                                            [style.--category-color]="category.color"
-                                        >
-                                            <i aria-hidden="true"></i>
-                                            <span>{{ category.name }}</span>
-                                            <ms-button
-                                                appearance="icon"
-                                                variant="neutral"
-                                                size="xs"
-                                                class="category-chip__action"
-                                                [disabled]="saving()"
-                                                (onClick)="
-                                                    removeCategoryFromTag.emit({
-                                                        tagId: group.id,
-                                                        categoryId: category.id,
-                                                    })
-                                                "
-                                                aria-label="Убрать категорию из тега"
-                                            >
-                                                <span class="material-symbols-outlined">close</span>
-                                            </ms-button>
-                                        </span>
-                                    }
-                                </div>
-                            } @else {
-                                <div class="categories-empty categories-empty--compact">
-                                    В этом теге пока нет категорий.
-                                </div>
-                            }
-                        </div>
-                    </article>
+                    <ms-tag-group-card
+                        [group]="group"
+                        [availableCategoryOptions]="categoryOptionsForTag(group)"
+                        [saving]="saving()"
+                        (deleteTag)="deleteTag.emit($event)"
+                        (assignCategoryToTag)="assignCategoryToTag.emit($event)"
+                        (removeCategoryFromTag)="removeCategoryFromTag.emit($event)"
+                    ></ms-tag-group-card>
                 }
             </div>
         } @else {
@@ -202,187 +71,39 @@
 </section>
 
 @if (isCategoryDialogOpen()) {
-    <div class="category-dialog-backdrop" (click)="onCategoryDialogBackdropClick($event)">
-        <section
-            class="category-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="category-dialog-title"
-            aria-describedby="category-dialog-description"
-            (click)="$event.stopPropagation()"
-        >
-            <header class="category-dialog__header">
-                <div class="category-dialog__heading">
-                    <h2 id="category-dialog-title">{{ categoryDialogTitle() }}</h2>
-
-                    <p id="category-dialog-description">Выберите понятное вам название и цвет.</p>
-                </div>
-
-                <ms-button
-                    appearance="icon"
-                    variant="neutral"
-                    size="sm"
-                    class="category-dialog__close"
-                    (onClick)="closeCategoryDialog()"
-                    aria-label="Закрыть диалог"
-                >
-                    <span class="material-symbols-outlined">close</span>
-                </ms-button>
-            </header>
-
-            <div class="category-dialog__body">
-                <div class="category-dialog__field">
-                    <ms-input
-                        [ngModel]="categoryDialogName()"
-                        (ngModelChange)="setCategoryDialogName($event)"
-                        placeholder="Например: Продукты"
-                    ></ms-input>
-                </div>
-
-                <label class="color-field">
-                    <span>Цвет</span>
-
-                    <input
-                        type="color"
-                        data-testid="income-color-picker"
-                        [value]="categoryDialogColor()"
-                        [disabled]="saving()"
-                        (input)="setCategoryDialogColor(readColor($event))"
-                    />
-
-                    <strong>{{ categoryDialogColor() }}</strong>
-                </label>
-
-                <div class="category-dialog__preview">
-                    <span class="category-dialog__preview-label">Предпросмотр</span>
-
-                    <span
-                        class="category-chip category-chip--preview"
-                        [style.--category-color]="categoryDialogColor()"
-                    >
-                        <span>{{ categoryDialogName().trim() || 'Новая категория' }}</span>
-                    </span>
-                </div>
-            </div>
-
-            <footer class="category-dialog__footer">
-                <ms-button
-                    appearance="ghost"
-                    variant="neutral"
-                    [fullWidth]="true"
-                    [disabled]="saving()"
-                    (onClick)="closeCategoryDialog()"
-                >
-                    Отмена
-                </ms-button>
-
-                <ms-button
-                    variant="primary"
-                    data-testid="submit-category-dialog"
-                    [fullWidth]="true"
-                    [disabled]="saving() || !categoryDialogName().trim()"
-                    (onClick)="submitCategoryDialog()"
-                >
-                    Создать
-                </ms-button>
-            </footer>
-        </section>
-    </div>
+    <ms-name-color-dialog
+        [title]="categoryDialogTitle()"
+        description="Выберите понятное вам название и цвет."
+        placeholder="Например: Продукты"
+        [name]="categoryDialogName()"
+        [color]="categoryDialogColor()"
+        fallbackName="Новая категория"
+        previewKind="category"
+        colorPickerTestId="income-color-picker"
+        submitTestId="submit-category-dialog"
+        [saving]="saving()"
+        (closed)="closeCategoryDialog()"
+        (nameChange)="setCategoryDialogName($event)"
+        (colorChange)="setCategoryDialogColor($event)"
+        (submit)="submitCategoryDialog()"
+    ></ms-name-color-dialog>
 }
 
 @if (isTagDialogOpen()) {
-    <div
-        class="category-dialog-backdrop"
-        (pointerdown)="onTagDialogBackdropPointerDown($event)"
-        (click)="onTagDialogBackdropClick($event)"
-    >
-        <section
-            class="category-dialog tag-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="tag-dialog-title"
-            aria-describedby="tag-dialog-description"
-            (click)="$event.stopPropagation()"
-        >
-            <header class="category-dialog__header">
-                <div class="category-dialog__heading">
-                    <h2 id="tag-dialog-title">Новый тег</h2>
-
-                    <p id="tag-dialog-description">
-                        Выберите название и цвет для группы категорий.
-                    </p>
-                </div>
-
-                <ms-button
-                    appearance="icon"
-                    variant="neutral"
-                    size="sm"
-                    class="category-dialog__close"
-                    (onClick)="closeTagDialog()"
-                    aria-label="Закрыть диалог"
-                >
-                    <span class="material-symbols-outlined">close</span>
-                </ms-button>
-            </header>
-
-            <div class="category-dialog__body">
-                <div class="category-dialog__field">
-                    <ms-input
-                        [ngModel]="tagDialogName()"
-                        (ngModelChange)="setTagDialogName($event)"
-                        placeholder="Например: Дом"
-                    ></ms-input>
-                </div>
-
-                <label class="color-field">
-                    <span>Цвет</span>
-
-                    <input
-                        type="color"
-                        data-testid="tag-color-picker"
-                        [value]="tagDialogColor()"
-                        [disabled]="saving()"
-                        (input)="setTagDialogColor(readColor($event))"
-                    />
-
-                    <strong>{{ tagDialogColor() }}</strong>
-                </label>
-
-                <div class="category-dialog__preview">
-                    <span class="category-dialog__preview-label">Предпросмотр</span>
-
-                    <span
-                        class="tag-category-pill tag-preview"
-                        [style.--category-color]="tagDialogColor()"
-                        [style.--tag-color]="tagDialogColor()"
-                    >
-                        <i aria-hidden="true"></i>
-                        <span># {{ tagDialogName().trim() || 'Новый тег' }}</span>
-                    </span>
-                </div>
-            </div>
-
-            <footer class="category-dialog__footer">
-                <ms-button
-                    appearance="ghost"
-                    variant="neutral"
-                    [fullWidth]="true"
-                    [disabled]="saving()"
-                    (onClick)="closeTagDialog()"
-                >
-                    Отмена
-                </ms-button>
-
-                <ms-button
-                    variant="primary"
-                    data-testid="submit-tag-dialog"
-                    [fullWidth]="true"
-                    [disabled]="saving() || !tagDialogName().trim()"
-                    (onClick)="submitTagDialog()"
-                >
-                    Создать
-                </ms-button>
-            </footer>
-        </section>
-    </div>
+    <ms-name-color-dialog
+        title="Новый тег"
+        description="Выберите название и цвет для группы категорий."
+        placeholder="Например: Дом"
+        [name]="tagDialogName()"
+        [color]="tagDialogColor()"
+        fallbackName="Новый тег"
+        previewKind="tag"
+        colorPickerTestId="tag-color-picker"
+        submitTestId="submit-tag-dialog"
+        [saving]="saving()"
+        (closed)="closeTagDialog()"
+        (nameChange)="setTagDialogName($event)"
+        (colorChange)="setTagDialogColor($event)"
+        (submit)="submitTagDialog()"
+    ></ms-name-color-dialog>
 }

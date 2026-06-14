@@ -6,7 +6,7 @@ import { Button } from '../../../../../shared/ui/button/button';
     standalone: true,
     imports: [Button],
     templateUrl: './main-header.component.html',
-    styleUrl: './main-header.component.css',
+    styleUrls: ['./main-header.component.css', './main-header.part-2.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MainHeaderComponent {

@@ -1,0 +1,89 @@
+.dialog__footer {
+    position: sticky;
+    bottom: -1.5rem;
+    margin: 0 -1.5rem -1.5rem;
+    padding: 0.85rem 1.5rem 1.5rem;
+    border-top: 1px solid var(--color-ms-white-alpha-06);
+    background:
+        linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--color-ms-surface), transparent 28%),
+            color-mix(in oklab, var(--color-ms-surface), transparent 2%) 34%
+        ),
+        color-mix(in oklab, var(--color-ms-surface), transparent 4%);
+}
+
+.dialog__empty {
+    justify-items: center;
+    padding: 1.25rem 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    color: var(--color-ms-light-dark);
+    background: var(--color-ms-white-alpha-03);
+}
+
+.dialog__empty strong {
+    color: var(--color-ms-light);
+}
+
+.dialog__empty p {
+    margin: 0;
+}
+
+.dialog__hint {
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    color: var(--color-ms-light-dark);
+    font-size: 0.85rem;
+}
+
+@media (min-width: 720px) {
+    .dialog__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .dialog {
+        width: 100%;
+        max-height: min(100dvh - 1rem, 100dvh);
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
+
+    .dialog__header h2 {
+        font-size: 1.2rem;
+    }
+
+    .dialog__header p,
+    .dialog__hint {
+        font-size: 0.8rem;
+    }
+
+    .dialog__footer {
+        bottom: -1rem;
+        margin: 0 -1rem -1rem;
+        padding: 0.8rem 1rem 1rem;
+    }
+}
+
+@keyframes dialog-pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.55rem) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dialog,
+    .dialog__amount-card {
+        animation: none;
+        transition: none;
+    }
+}

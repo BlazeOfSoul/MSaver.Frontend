@@ -4,25 +4,36 @@
     background:
         radial-gradient(
             55% 70% at 18% 22%,
-            rgba(16, 185, 129, 0.085) 0%,
-            rgba(16, 185, 129, 0.04) 34%,
+            var(--color-ms-success-alpha-085) 0%,
+            var(--color-ms-success-alpha-04) 34%,
             transparent 74%
         ),
         radial-gradient(
             48% 68% at 82% 18%,
-            rgba(34, 197, 94, 0.07) 0%,
-            rgba(34, 197, 94, 0.034) 36%,
+            var(--color-ms-page-green-glow-07) 0%,
+            var(--color-ms-page-green-glow-034) 36%,
             transparent 76%
         ),
         radial-gradient(
             52% 78% at 70% 78%,
-            rgba(20, 184, 166, 0.055) 0%,
-            rgba(20, 184, 166, 0.028) 38%,
+            var(--color-ms-page-mint-glow-055) 0%,
+            var(--color-ms-page-mint-glow-028) 38%,
             transparent 78%
         ),
-        linear-gradient(180deg, rgba(4, 10, 8, 0.18) 0%, rgba(3, 7, 6, 0.42) 100%),
-        linear-gradient(145deg, #020303 0%, #04100c 26%, #061310 56%, #030504 100%);
-    background-size: 220% 220%, 180% 180%, 200% 200%, 100% 100%, 100% 100%;
+        linear-gradient(180deg, var(--color-ms-page-overlay-start) 0%, var(--color-ms-page-overlay-end) 100%),
+        linear-gradient(
+            145deg,
+            var(--color-ms-dark) 0%,
+            var(--color-ms-secondary) 26%,
+            var(--color-ms-accent-dark) 56%,
+            var(--color-ms-dark-light) 100%
+        );
+    background-size:
+        220% 220%,
+        180% 180%,
+        200% 200%,
+        100% 100%,
+        100% 100%;
     animation: home-background-pan 18s ease-in-out infinite;
     overflow-x: hidden;
 }
@@ -56,15 +67,15 @@
     display: grid;
     gap: 1rem;
     padding: 0.9rem;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--color-ms-white-alpha-06);
     border-radius: 0.5rem;
     background:
-        linear-gradient(180deg, rgba(10, 15, 13, 0.94), rgba(10, 15, 13, 0.88)),
+        linear-gradient(180deg, color-mix(in oklab, var(--color-ms-surface), transparent 6%), color-mix(in oklab, var(--color-ms-surface), transparent 12%)),
         color-mix(in oklab, var(--color-ms-dark-light), transparent 8%);
     backdrop-filter: blur(22px);
     box-shadow:
-        0 22px 46px rgba(0, 0, 0, 0.24),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        0 22px 46px var(--color-ms-black-alpha-24),
+        inset 0 1px 0 var(--color-ms-white-alpha-05);
 }
 
 .home-page__content {
@@ -83,56 +94,32 @@
 
 .content-header h1 {
     margin: 0;
-    font-size: clamp(1.45rem, 4vw, 2.05rem);
-    line-height: 1;
+    font-size: clamp(1.35rem, 3.2vw, 1.78rem);
+    font-weight: 700;
+    line-height: 1.12;
     letter-spacing: 0;
-    color: var(--color-ms-light);
+    color: color-mix(in oklab, var(--color-ms-light), var(--color-ms-light-dark) 22%);
 }
 
 .content-header p {
     margin: 0.35rem 0 0;
     max-width: 42rem;
+    font-size: 0.96rem;
     color: var(--color-ms-light-dark);
 }
 
-.home-alert {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 0.65rem;
-    padding: 0.85rem 1rem;
-    border: 1px solid rgba(255, 111, 145, 0.35);
-    border-radius: 0.5rem;
-    background: rgba(255, 111, 145, 0.12);
-    color: var(--color-ms-light);
-    animation: home-alert-enter 0.18s ease-out both;
-}
-
-.home-alert .material-symbols-outlined {
-    color: #ff8fab;
-}
-
-.home-alert--leaving {
-    animation: home-alert-leave 0.18s ease-in both;
-}
-
-.home-alert ms-button .material-symbols-outlined {
-    font-size: 1.15rem;
-}
-
-.home-loader,
-.first-account-setup {
+.home-loader {
     display: grid;
     gap: 1rem;
     padding: 1.25rem;
     border: 1px solid var(--color-ms-border);
     border-radius: 0.5rem;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, var(--color-ms-white-alpha-06), var(--color-ms-white-alpha-02)),
         color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
     box-shadow:
-        0 22px 48px rgba(0, 0, 0, 0.18),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        0 22px 48px var(--color-ms-black-alpha-18),
+        inset 0 1px 0 var(--color-ms-white-alpha-04);
 }
 
 .home-loader {
@@ -143,168 +130,7 @@
     color: var(--color-ms-light-dark);
 }
 
-.home-loader strong,
-.first-account-setup h2 {
+.home-loader strong {
     margin: 0;
     color: var(--color-ms-light);
-}
-
-.loader-spinner {
-    width: 3.25rem;
-    height: 3.25rem;
-    border: 0.28rem solid rgba(255, 255, 255, 0.12);
-    border-top-color: var(--color-ms-primary);
-    border-radius: 50%;
-    animation: loader-spin 0.78s linear infinite;
-}
-
-.first-account-setup {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: center;
-}
-
-.first-account-setup--screen {
-    width: min(100%, 58rem);
-    min-height: min(36rem, calc(100dvh - 2rem));
-}
-
-.first-account-setup__copy {
-    display: grid;
-    gap: 0.65rem;
-    max-width: 42rem;
-}
-
-.first-account-setup__copy p {
-    margin: 0;
-    color: var(--color-ms-light-dark);
-    line-height: 1.55;
-}
-
-.first-account-setup__icon {
-    display: inline-grid;
-    width: 3rem;
-    height: 3rem;
-    place-items: center;
-    border-radius: 0.5rem;
-    color: var(--color-ms-primary);
-    background: rgba(35, 199, 139, 0.1);
-}
-
-.first-account-setup .eyebrow {
-    color: var(--color-ms-primary);
-    font-size: 0.76rem;
-    font-weight: 800;
-    text-transform: uppercase;
-}
-
-.first-account-setup__form {
-    display: grid;
-    gap: 0.85rem;
-}
-
-@keyframes loader-spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes home-alert-enter {
-    from {
-        opacity: 0;
-        transform: translateY(-0.35rem);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes home-alert-leave {
-    to {
-        opacity: 0;
-        transform: translateY(-0.35rem);
-    }
-}
-
-@keyframes home-background-pan {
-    0%,
-    100% {
-        background-position: 0% 50%, 100% 20%, 50% 100%, 0 0, 0 0;
-    }
-
-    50% {
-        background-position: 100% 50%, 0% 30%, 70% 70%, 0 0, 0 0;
-    }
-}
-
-@media (max-width: 767px) {
-    .home-page {
-        padding: 0.65rem 0 1.35rem;
-    }
-
-    .home-page__sticky {
-        position: static;
-        top: auto;
-        gap: 0.85rem;
-        padding: 0.8rem;
-        border-radius: 0.5rem;
-    }
-
-    .home-page__container {
-        padding: 0 0.75rem;
-    }
-
-    .home-page__content {
-        gap: 0.85rem;
-    }
-
-    .content-header {
-        display: grid;
-        gap: 0.75rem;
-        padding: 0 0.15rem;
-    }
-
-    .content-header p {
-        font-size: 0.92rem;
-        line-height: 1.45;
-    }
-}
-
-@media (max-width: 420px) {
-    .home-page__container {
-        padding: 0 0.6rem;
-    }
-
-    .home-page__sticky {
-        padding: 0.72rem;
-        border-radius: 0.5rem;
-    }
-
-    .content-header h1 {
-        font-size: 1.32rem;
-    }
-
-    .content-header p {
-        font-size: 0.88rem;
-    }
-}
-
-@media (min-width: 1024px) {
-    .home-page {
-        padding-top: 1.5rem;
-    }
-
-    .home-page__shell {
-        gap: 1.25rem;
-    }
-
-    .home-page__sticky {
-        top: 0.9rem;
-    }
-
-    .first-account-setup {
-        grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
-        padding: 1.5rem;
-    }
 }

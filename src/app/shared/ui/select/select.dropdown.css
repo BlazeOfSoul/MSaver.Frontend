@@ -1,0 +1,99 @@
+.ms-select__dropdown {
+    position: absolute;
+    top: calc(100% + 0.55rem);
+    left: 0;
+    right: 0;
+    z-index: 120;
+    display: grid;
+    gap: 0.35rem;
+    max-height: 16rem;
+    overflow: auto;
+    padding: 0.45rem;
+    border: 1px solid var(--color-ms-border-strong);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--color-ms-surface-raised), transparent 2%),
+            color-mix(in oklab, var(--color-ms-surface-raised), transparent 4%)
+        ),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 4%);
+    box-shadow:
+        0 24px 48px var(--color-ms-black-alpha-28),
+        inset 0 1px 0 var(--color-ms-white-alpha-04);
+    transform-origin: top center;
+    animation: ms-select-dropdown-in 0.16s ease-out both;
+}
+
+.ms-select__option {
+    --option-color: var(--color-ms-primary);
+    display: flex;
+    min-height: 2.8rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.8rem;
+    border: 0;
+    border-radius: 0.5rem;
+    color: var(--color-ms-light);
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition:
+        background-color 0.16s ease,
+        color 0.16s ease,
+        transform 0.16s ease;
+}
+
+.ms-select__option-label {
+    display: inline-flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ms-select__option-label > span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ms-select__option:hover,
+.ms-select__option--selected {
+    background: var(--color-ms-white-alpha-05);
+}
+
+.ms-select__option--selected {
+    color: var(--color-ms-primary-soft);
+}
+
+.ms-select__option:hover {
+    transform: translateX(2px);
+}
+
+@media (max-width: 480px) {
+    .ms-select__dropdown {
+        max-height: 13rem;
+    }
+}
+
+@keyframes ms-select-dropdown-in {
+    from {
+        opacity: 0;
+        transform: translateY(-0.25rem) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ms-select__dropdown,
+    .ms-select__option {
+        animation: none;
+        transition: none;
+    }
+}

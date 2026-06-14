@@ -24,4 +24,14 @@ describe('MainHeaderComponent', () => {
         expect(settingsButton?.classList.contains('ms-btn-primary')).toBe(true);
         expect(logoutButton?.classList.contains('ms-btn-danger')).toBe(true);
     });
+
+    it('marks the logout label so the mobile header can collapse it to an icon button', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const logoutButton = host.querySelector<HTMLElement>('[data-testid="logout-button"]');
+
+        expect(logoutButton?.querySelector('.logout-button__label')).not.toBeNull();
+        expect(logoutButton?.getAttribute('aria-label')).toBeTruthy();
+    });
 });

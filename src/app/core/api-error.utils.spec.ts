@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { getApiFieldError, toFriendlyApiError } from './api-error.utils';
+import { getApiFieldError, readApiError, toFriendlyApiError } from './api-error.utils';
 
 describe('api-error utils', () => {
     it('returns backend messages and field details from Result-pattern errors', () => {
@@ -29,5 +29,27 @@ describe('api-error utils', () => {
         expect(toFriendlyApiError(error, 'Fallback')).toBe(
             'Не удалось получить данные. Проверьте подключение и попробуйте ещё раз.',
         );
+    });
+
+    it('keeps only string arrays from backend field details', () => {
+        const error = new HttpErrorResponse({
+            status: 400,
+            error: {
+                code: 'Validation',
+                message: 'Fix the highlighted fields.',
+                details: {
+                    Email: 'Use a real email.',
+                    Password: [123, null],
+                    Name: ['Name is required.', 42],
+                },
+            },
+        });
+
+        expect(readApiError(error)?.details).toEqual({
+            Name: ['Name is required.'],
+        });
+        expect(getApiFieldError(error, 'email')).toBe('');
+        expect(getApiFieldError(error, 'password')).toBe('');
+        expect(getApiFieldError(error, 'name')).toBe('Name is required.');
     });
 });

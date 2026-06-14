@@ -42,6 +42,11 @@ testem.log
 __screenshots__/
 .superpowers/
 
+# Local environment overrides
+.env
+.env.*
+!.env.example
+
 # System files
 .DS_Store
 Thumbs.db

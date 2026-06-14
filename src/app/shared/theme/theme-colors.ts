@@ -15,6 +15,18 @@ export const MS_CATEGORY_COLORS: ReadonlyArray<string> = [
     '#79e0b5',
 ];
 
+export const MS_CATEGORY_OTHER_COLOR = '#8fa39a';
+
+export const MS_ANALYTICS_CHART_COLORS = {
+    income: MS_CATEGORY_COLORS[0],
+    expense: MS_CATEGORY_COLORS[2],
+    balance: MS_CATEGORY_COLORS[1],
+    savings: MS_CATEGORY_COLORS[3],
+    tags: MS_CATEGORY_COLORS[0],
+    topExpenses: MS_CATEGORY_COLORS[3],
+    other: MS_CATEGORY_OTHER_COLOR,
+} as const;
+
 export const MS_CHART_THEME = {
     tooltipBackground: '--color-ms-chart-tooltip-bg',
     tooltipTitle: '--color-ms-chart-tooltip-title',
