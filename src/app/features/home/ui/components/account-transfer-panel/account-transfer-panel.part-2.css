@@ -1,0 +1,118 @@
+.transfer-amount-card--withdraw {
+    border: 1px solid color-mix(in oklab, var(--color-ms-danger), transparent 76%);
+    background: color-mix(in oklab, var(--color-ms-danger), transparent 92%);
+}
+
+.transfer-amount-card--deposit {
+    border: 1px solid color-mix(in oklab, var(--color-ms-primary), transparent 78%);
+    background: color-mix(in oklab, var(--color-ms-primary), transparent 92%);
+}
+
+.transfer-amount-card__label,
+.transfer-conversion-card__copy span {
+    color: var(--color-ms-light-dark);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.transfer-amount-card--withdraw .transfer-amount-card__label {
+    color: color-mix(in oklab, var(--color-ms-danger), white 20%);
+}
+
+.transfer-amount-card--deposit .transfer-amount-card__label {
+    color: color-mix(in oklab, var(--color-ms-primary), white 20%);
+}
+
+.transfer-conversion-card {
+    display: grid;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.9rem;
+    border: 1px solid color-mix(in oklab, var(--color-ms-warning), transparent 78%);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(
+            135deg,
+            color-mix(in oklab, var(--color-ms-warning), transparent 90%),
+            transparent 65%
+        ),
+        var(--color-ms-white-alpha-025);
+}
+
+.transfer-conversion-card__copy {
+    display: grid;
+    gap: 0.25rem;
+    align-content: center;
+    justify-items: start;
+}
+
+.transfer-conversion-card__copy strong,
+.transfer-field__label,
+.transfer-rate__label,
+.accounts-empty strong {
+    color: var(--color-ms-light);
+}
+
+.transfer-conversion-card__copy strong {
+    font-size: 1rem;
+}
+
+.transfer-field,
+.transfer-rate,
+.accounts-empty {
+    gap: 0.4rem;
+}
+
+.transfer-field__label,
+.transfer-rate__label {
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.transfer-rate__hint,
+.field-error {
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.transfer-rate__hint {
+    color: var(--color-ms-light-dark);
+}
+
+.field-error {
+    margin: 0;
+    color: var(--color-ms-danger);
+}
+
+.accounts-empty {
+    justify-items: center;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    background: var(--color-ms-white-alpha-025);
+}
+
+.accounts-empty p {
+    max-width: 24rem;
+    margin: 0;
+}
+
+@media (min-width: 900px) {
+    .transfer-flow {
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    }
+
+    .transfer-direction {
+        align-self: center;
+    }
+
+    .transfer-direction .material-symbols-outlined {
+        transform: none;
+    }
+
+    .transfer-conversion-card {
+        grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+    }
+}

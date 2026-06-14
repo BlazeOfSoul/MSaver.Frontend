@@ -1,0 +1,15 @@
+<div class="ms-section-header__copy">
+    @if (eyebrow()) {
+    <p>{{ eyebrow() }}</p>
+    }
+
+    <h2>{{ title() }}</h2>
+
+    @if (description()) {
+    <span>{{ description() }}</span>
+    }
+</div>
+
+<div class="ms-section-header__actions">
+    <ng-content />
+</div>

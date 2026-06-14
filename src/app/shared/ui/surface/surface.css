@@ -1,0 +1,48 @@
+:host {
+    display: block;
+    border: 1px solid var(--color-ms-border);
+    color: var(--color-ms-light);
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-055), var(--color-ms-white-alpha-025)),
+        color-mix(in oklab, var(--color-ms-surface), transparent 16%);
+    box-shadow: var(--shadow-ms-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+:host(.ms-surface-hero) {
+    border-radius: var(--radius-ms-xl);
+    background:
+        linear-gradient(135deg, var(--color-ms-primary-alpha-12), var(--color-ms-white-alpha-035) 38%),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 14%);
+}
+
+:host(.ms-surface-panel) {
+    border-radius: var(--radius-ms-xl);
+}
+
+:host(.ms-surface-tile) {
+    border-radius: var(--radius-ms-lg);
+}
+
+:host(.ms-surface-section) {
+    border-radius: var(--radius-ms-xl);
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-045), var(--color-ms-white-alpha-02)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 20%);
+}
+
+:host(.ms-surface-interactive) {
+    transition:
+        transform 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+@media (hover: hover) {
+    :host(.ms-surface-interactive:hover) {
+        transform: translateY(-2px);
+        border-color: var(--color-ms-border-strong);
+        box-shadow: var(--shadow-ms-surface-hover);
+    }
+}

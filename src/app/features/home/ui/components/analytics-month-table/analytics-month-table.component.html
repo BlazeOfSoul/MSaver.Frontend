@@ -1,0 +1,68 @@
+<article class="analytics-table-card">
+    <h3>{{ title() }}</h3>
+
+    @if (rows().length || showWhenEmpty()) {
+        <div class="analytics-table-shell">
+            <table class="analytics-table">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ rowHeader() }}</th>
+                        @for (month of months(); track month) {
+                            <th scope="col">{{ month }}</th>
+                        }
+                        <th scope="col">Итого</th>
+                        <th scope="col">Среднее</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (row of rows(); track row.id) {
+                        <tr>
+                            <th scope="row">
+                                <i [style.background]="row.color"></i>
+                                <span>{{ row.name }}</span>
+                            </th>
+                            @for (cell of row.cells; track cell.label) {
+                                <td [attr.data-label]="cell.label">
+                                    {{ cell.formattedValue }}
+                                </td>
+                            }
+                            <td data-label="Итого">
+                                <strong>{{ row.formattedTotal }}</strong>
+                            </td>
+                            <td data-label="Среднее">
+                                <strong>{{ row.formattedAverage }}</strong>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                @if (summary(); as monthSummary) {
+                    <tfoot>
+                        <tr>
+                            <th scope="row">
+                                <i></i>
+                                <span>Итого за месяц</span>
+                            </th>
+                            @for (cell of monthSummary.cells; track cell.label) {
+                                <td [attr.data-label]="cell.label">
+                                    {{ cell.formattedValue }}
+                                </td>
+                            }
+                            <td data-label="Итого">
+                                <strong>{{ monthSummary.formattedTotal }}</strong>
+                            </td>
+                            <td data-label="Среднее" data-testid="month-average">
+                                <strong>{{ monthSummary.formattedAverage }}</strong>
+                            </td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+
+        @if (!rows().length) {
+            <div class="analytics-empty">{{ emptyText() }}</div>
+        }
+    } @else {
+        <div class="analytics-empty">{{ emptyText() }}</div>
+    }
+</article>

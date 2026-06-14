@@ -1,0 +1,24 @@
+<section class="panel">
+    <div class="panel__header">
+        <div>
+            <h2>Журнал операций</h2>
+            <p>Доходы, расходы и переводы в отсортированной таблице выбранного месяца.</p>
+        </div>
+    </div>
+
+    <ms-transaction-journal
+        [transactions]="transactions()"
+        [searchControl]="searchControl()"
+        [accountOptions]="accountOptions()"
+        [selectedAccountId]="selectedAccountId()"
+        [pageSize]="pageSize()"
+        [pagination]="pagination()"
+        [pageSizeOptions]="pageSizeOptions()"
+        [saving]="saving()"
+        (accountChange)="accountChange.emit($event)"
+        (pageSizeChange)="pageSizeChange.emit($event)"
+        (pageChange)="pageChange.emit($event)"
+        (editTransaction)="editTransaction.emit($event)"
+        (deleteTransaction)="deleteTransaction.emit($event)"
+    ></ms-transaction-journal>
+</section>

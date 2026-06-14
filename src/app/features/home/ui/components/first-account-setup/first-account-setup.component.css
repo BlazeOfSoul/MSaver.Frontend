@@ -1,0 +1,66 @@
+:host {
+    display: block;
+    width: min(100%, 58rem);
+}
+
+.first-account-setup {
+    display: grid;
+    min-height: min(36rem, calc(100dvh - 2rem));
+    gap: 1rem;
+    align-items: center;
+    padding: 1.25rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-06), var(--color-ms-white-alpha-02)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
+    box-shadow:
+        0 22px 48px var(--color-ms-black-alpha-18),
+        inset 0 1px 0 var(--color-ms-white-alpha-04);
+}
+
+.first-account-setup__copy {
+    display: grid;
+    gap: 0.65rem;
+    max-width: 42rem;
+}
+
+.first-account-setup__copy p {
+    margin: 0;
+    color: var(--color-ms-light-dark);
+    line-height: 1.55;
+}
+
+.first-account-setup__icon {
+    display: inline-grid;
+    width: 3rem;
+    height: 3rem;
+    place-items: center;
+    border-radius: 0.5rem;
+    color: var(--color-ms-primary);
+    background: var(--color-ms-primary-alpha-1);
+}
+
+.first-account-setup .eyebrow {
+    color: var(--color-ms-primary);
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.first-account-setup h2 {
+    margin: 0;
+    color: var(--color-ms-light);
+}
+
+.first-account-setup__form {
+    display: grid;
+    gap: 0.85rem;
+}
+
+@media (min-width: 1024px) {
+    .first-account-setup {
+        grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
+        padding: 1.5rem;
+    }
+}

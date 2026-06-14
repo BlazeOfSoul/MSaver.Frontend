@@ -1,0 +1,45 @@
+<article class="panel">
+    <div class="panel__header">
+        <div>
+            <h2>{{ title() }}</h2>
+            <p>{{ description() }}</p>
+        </div>
+
+        <ms-button
+            appearance="icon"
+            variant="primary"
+            size="lg"
+            [attr.data-testid]="addButtonTestId()"
+            [disabled]="saving()"
+            (onClick)="add.emit()"
+            [attr.aria-label]="addButtonAriaLabel()"
+        >
+            <span class="material-symbols-outlined">add</span>
+        </ms-button>
+    </div>
+
+    @if (categories().length) {
+        <div class="category-rail" [attr.aria-label]="railAriaLabel()">
+            @for (category of categories(); track category.id) {
+                <span class="category-chip" [style.--category-color]="category.color">
+                    <span>{{ category.name }}</span>
+                    @if (!category.isSystem) {
+                        <ms-button
+                            appearance="icon"
+                            variant="neutral"
+                            size="xs"
+                            class="category-chip__action"
+                            [disabled]="saving()"
+                            (onClick)="deleteCategory.emit(category.id)"
+                            aria-label="Удалить категорию"
+                        >
+                            <span class="material-symbols-outlined">close</span>
+                        </ms-button>
+                    }
+                </span>
+            }
+        </div>
+    } @else {
+        <div class="categories-empty">{{ emptyText() }}</div>
+    }
+</article>

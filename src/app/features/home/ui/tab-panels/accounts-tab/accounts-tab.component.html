@@ -1,0 +1,44 @@
+<section class="accounts-layout">
+    <ms-account-list-panel
+        [accounts]="accounts()"
+        [allAccounts]="allAccounts()"
+        [currencyOptions]="currencyOptions()"
+        [accountFilterOptions]="accountFilterOptions()"
+        [searchControl]="searchControl()"
+        [selectedAccountId]="selectedAccountId()"
+        [summaryBalanceLabel]="summaryBalanceLabel()"
+        [summaryBalanceValue]="summaryBalanceValue()"
+        [newAccountName]="newAccountName()"
+        [newAccountCurrency]="newAccountCurrency()"
+        [newAccountNameError]="newAccountNameError()"
+        [saving]="saving()"
+        (newAccountNameChange)="newAccountNameChange.emit($event)"
+        (newAccountCurrencyChange)="newAccountCurrencyChange.emit($event)"
+        (createAccount)="createAccount.emit()"
+        (deleteAccount)="deleteAccount.emit($event)"
+        (accountChange)="accountChange.emit($event)"
+    ></ms-account-list-panel>
+
+    <article class="panel">
+        <div class="panel__header">
+            <div>
+                <h2>Перевод между счетами</h2>
+                <p>
+                    Курс подставляется автоматически для выбранной пары валют, но его можно
+                    поправить вручную.
+                </p>
+            </div>
+        </div>
+
+        <ms-account-transfer-panel
+            [allAccounts]="allAccounts()"
+            [accountOptions]="accountOptions()"
+            [transferDraft]="transferDraft()"
+            [transferRateError]="transferRateError()"
+            [rateLoading]="rateLoading()"
+            [saving]="saving()"
+            (transferDraftChange)="transferDraftChange.emit($event)"
+            (submitTransfer)="submitTransfer.emit()"
+        ></ms-account-transfer-panel>
+    </article>
+</section>

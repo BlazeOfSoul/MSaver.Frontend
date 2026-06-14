@@ -1,0 +1,35 @@
+<article class="chart-card">
+    <header class="chart-card__header">
+        <div>
+            <h3>{{ title() }}</h3>
+            <p>{{ subtitle() }}</p>
+        </div>
+    </header>
+
+    <div class="chart-card__body" [style.height.px]="height()">
+        <canvas #canvas></canvas>
+
+        @if (!hasData) {
+            <div class="chart-card__empty">
+                <span class="material-symbols-outlined">monitoring</span>
+                <strong>Пока нет данных для графика</strong>
+                <p>Добавьте операции или выберите другой период.</p>
+            </div>
+        }
+    </div>
+
+    @if (type() === 'doughnut' && labels().length) {
+        <div class="chart-card__legend" aria-label="Легенда графика">
+            @for (label of labels(); track label; let index = $index) {
+                <span class="chart-card__legend-item">
+                    <span
+                        class="chart-card__legend-dot"
+                        [style.background]="legendColor(index)"
+                        aria-hidden="true"
+                    ></span>
+                    <span>{{ label }}</span>
+                </span>
+            }
+        </div>
+    }
+</article>

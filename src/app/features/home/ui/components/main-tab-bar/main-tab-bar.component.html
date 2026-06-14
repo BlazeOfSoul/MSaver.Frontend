@@ -1,0 +1,15 @@
+<nav class="tab-bar" aria-label="Основные разделы">
+    @for (tab of tabs(); track tab.id) {
+        <ms-button
+            appearance="tab"
+            variant="neutral"
+            role="tab"
+            [active]="tab.id === activeTab()"
+            [attr.aria-selected]="tab.id === activeTab()"
+            (onClick)="tabChange.emit(tab.id)"
+        >
+            <span class="material-symbols-outlined">{{ tab.icon }}</span>
+            <span class="tab-bar__label">{{ tab.label }}</span>
+        </ms-button>
+    }
+</nav>

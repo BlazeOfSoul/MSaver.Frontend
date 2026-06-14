@@ -1,0 +1,39 @@
+<article class="panel">
+    <div class="panel__header">
+        <div>
+            <h2>Финансовая аналитика</h2>
+            <p>Понятные графики для контроля доходов, расходов и баланса.</p>
+        </div>
+    </div>
+
+    <div class="analytics-toolbar">
+        <ms-select
+            [options]="accountOptions()"
+            [value]="selectedAccountId()"
+            (valueChange)="accountChange.emit($event)"
+        ></ms-select>
+    </div>
+
+    <div class="metric-grid">
+        @for (metric of metrics(); track metric.id) {
+            <article class="metric-card">
+                <span class="metric-card__label">{{ metric.label }}</span>
+                <strong class="metric-card__value">{{ metric.value }}</strong>
+                <span class="metric-card__caption">{{ metric.caption }}</span>
+            </article>
+        }
+    </div>
+
+    <nav class="analytics-view-tabs" aria-label="Разделы аналитики">
+        @for (view of views(); track view.id) {
+            <ms-button
+                appearance="tab"
+                variant="neutral"
+                [active]="activeView() === view.id"
+                (onClick)="viewChange.emit(view.id)"
+            >
+                {{ view.label }}
+            </ms-button>
+        }
+    </nav>
+</article>

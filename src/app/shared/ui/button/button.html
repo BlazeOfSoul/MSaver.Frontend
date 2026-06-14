@@ -1,0 +1,6 @@
+<span class="ms-btn__content">
+    @if (loading()) {
+        <span class="ms-btn__spinner" aria-hidden="true"></span>
+    }
+    <ng-content>{{ label() }}</ng-content>
+</span>

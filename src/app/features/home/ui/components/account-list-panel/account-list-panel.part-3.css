@@ -1,0 +1,82 @@
+.account-card__badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: 0 0.6rem;
+    border: 1px solid color-mix(in oklab, var(--account-color), transparent 68%);
+    border-radius: 999px;
+    color: color-mix(in oklab, var(--account-color), white 24%);
+    background: color-mix(in oklab, var(--account-color), transparent 88%);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.account-create {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: end;
+}
+
+.account-create__fields {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.account-create__field-stack {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.field-error {
+    margin: 0;
+    color: var(--color-ms-danger);
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
+@media (min-width: 720px) {
+    .accounts-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .account-create__fields,
+    .accounts-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1200px) {
+    .accounts-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .account-create {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+    }
+
+    .panel {
+        padding: 0.95rem;
+        border-radius: 0.5rem;
+    }
+
+    .account-card {
+        padding: 0.9rem;
+    }
+
+    .accounts-summary {
+        align-items: start;
+        flex-direction: column;
+    }
+
+    .account-create ms-button {
+        width: 3rem;
+        min-width: 3rem;
+        height: 3rem;
+        min-height: 3rem;
+    }
+}

@@ -1,0 +1,18 @@
+<section class="settings-layout">
+    <article class="panel settings-hero">
+        <div>
+            <h2>Валюта приложения</h2>
+            <p>
+                Основная валюта используется для баланса, аналитики, переводов и сводных графиков.
+            </p>
+        </div>
+
+        <ms-select
+            label="Валюта отображения"
+            [options]="currencyOptions()"
+            [value]="applicationCurrencyCode()"
+            [disabled]="saving()"
+            (valueChange)="updateApplicationCurrency($event)"
+        ></ms-select>
+    </article>
+</section>

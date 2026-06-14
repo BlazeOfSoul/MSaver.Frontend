@@ -1,0 +1,109 @@
+<section class="categories-layout">
+    <div class="categories-search panel panel--wide">
+        <ms-input
+            [formControl]="searchControl()"
+            placeholder="Поиск по категориям и тегам"
+        ></ms-input>
+    </div>
+
+    <ms-category-group-panel
+        title="Доходы"
+        description="Категории поступлений для быстрых операций и отчётов."
+        addButtonTestId="open-income-category-dialog"
+        addButtonAriaLabel="Добавить категорию доходов"
+        railAriaLabel="Категории доходов"
+        emptyText="Категорий доходов пока нет."
+        [categories]="incomeCategories()"
+        [saving]="saving()"
+        (add)="openCategoryDialog('income')"
+        (deleteCategory)="deleteCategory.emit($event)"
+    ></ms-category-group-panel>
+
+    <ms-category-group-panel
+        title="Расходы"
+        description="Статьи затрат для операций, бюджета и аналитики."
+        addButtonTestId="open-expense-category-dialog"
+        addButtonAriaLabel="Добавить категорию расходов"
+        railAriaLabel="Категории расходов"
+        emptyText="Категорий расходов пока нет."
+        [categories]="expenseCategories()"
+        [saving]="saving()"
+        (add)="openCategoryDialog('expense')"
+        (deleteCategory)="deleteCategory.emit($event)"
+    ></ms-category-group-panel>
+    <article class="panel panel--wide">
+        <div class="panel__header">
+            <div>
+                <h2>Теги аналитики</h2>
+                <p>Группы категорий для понятных срезов расходов и доходов.</p>
+            </div>
+
+            <ms-button
+                appearance="icon"
+                variant="primary"
+                size="lg"
+                data-testid="open-tag-dialog"
+                [disabled]="saving()"
+                (onClick)="openTagDialog()"
+                aria-label="Добавить тег"
+            >
+                <span class="material-symbols-outlined">add</span>
+            </ms-button>
+        </div>
+
+        @if (tagGroups().length) {
+            <div class="tag-group-list">
+                @for (group of tagGroups(); track group.id) {
+                    <ms-tag-group-card
+                        [group]="group"
+                        [availableCategoryOptions]="categoryOptionsForTag(group)"
+                        [saving]="saving()"
+                        (deleteTag)="deleteTag.emit($event)"
+                        (assignCategoryToTag)="assignCategoryToTag.emit($event)"
+                        (removeCategoryFromTag)="removeCategoryFromTag.emit($event)"
+                    ></ms-tag-group-card>
+                }
+            </div>
+        } @else {
+            <div class="categories-empty">Тегов пока нет.</div>
+        }
+    </article>
+</section>
+
+@if (isCategoryDialogOpen()) {
+    <ms-name-color-dialog
+        [title]="categoryDialogTitle()"
+        description="Выберите понятное вам название и цвет."
+        placeholder="Например: Продукты"
+        [name]="categoryDialogName()"
+        [color]="categoryDialogColor()"
+        fallbackName="Новая категория"
+        previewKind="category"
+        colorPickerTestId="income-color-picker"
+        submitTestId="submit-category-dialog"
+        [saving]="saving()"
+        (closed)="closeCategoryDialog()"
+        (nameChange)="setCategoryDialogName($event)"
+        (colorChange)="setCategoryDialogColor($event)"
+        (submit)="submitCategoryDialog()"
+    ></ms-name-color-dialog>
+}
+
+@if (isTagDialogOpen()) {
+    <ms-name-color-dialog
+        title="Новый тег"
+        description="Выберите название и цвет для группы категорий."
+        placeholder="Например: Дом"
+        [name]="tagDialogName()"
+        [color]="tagDialogColor()"
+        fallbackName="Новый тег"
+        previewKind="tag"
+        colorPickerTestId="tag-color-picker"
+        submitTestId="submit-tag-dialog"
+        [saving]="saving()"
+        (closed)="closeTagDialog()"
+        (nameChange)="setTagDialogName($event)"
+        (colorChange)="setTagDialogColor($event)"
+        (submit)="submitTagDialog()"
+    ></ms-name-color-dialog>
+}

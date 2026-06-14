@@ -1,0 +1,23 @@
+<section class="summary-grid" aria-label="Ключевые показатели">
+    @for (card of cards(); track card.id) {
+        <article class="summary-card" [attr.data-tone]="card.tone">
+            <div class="summary-card__icon">
+                <span class="material-symbols-outlined">{{ card.icon }}</span>
+            </div>
+
+            <div class="summary-card__copy">
+                <span class="summary-card__label">{{ card.label }}</span>
+                <strong class="summary-card__value">{{ card.value }}</strong>
+                @if (card.helperLines?.length) {
+                    <span class="summary-card__helper summary-card__helper--stack">
+                        @for (line of card.helperLines; track line) {
+                            <span>{{ line }}</span>
+                        }
+                    </span>
+                } @else {
+                    <span class="summary-card__helper">{{ card.helper }}</span>
+                }
+            </div>
+        </article>
+    }
+</section>

@@ -1,0 +1,133 @@
+:host {
+    display: block;
+}
+
+.main-header {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.main-header__top,
+.main-header__bottom,
+.main-header__brand,
+.main-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.main-header__top,
+.main-header__bottom {
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.main-header__actions {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+}
+
+.main-header__brand,
+.brand-copy {
+    min-width: 0;
+}
+
+.brand-mark {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    width: 4.1rem;
+    height: 4.1rem;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, var(--color-ms-primary-soft), transparent 70%);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(
+            135deg,
+            color-mix(in oklab, var(--color-ms-primary-soft), transparent 84%),
+            color-mix(in oklab, var(--color-ms-info), transparent 90%),
+            color-mix(in oklab, var(--color-ms-accent), white 10%)
+        ),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 12%);
+    box-shadow:
+        inset 0 1px 0 var(--color-ms-white-alpha-1),
+        0 16px 34px var(--color-ms-black-alpha-24),
+        0 0 24px var(--color-ms-primary-alpha-12);
+}
+
+.brand-mark::before {
+    content: '';
+    position: absolute;
+    inset: -35%;
+    z-index: -1;
+    background: conic-gradient(
+        from 90deg,
+        transparent,
+        color-mix(in oklab, var(--color-ms-primary-soft), transparent 66%),
+        color-mix(in oklab, var(--color-ms-info), transparent 76%),
+        transparent
+    );
+    animation: brand-mark-shimmer 6s linear infinite;
+}
+
+.brand-mark img {
+    display: block;
+    width: 6rem;
+    height: 6rem;
+    object-fit: contain;
+    filter: drop-shadow(0 0 10px var(--color-ms-primary-alpha-24));
+}
+
+.brand-copy,
+.period-copy {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-name,
+.period-label {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--color-ms-light);
+}
+
+.brand-caption {
+    font-size: 0.8125rem;
+    color: var(--color-ms-light-dark);
+}
+
+.period-switcher {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.875rem;
+    flex: 1 1 17rem;
+    padding: 0.5rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-06), var(--color-ms-white-alpha-02)),
+        color-mix(in oklab, var(--color-ms-surface), transparent 12%);
+}
+
+.logout-button {
+    gap: 0.45rem;
+}
+
+.logout-button span:last-child {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.add-transaction-button .material-symbols-outlined {
+    display: none;
+}
+
+@keyframes brand-mark-shimmer {
+    to {
+        transform: rotate(360deg);
+    }
+}

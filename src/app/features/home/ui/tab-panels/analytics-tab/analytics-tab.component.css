@@ -1,0 +1,43 @@
+:host {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+
+.analytics-layout {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: 1rem;
+}
+
+.analytics-section,
+.tag-chart-section {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.analytics-section__header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--color-ms-light);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.analytics-section__header::after {
+    content: '';
+    height: 1px;
+    flex: 1;
+    background: linear-gradient(90deg, var(--color-ms-border), transparent);
+}
+
+.tag-chart-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 12rem));
+    gap: 0.75rem;
+}

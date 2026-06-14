@@ -1,0 +1,19 @@
+@media (min-width: 1024px) {
+    .categories-layout {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .panel--wide {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 640px) {
+    .panel {
+        padding: 0.9rem;
+    }
+
+    .panel__header {
+        align-items: center;
+    }
+}

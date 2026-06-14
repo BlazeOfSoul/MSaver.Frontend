@@ -4,13 +4,19 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 
 ## Development server
 
-To start a local development server, run:
+Start the backend first from the `MSaver` repository:
 
 ```bash
-ng serve
+dotnet run --launch-profile http
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Then start the local frontend development server:
+
+```bash
+npm start
+```
+
+Once the server is running, open your browser and navigate to `http://localhost:4200/`. API calls go through `proxy.conf.json` to `http://127.0.0.1:5200`, so no frontend Docker or local nginx is needed for development.
 
 ## Code scaffolding
 

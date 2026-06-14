@@ -1,0 +1,190 @@
+<div class="home-page" [class.home-page--setup]="needsAccountSetup()">
+    @if (needsAccountSetup()) {
+        <ms-first-account-setup
+            [currencyOptions]="currencyOptions"
+            [selectedCurrency]="newAccountCurrency()"
+            [saving]="isSaving()"
+            (currencyChange)="setNewAccountCurrency($event)"
+            (createAccount)="createPrimaryAccount()"
+        ></ms-first-account-setup>
+    } @else {
+        <div class="home-page__container">
+            <div class="home-page__shell">
+                <div class="home-page__sticky">
+                    <ms-main-header
+                        [monthLabel]="monthLabel()"
+                        [userName]="authStore.userName()"
+                        (previousMonth)="goToPreviousMonth()"
+                        (nextMonth)="goToNextMonth()"
+                        (addTransaction)="startAddingTransaction()"
+                        (settings)="openSettings()"
+                        (logout)="logout()"
+                    ></ms-main-header>
+
+                    <ms-main-summary-cards [cards]="summaryCards()"></ms-main-summary-cards>
+
+                    <ms-main-tab-bar
+                        [tabs]="tabs"
+                        [activeTab]="activeTab()"
+                        (tabChange)="setActiveTab($event)"
+                    ></ms-main-tab-bar>
+                </div>
+
+                <section class="home-page__content">
+                    <header class="content-header">
+                        <div>
+                            <h1>{{ activeTabTitle() }}</h1>
+                            <p>{{ activeTabDescription() }}</p>
+                        </div>
+                    </header>
+
+                    @if (errorMessage()) {
+                        <ms-home-error-alert
+                            [message]="errorMessage()"
+                            [dismissing]="isErrorDismissing()"
+                            (retry)="reloadDashboard()"
+                            (dismiss)="dismissError()"
+                        ></ms-home-error-alert>
+                    }
+
+                    @if (isLoading()) {
+                        <div class="home-loader" role="status" aria-live="polite">
+                            <span class="loader-spinner" aria-hidden="true"></span>
+                            <strong>Загружаем ваши финансы</strong>
+                            <span>Собираем счета, операции и аналитику.</span>
+                        </div>
+                    } @else if (isServerEmpty()) {
+                        <ms-main-empty-state
+                            icon="cloud_off"
+                            title="Данные временно недоступны"
+                            description="Не удалось получить информацию. Проверьте подключение и попробуйте обновить страницу."
+                        ></ms-main-empty-state>
+                    } @else {
+                        @switch (activeTab()) {
+                            @case ('overview') {
+                                <ms-overview-tab
+                                    [transactions]="filteredTransactions()"
+                                    [searchControl]="searchControl"
+                                    [accountOptions]="toolbarAccountOptions()"
+                                    [selectedAccountId]="selectedAccountId()"
+                                    [pageSize]="transactionPageSize()"
+                                    [pagination]="transactionPagination()"
+                                    [pageSizeOptions]="transactionPageSizeOptions"
+                                    [saving]="isSaving()"
+                                    (accountChange)="setAccountFilter($event)"
+                                    (pageSizeChange)="setTransactionPageSize($event)"
+                                    (pageChange)="goToTransactionPage($event)"
+                                    (editTransaction)="startEditingTransaction($event)"
+                                    (deleteTransaction)="deleteTransaction($event)"
+                                ></ms-overview-tab>
+                            }
+
+                            @case ('accounts') {
+                                <ms-accounts-tab
+                                    [accounts]="accountList()"
+                                    [allAccounts]="accounts()"
+                                    [transferDraft]="transferDraft()"
+                                    [currencyOptions]="currencyOptions"
+                                    [accountOptions]="accountOptions()"
+                                    [accountFilterOptions]="toolbarAccountOptions()"
+                                    [searchControl]="accountSearchControl"
+                                    [selectedAccountId]="accountsSelectedAccountId()"
+                                    [summaryBalanceLabel]="accountSummaryBalanceLabel()"
+                                    [summaryBalanceValue]="accountSummaryBalance()"
+                                    [newAccountName]="newAccountName()"
+                                    [newAccountCurrency]="newAccountCurrency()"
+                                    [newAccountNameError]="accountNameError()"
+                                    [transferRateError]="transferRateError()"
+                                    [rateLoading]="isTransferRateLoading()"
+                                    [saving]="isSaving()"
+                                    (accountChange)="setAccountsAccountFilter($event)"
+                                    (transferDraftChange)="updateTransferDraft($event)"
+                                    (newAccountNameChange)="setNewAccountName($event)"
+                                    (newAccountCurrencyChange)="setNewAccountCurrency($event)"
+                                    (createAccount)="createNewAccount()"
+                                    (deleteAccount)="deleteAccount($event)"
+                                    (submitTransfer)="transferBetweenAccounts()"
+                                ></ms-accounts-tab>
+                            }
+
+                            @case ('analytics') {
+                                <ms-analytics-tab
+                                    [metrics]="analyticsMetrics()"
+                                    [incomeVsExpense]="incomeVsExpense()"
+                                    [categoryMonthTable]="categoryMonthTable()"
+                                    [expenseCategories]="analyticsExpenseCategories()"
+                                    [incomeCategories]="analyticsIncomeCategories()"
+                                    [monthlyExpenses]="monthlyExpensesChart()"
+                                    [balanceDynamics]="balanceDynamicsChart()"
+                                    [savingsRate]="savingsRateChart()"
+                                    [tagExpenses]="tagExpensesChart()"
+                                    [topExpenses]="topExpensesChart()"
+                                    [accountOptions]="toolbarAccountOptions()"
+                                    [selectedAccountId]="analyticsSelectedAccountId()"
+                                    (accountChange)="setAnalyticsAccountFilter($event)"
+                                ></ms-analytics-tab>
+                            }
+
+                            @case ('categories') {
+                                <ms-categories-tab
+                                    [incomeCategories]="filteredIncomeCategories()"
+                                    [expenseCategories]="filteredExpenseCategories()"
+                                    [tagGroups]="filteredTagGroups()"
+                                    [categoryOptions]="allCategoryOptions()"
+                                    [searchControl]="categorySearchControl"
+                                    [newIncomeCategory]="newIncomeCategory()"
+                                    [newExpenseCategory]="newExpenseCategory()"
+                                    [newIncomeCategoryColor]="newIncomeCategoryColor()"
+                                    [newExpenseCategoryColor]="newExpenseCategoryColor()"
+                                    [newTagGroup]="newTagGroup()"
+                                    [newTagGroupColor]="newTagGroupColor()"
+                                    [saving]="isSaving()"
+                                    (newIncomeCategoryChange)="setNewIncomeCategory($event)"
+                                    (newExpenseCategoryChange)="setNewExpenseCategory($event)"
+                                    (newIncomeCategoryColorChange)="
+                                        setNewIncomeCategoryColor($event)
+                                    "
+                                    (newExpenseCategoryColorChange)="
+                                        setNewExpenseCategoryColor($event)
+                                    "
+                                    (newTagGroupChange)="setNewTagGroup($event)"
+                                    (newTagGroupColorChange)="setNewTagGroupColor($event)"
+                                    (addIncomeCategory)="addIncomeCategory()"
+                                    (addExpenseCategory)="addExpenseCategory()"
+                                    (deleteCategory)="deleteCategory($event)"
+                                    (addTagGroup)="addTagGroup()"
+                                    (deleteTag)="deleteTag($event)"
+                                    (assignCategoryToTag)="assignCategoryToTag($event)"
+                                    (removeCategoryFromTag)="removeCategoryFromTag($event)"
+                                ></ms-categories-tab>
+                            }
+
+                            @case ('settings') {
+                                <ms-settings-tab
+                                    [applicationCurrencyCode]="applicationCurrencyCode()"
+                                    [currencyOptions]="currencyOptions"
+                                    [saving]="isSaving()"
+                                    (applicationCurrencyChange)="updateApplicationCurrency($event)"
+                                ></ms-settings-tab>
+                            }
+                        }
+                    }
+                </section>
+            </div>
+        </div>
+    }
+
+    <ms-add-transaction-dialog
+        [open]="isTransactionDialogOpen()"
+        [saving]="isSaving()"
+        [mode]="isEditingTransaction() ? 'edit' : 'create'"
+        [draft]="transactionDraft()"
+        [accountOptions]="accountOptions()"
+        [currencyCode]="transactionCurrencyCode()"
+        [incomeCategoryOptions]="incomeCategoryOptions()"
+        [expenseCategoryOptions]="expenseCategoryOptions()"
+        (close)="closeTransactionDialog()"
+        (draftChange)="updateTransactionDraft($event)"
+        (save)="saveTransaction()"
+    ></ms-add-transaction-dialog>
+</div>

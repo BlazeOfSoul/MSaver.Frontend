@@ -1,0 +1,103 @@
+@media (max-width: 767px) {
+    .main-header {
+        gap: 0.75rem;
+    }
+
+    .main-header__top,
+    .main-header__bottom {
+        gap: 0.65rem;
+    }
+
+    .main-header__top {
+        flex-wrap: nowrap;
+        align-items: flex-start;
+    }
+
+    .main-header__brand {
+        flex: 1 1 auto;
+    }
+
+    .main-header__actions {
+        align-self: flex-start;
+        gap: 0.4rem;
+        margin-left: auto;
+    }
+
+    .main-header__bottom {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: center;
+    }
+
+    .brand-mark {
+        width: 3.45rem;
+        height: 3.45rem;
+    }
+
+    .brand-mark img {
+        width: 3.75rem;
+        height: 3.75rem;
+        object-fit: contain;
+    }
+
+    .brand-name,
+    .period-label {
+        font-size: 0.94rem;
+    }
+
+    .brand-name,
+    .brand-caption {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .brand-caption {
+        font-size: 0.74rem;
+    }
+
+    .period-switcher {
+        min-width: 0;
+        width: 100%;
+        flex: 0 1 auto;
+        padding: 0.4rem;
+        gap: 0.6rem;
+    }
+
+    .logout-button {
+        width: 2.35rem;
+        min-width: 2.35rem;
+        height: 2.35rem;
+        min-height: 2.35rem;
+        padding: 0;
+        white-space: nowrap;
+    }
+
+    .logout-button .material-symbols-outlined {
+        font-size: 1rem;
+    }
+
+    .logout-button__label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .add-transaction-button {
+        width: 100%;
+        min-width: 0;
+        min-height: 3rem;
+        padding-inline: 1rem;
+    }
+
+    .add-transaction-button .material-symbols-outlined {
+        display: block;
+        font-size: 1.25rem;
+    }
+}

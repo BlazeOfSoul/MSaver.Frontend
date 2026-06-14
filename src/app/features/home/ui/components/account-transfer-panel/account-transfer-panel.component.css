@@ -1,0 +1,116 @@
+:host,
+.transfer-form,
+.transfer-flow,
+.transfer-panel,
+.transfer-field,
+.transfer-rate {
+    display: grid;
+    min-width: 0;
+}
+
+:host,
+.transfer-form {
+    gap: 1rem;
+}
+
+.transfer-form,
+.transfer-flow {
+    min-width: 0;
+}
+
+.transfer-flow,
+.transfer-form {
+    gap: 0.75rem;
+}
+
+.transfer-form > *,
+.transfer-flow > *,
+.transfer-panel > * {
+    min-width: 0;
+}
+
+.transfer-panel {
+    gap: 0.75rem;
+    align-content: start;
+    padding: 0.95rem;
+    border: 1px solid var(--color-ms-white-alpha-07);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-045), var(--color-ms-white-alpha-015)),
+        var(--color-ms-white-alpha-025);
+}
+
+.transfer-panel__heading {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.transfer-panel__heading > .material-symbols-outlined {
+    display: inline-flex;
+    width: 2.35rem;
+    height: 2.35rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    font-size: 1.25rem;
+}
+
+.transfer-panel--from .transfer-panel__heading > .material-symbols-outlined {
+    color: color-mix(in oklab, var(--color-ms-danger), white 16%);
+    background: color-mix(in oklab, var(--color-ms-danger), transparent 86%);
+}
+
+.transfer-panel--to .transfer-panel__heading > .material-symbols-outlined {
+    color: color-mix(in oklab, var(--color-ms-primary), white 16%);
+    background: color-mix(in oklab, var(--color-ms-primary), transparent 86%);
+}
+
+.transfer-panel__heading div {
+    display: grid;
+    gap: 0.12rem;
+    min-width: 0;
+}
+
+.transfer-panel__heading strong {
+    color: var(--color-ms-light);
+    font-size: 0.98rem;
+    line-height: 1.2;
+}
+
+.transfer-panel__heading small,
+.transfer-amount-card small,
+.transfer-conversion-card__copy small,
+.accounts-empty {
+    color: var(--color-ms-light-dark);
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.transfer-direction {
+    display: flex;
+    width: 2.5rem;
+    min-height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    justify-self: center;
+    border: 1px solid color-mix(in oklab, var(--color-ms-primary), transparent 72%);
+    border-radius: 999px;
+    color: color-mix(in oklab, var(--color-ms-primary), white 14%);
+    background: color-mix(in oklab, var(--color-ms-primary), transparent 88%);
+}
+
+.transfer-direction .material-symbols-outlined {
+    font-size: 1.25rem;
+    transform: rotate(90deg);
+}
+
+.transfer-amount-card {
+    gap: 0.45rem;
+    min-height: 5.8rem;
+    align-content: center;
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.5rem;
+}

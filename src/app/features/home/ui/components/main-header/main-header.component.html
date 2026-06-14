@@ -1,0 +1,84 @@
+<header class="main-header">
+    <div class="main-header__top">
+        <div class="main-header__brand">
+            <div class="brand-mark">
+                <img src="/images/msaver-logo.png" alt="MSaver" width="54" height="54" />
+            </div>
+
+            <div class="brand-copy">
+                <span class="brand-name">MSaver</span>
+                <span class="brand-caption">
+                    @if (userName()) {
+                        Добрый день, {{ userName() }}
+                    } @else {
+                        Добрый день
+                    }
+                </span>
+            </div>
+        </div>
+
+        <div class="main-header__actions">
+            <ms-button
+                appearance="icon"
+                variant="primary"
+                size="md"
+                data-testid="settings-button"
+                (onClick)="settings.emit()"
+                aria-label="Настройки"
+            >
+                <span class="material-symbols-outlined">settings</span>
+            </ms-button>
+
+            <ms-button
+                appearance="ghost"
+                variant="danger"
+                size="sm"
+                class="logout-button"
+                data-testid="logout-button"
+                (onClick)="logout.emit()"
+                aria-label="Выйти"
+            >
+                <span class="material-symbols-outlined">logout</span>
+                <span class="logout-button__label">Выйти</span>
+            </ms-button>
+        </div>
+    </div>
+
+    <div class="main-header__bottom">
+        <div class="period-switcher">
+            <ms-button
+                appearance="icon"
+                variant="neutral"
+                size="md"
+                (onClick)="previousMonth.emit()"
+                aria-label="Предыдущий месяц"
+            >
+                <span class="material-symbols-outlined">chevron_left</span>
+            </ms-button>
+
+            <div class="period-copy">
+                <span class="period-label">{{ monthLabel() }}</span>
+            </div>
+
+            <ms-button
+                appearance="icon"
+                variant="neutral"
+                size="md"
+                (onClick)="nextMonth.emit()"
+                aria-label="Следующий месяц"
+            >
+                <span class="material-symbols-outlined">chevron_right</span>
+            </ms-button>
+        </div>
+
+        <ms-button
+            class="add-transaction-button"
+            variant="primary"
+            (onClick)="addTransaction.emit()"
+            aria-label="Добавить транзакцию"
+        >
+            <span class="material-symbols-outlined">add</span>
+            Добавить транзакцию
+        </ms-button>
+    </div>
+</header>

@@ -1,0 +1,31 @@
+<section class="first-account-setup">
+    <div class="first-account-setup__copy">
+        <span class="first-account-setup__icon material-symbols-outlined">
+            account_balance_wallet
+        </span>
+        <p class="eyebrow">Первый шаг</p>
+        <h2>Создайте основной счёт</h2>
+        <p>
+            Выберите валюту, в которой чаще всего ведёте учёт. Мы создадим стартовый счёт, а позже
+            вы сможете добавить карты, наличные и резервы в других валютах.
+        </p>
+    </div>
+
+    <div class="first-account-setup__form">
+        <ms-select
+            label="Валюта основного счёта"
+            [options]="currencyOptions()"
+            [value]="selectedCurrency()"
+            (valueChange)="currencyChange.emit($event)"
+        ></ms-select>
+
+        <ms-button
+            variant="primary"
+            [fullWidth]="true"
+            [loading]="saving()"
+            (onClick)="createAccount.emit()"
+        >
+            Создать основной счёт
+        </ms-button>
+    </div>
+</section>

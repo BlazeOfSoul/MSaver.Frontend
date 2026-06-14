@@ -1,0 +1,16 @@
+<section class="toolbar" aria-label="Фильтры страницы">
+    <div class="toolbar__account">
+        <ms-select
+            [options]="accountOptions()"
+            [value]="selectedAccountId()"
+            (valueChange)="accountChange.emit($event)"
+        ></ms-select>
+    </div>
+
+    <div class="toolbar__search">
+        <ms-input
+            [formControl]="searchControl()"
+            placeholder="Поиск по описанию или категории..."
+        ></ms-input>
+    </div>
+</section>

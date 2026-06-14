@@ -1,0 +1,117 @@
+:host {
+    display: block;
+}
+
+.summary-grid {
+    display: grid;
+    gap: 0.875rem;
+}
+
+.summary-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.875rem;
+    align-items: center;
+    padding: 1rem 1.125rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-06), var(--color-ms-white-alpha-02)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
+    box-shadow:
+        inset 0 1px 0 var(--color-ms-white-alpha-08),
+        0 20px 38px var(--color-ms-black-alpha-24);
+}
+
+.summary-card__icon {
+    display: inline-flex;
+    width: 2.6rem;
+    height: 2.6rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--color-ms-white-alpha-04);
+}
+
+.summary-card__copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.summary-card__label,
+.summary-card__helper {
+    color: var(--color-ms-light-dark);
+}
+
+.summary-card__label {
+    font-size: 0.8125rem;
+}
+
+.summary-card__value {
+    font-size: 1.25rem;
+    line-height: 1.1;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+}
+
+.summary-card__helper {
+    font-size: 0.875rem;
+}
+
+.summary-card__helper--stack {
+    display: grid;
+    gap: 0.18rem;
+}
+
+.summary-card[data-tone='primary'] .summary-card__icon,
+.summary-card[data-tone='primary'] .summary-card__value {
+    color: var(--color-ms-primary);
+}
+
+.summary-card[data-tone='positive'] .summary-card__icon,
+.summary-card[data-tone='positive'] .summary-card__value {
+    color: var(--color-ms-success);
+}
+
+.summary-card[data-tone='negative'] .summary-card__icon,
+.summary-card[data-tone='negative'] .summary-card__value {
+    color: var(--color-ms-danger);
+}
+
+.summary-card[data-tone='neutral'] .summary-card__icon,
+.summary-card[data-tone='neutral'] .summary-card__value {
+    color: var(--color-ms-light);
+}
+
+@media (max-width: 420px) {
+    .summary-grid {
+        gap: 0.7rem;
+    }
+
+    .summary-card {
+        padding: 0.9rem 1rem;
+        border-radius: 0.5rem;
+    }
+
+    .summary-card__value {
+        font-size: 1.1rem;
+    }
+
+    .summary-card__helper {
+        font-size: 0.8rem;
+    }
+}
+
+@media (min-width: 640px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1100px) {
+    .summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    }
+}

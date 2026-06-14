@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": "c45d649e-8eda-4ddd-9f0a-ff4adf75d37d"
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -48,6 +49,11 @@
                   "maximumError": "8kB"
                 }
               ],
+              "optimization": {
+                "fonts": {
+                  "inline": false
+                }
+              },
               "outputHashing": "all",
               "serviceWorker": "ngsw-config.json"
             },
@@ -72,7 +78,10 @@
           "defaultConfiguration": "development"
         },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "setupFiles": ["src/test-setup.ts"]
+          }
         }
       }
     }

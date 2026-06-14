@@ -1,0 +1,112 @@
+:host {
+    display: contents;
+}
+
+.category-dialog {
+    position: relative;
+    display: grid;
+    width: min(100%, 36rem);
+    max-height: min(100dvh - 2rem, 42rem);
+    gap: 1.15rem;
+    overflow: hidden;
+    padding: 1.35rem;
+    border: 0;
+    outline: none;
+    border-radius: 1.1rem;
+    background:
+        linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--color-ms-surface-raised), transparent 2%),
+            color-mix(in oklab, var(--color-ms-surface), transparent 4%)
+        ),
+        color-mix(in oklab, var(--color-ms-surface), transparent 3%);
+    box-shadow: 0 28px 80px var(--color-ms-black-alpha-42);
+}
+
+.category-dialog:focus,
+.category-dialog:focus-visible {
+    outline: none;
+}
+
+.category-dialog__header,
+.category-dialog__footer {
+    position: relative;
+    z-index: 1;
+    border: 0;
+}
+
+.category-dialog__header {
+    position: sticky;
+    top: -1.35rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.9rem;
+    margin: -1.35rem -1.35rem 0;
+    padding: 1.4rem 1.35rem 1.1rem;
+    background: linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 2%),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 8%)
+    );
+    backdrop-filter: blur(8px);
+}
+
+.category-dialog__heading {
+    display: grid;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.category-dialog__header h2 {
+    margin: 0;
+    color: var(--color-ms-light);
+    font-size: 1.32rem;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+}
+
+.category-dialog__header p {
+    margin: 0;
+    color: var(--color-ms-light-dark);
+    font-size: 0.96rem;
+    line-height: 1.5;
+    max-width: 38ch;
+}
+
+.category-dialog__close {
+    flex: 0 0 auto;
+}
+
+.category-dialog__body {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 1.1rem;
+    overflow: auto;
+    min-height: 0;
+}
+
+.category-dialog__field {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.color-field {
+    display: grid;
+    grid-template-columns: 3.25rem minmax(0, 1fr);
+    grid-template-areas:
+        'swatch label'
+        'value value';
+    align-items: center;
+    gap: 0.3rem 0.9rem;
+    width: 100%;
+    min-height: 5.25rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid var(--color-ms-white-alpha-08);
+    border-radius: 1rem;
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-05), var(--color-ms-white-alpha-02)),
+        var(--color-ms-white-alpha-025);
+}

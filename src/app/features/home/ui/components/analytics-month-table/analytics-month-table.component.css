@@ -1,0 +1,94 @@
+.analytics-table-card {
+    display: grid;
+    gap: 0.85rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-05), var(--color-ms-white-alpha-015)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
+}
+
+.analytics-table-card h3 {
+    margin: 0;
+    color: var(--color-ms-light);
+}
+
+.analytics-table-shell {
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--color-ms-white-alpha-06);
+    border-radius: 0.5rem;
+    background: var(--color-ms-white-alpha-025);
+}
+
+.analytics-table {
+    width: 100%;
+    min-width: 64rem;
+    border-collapse: collapse;
+}
+
+.analytics-table th,
+.analytics-table td {
+    padding: 0.7rem 0.75rem;
+    border-top: 1px solid var(--color-ms-white-alpha-05);
+    color: var(--color-ms-light-dark);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.analytics-table thead th {
+    border-top: 0;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.analytics-table th:first-child,
+.analytics-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    min-width: 13rem;
+    text-align: left;
+    background: var(--color-ms-accent-dark);
+}
+
+.analytics-table tbody th {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-ms-light);
+}
+
+.analytics-table tbody th i,
+.analytics-table tfoot th i {
+    width: 0.65rem;
+    height: 0.65rem;
+    flex: 0 0 auto;
+    border-radius: 999px;
+}
+
+.analytics-table tfoot th i {
+    background: var(--color-ms-primary);
+}
+
+.analytics-table tfoot th,
+.analytics-table tfoot td {
+    border-top-color: var(--color-ms-white-alpha-12);
+    color: var(--color-ms-light);
+    background: var(--color-ms-white-alpha-035);
+    font-weight: 800;
+}
+
+.analytics-table strong {
+    color: var(--color-ms-light);
+}
+
+.analytics-empty {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    color: var(--color-ms-light-dark);
+    background: var(--color-ms-white-alpha-03);
+}

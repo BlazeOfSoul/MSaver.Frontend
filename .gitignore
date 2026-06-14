@@ -10,6 +10,7 @@
 /node_modules
 npm-debug.log
 yarn-error.log
+devserver*.log
 
 # IDEs and editors
 .idea/
@@ -19,6 +20,7 @@ yarn-error.log
 *.launch
 .settings/
 *.sublime-workspace
+.vscode/
 
 # Visual Studio Code
 .vscode/*
@@ -38,6 +40,12 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+.superpowers/
+
+# Local environment overrides
+.env
+.env.*
+!.env.example
 
 # System files
 .DS_Store

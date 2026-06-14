@@ -1,0 +1,192 @@
+:host {
+    display: block;
+    min-height: 100dvh;
+    background:
+        radial-gradient(
+            55% 70% at 18% 22%,
+            var(--color-ms-success-alpha-08) 0%,
+            var(--color-ms-success-alpha-04) 34%,
+            transparent 74%
+        ),
+        radial-gradient(
+            48% 68% at 82% 18%,
+            var(--color-ms-page-green-glow-07) 0%,
+            var(--color-ms-page-green-glow-035) 36%,
+            transparent 76%
+        ),
+        radial-gradient(
+            52% 78% at 70% 78%,
+            var(--color-ms-page-mint-glow-06) 0%,
+            var(--color-ms-page-mint-glow-03) 38%,
+            transparent 78%
+        ),
+        linear-gradient(180deg, var(--color-ms-page-overlay-auth-start) 0%, var(--color-ms-page-overlay-end) 100%),
+        linear-gradient(
+            145deg,
+            var(--color-ms-dark) 0%,
+            var(--color-ms-secondary) 26%,
+            var(--color-ms-accent-dark) 56%,
+            var(--color-ms-dark-light) 100%
+        );
+    color: var(--color-ms-light);
+    font-family: Inter, Arial, sans-serif;
+    position: relative;
+    overflow: hidden;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+img,
+svg {
+    display: block;
+    max-width: 100%;
+}
+
+.auth-shell {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+}
+
+.auth-visual {
+    display: none;
+}
+
+.auth-visual__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        135deg,
+        var(--color-ms-auth-visual-overlay-start) 0%,
+        var(--color-ms-auth-visual-overlay-mid) 42%,
+        var(--color-ms-auth-visual-overlay-end) 100%
+    );
+}
+
+.auth-panel {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    overflow-x: hidden;
+    padding: 24px 20px 28px;
+    position: relative;
+}
+
+.auth-panel__inner {
+    width: 100%;
+    max-width: 440px;
+    max-width: min(440px, calc(100vw - 40px));
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-header {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 14px);
+    padding-bottom: 24px;
+}
+
+.auth-body {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand--mobile {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+}
+
+.brand--desktop {
+    display: none;
+}
+
+.brand__mark {
+    flex-shrink: 0;
+}
+
+.brand__logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 10px 24px var(--color-ms-black-alpha-28);
+}
+
+.brand__text {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.brand__name {
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: 0;
+    color: var(--color-ms-text-on-primary);
+}
+
+.brand__caption {
+    font-size: 12px;
+    line-height: 1.2;
+    color: var(--color-ms-white-alpha-46);
+    overflow-wrap: anywhere;
+}
+
+.auth-copy {
+    margin-bottom: 22px;
+    text-align: center;
+}
+
+.auth-copy h2 {
+    margin: 0 0 8px;
+    font-size: 2.25rem;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: 0;
+    color: var(--color-ms-text-on-primary);
+}
+
+.auth-copy p {
+    margin: 0 auto;
+    max-width: 28ch;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--color-ms-white-alpha-58);
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    border-radius: var(--radius-ms-xl);
+    border: 1px solid var(--color-ms-white-alpha-08);
+    background: linear-gradient(
+        180deg,
+        var(--color-ms-white-alpha-055) 0%,
+        var(--color-ms-white-alpha-035) 100%
+    );
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow:
+        0 18px 44px var(--color-ms-black-alpha-3),
+        0 0 0 1px var(--color-ms-success-alpha-025),
+        inset 0 1px 0 var(--color-ms-white-alpha-03);
+    padding: 18px;
+}

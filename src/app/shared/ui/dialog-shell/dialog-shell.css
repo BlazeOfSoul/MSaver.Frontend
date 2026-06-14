@@ -1,0 +1,38 @@
+:host {
+    display: contents;
+}
+
+.dialog-backdrop,
+.category-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.dialog-backdrop {
+    background: var(--color-ms-overlay-backdrop);
+    backdrop-filter: blur(8px);
+}
+
+.category-dialog-backdrop {
+    background:
+        radial-gradient(
+            circle at top,
+            color-mix(in oklab, var(--color-ms-primary), transparent 92%),
+            transparent 32%
+        ),
+        var(--color-ms-overlay-surface);
+    backdrop-filter: blur(14px) saturate(120%);
+}
+
+@media (max-width: 480px) {
+    .dialog-backdrop,
+    .category-dialog-backdrop {
+        align-items: center;
+        padding: 0.75rem;
+    }
+}
