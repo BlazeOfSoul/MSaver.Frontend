@@ -69,10 +69,44 @@
     scroll-snap-align: start;
 }
 
-.category-chip > span {
+.category-chip--debt {
+    grid-auto-columns: minmax(0, auto) max-content;
+    min-height: 3.1rem;
+    border-color: color-mix(in oklab, var(--category-color), transparent 58%);
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-05), transparent),
+        color-mix(in oklab, var(--category-color), transparent 86%);
+}
+
+.category-chip__copy {
+    display: grid;
+    gap: 0.12rem;
+    min-width: 0;
+}
+
+.category-chip__name,
+.category-chip__helper {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.category-chip__helper {
+    color: var(--color-ms-white-alpha-62);
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.category-chip__badge {
+    padding: 0.2rem 0.45rem;
+    border-radius: 999px;
+    color: color-mix(in oklab, var(--color-ms-light), var(--category-color) 22%);
+    background: color-mix(in oklab, var(--category-color), transparent 72%);
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .categories-empty {

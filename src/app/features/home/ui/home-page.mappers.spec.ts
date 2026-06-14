@@ -39,10 +39,7 @@ describe('home page mappers', () => {
     });
 
     it('falls back from unsafe account colors returned by the backend', () => {
-        const mapped = mapAccount(
-            createAccount({ color: 'url(https://example.test/tracker)' }),
-            1,
-        );
+        const mapped = mapAccount(createAccount({ color: 'url(https://example.test/tracker)' }), 1);
 
         expect(mapped.color).toBe(ACCOUNT_COLORS[1]);
     });
