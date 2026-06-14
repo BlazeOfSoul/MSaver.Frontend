@@ -2275,7 +2275,7 @@ describe('HomePageComponent', () => {
         expect(balanceCard?.value).not.toContain('$');
     });
 
-    it('falls back to the primary account currency when the saved application currency has no matching account', () => {
+    it('keeps the saved application currency visible when it has no matching account', () => {
         homeApi.getCurrentUser.mockReturnValue(
             of<CurrentUserResponse>({
                 id: 'user-123',
@@ -2316,13 +2316,13 @@ describe('HomePageComponent', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
-        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('BYN');
-        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('Br');
-        expect(fixture.componentInstance.accountSummaryBalanceLabel()).not.toContain('€');
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).not.toContain('Br');
         expect(homeApi.getTransferRate).not.toHaveBeenCalled();
     });
 
-    it('falls back to the primary account currency after deleting the last account in the application currency', () => {
+    it('keeps the application currency after deleting the last account in that currency', () => {
         const primaryAccount: AccountResponse = {
             id: 'byn-account',
             name: 'Main BYN account',
@@ -2382,9 +2382,9 @@ describe('HomePageComponent', () => {
         fixture.componentInstance.deleteAccount('eur-account');
 
         expect(homeApi.deleteAccount).toHaveBeenCalledWith('eur-account');
-        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('BYN');
-        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('Br');
-        expect(fixture.componentInstance.accountSummaryBalanceLabel()).not.toContain('â‚¬');
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).not.toContain('Br');
     });
 
     it('shows the primary account balance after closing debt categories in summary cards', () => {
@@ -2537,8 +2537,8 @@ describe('HomePageComponent', () => {
 
         expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
         expect(homeApi.getTransferRate).toHaveBeenCalledWith('byn-account', 'eur-account');
-        expect(balanceCard?.value).toContain('10');
-        expect(balanceCard?.value).toContain('Br');
+        expect(balanceCard?.value).toContain('2,50');
+        expect(balanceCard?.value).toContain('€');
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('7,50');
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
     });
@@ -2786,6 +2786,65 @@ describe('HomePageComponent', () => {
         expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('7,50');
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
+    });
+
+    it('keeps the selected settings currency even without an account in that currency', () => {
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'BYN',
+            }),
+        );
+        homeApi.updateApplicationCurrency.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'USD',
+            }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'byn-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                ]),
+            ),
+        );
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId,
+                    currencyCode: 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: 10,
+                    year,
+                    month,
+                }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        homeApi.getTransferRate.mockClear();
+
+        fixture.componentInstance.updateApplicationCurrency('USD');
+
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('USD');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('$');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).not.toContain('Br');
+        expect(homeApi.getTransferRate).not.toHaveBeenCalled();
     });
 
     it('ignores unsupported application currency codes', () => {

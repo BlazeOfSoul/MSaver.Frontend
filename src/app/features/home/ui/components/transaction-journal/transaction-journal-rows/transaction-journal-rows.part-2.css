@@ -23,28 +23,10 @@ ms-button.transaction-edit-action {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 0.75rem;
-    padding: 0.85rem;
+    padding: 0.75rem;
     border: 1px solid var(--color-ms-white-alpha-06);
     border-radius: 0.5rem;
-    background: var(--color-ms-white-alpha-03);
-}
-
-.transaction-details div {
-    display: grid;
-    gap: 0.25rem;
-}
-
-.transaction-details span {
-    color: var(--color-ms-light-dark);
-    font-size: 0.72rem;
-    font-weight: 800;
-    text-transform: uppercase;
-}
-
-.transaction-details strong {
-    color: var(--color-ms-light);
-    font-weight: 700;
-    overflow-wrap: anywhere;
+    background: var(--color-ms-white-alpha-025);
 }
 
 .transaction-details__description {
@@ -161,6 +143,6 @@ ms-button.transaction-edit-action {
 
     .transaction-details {
         grid-template-columns: minmax(0, 1fr);
-        padding: 0.75rem;
+        padding: 0.65rem;
     }
 }

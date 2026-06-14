@@ -88,6 +88,27 @@ describe('TransactionJournalRowsComponent', () => {
         expect(amount?.getAttribute('data-tone')).toBe('income');
     });
 
+    it('renders debt category badges and helper text', () => {
+        hostComponent.transactions.set([
+            transaction({
+                category: 'Мне вернули долг',
+                categoryDetail: 'Деньги пришли, мне должны меньше',
+                categoryDebtBadge: 'Мне должны',
+                categoryColor: '#67a6c1',
+                tone: 'income',
+            }),
+        ]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const category = host.querySelector<HTMLElement>('.transaction-category');
+
+        expect(category?.textContent).toContain('Мне вернули долг');
+        expect(category?.textContent).toContain('Мне должны');
+        expect(host.textContent).toContain('Деньги пришли, мне должны меньше');
+    });
+
     it('emits row actions only for editable transactions', () => {
         const editable = transaction({ id: 'editable', title: 'Market' });
         const transfer = transaction({
@@ -103,7 +124,9 @@ describe('TransactionJournalRowsComponent', () => {
 
         host.querySelector<HTMLButtonElement>('[data-testid="edit-transaction"]')?.click();
         host.querySelector<HTMLButtonElement>('[data-testid="delete-transaction"]')?.click();
-        host.querySelector<HTMLButtonElement>('[data-testid="toggle-transaction-details"]')?.click();
+        host.querySelector<HTMLButtonElement>(
+            '[data-testid="toggle-transaction-details"]',
+        )?.click();
 
         expect(hostComponent.editTransaction).toHaveBeenCalledWith(editable);
         expect(hostComponent.deleteTransaction).toHaveBeenCalledWith('editable');
@@ -123,6 +146,24 @@ describe('TransactionJournalRowsComponent', () => {
         const host = fixture.nativeElement as HTMLElement;
 
         expect(host.querySelector('.transaction-details-row')).not.toBeNull();
+        expect(host.querySelector('.transaction-details__note')).not.toBeNull();
+        expect(host.querySelector('.transaction-details__icon')?.textContent?.trim()).toBe('notes');
+        expect(host.querySelector('.transaction-details__value')?.textContent).toContain(
+            'Coffee with team',
+        );
         expect(host.textContent ?? '').toContain('Coffee with team');
+    });
+
+    it('renders missing expanded descriptions as muted note text', () => {
+        hostComponent.transactions.set([transaction({ id: 'expanded', description: '' })]);
+        hostComponent.expandedTransactionId.set('expanded');
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const value = host.querySelector<HTMLElement>('.transaction-details__value');
+
+        expect(value?.classList.contains('transaction-details__value--empty')).toBe(true);
+        expect(value?.textContent).toContain('Описание не указано');
     });
 });

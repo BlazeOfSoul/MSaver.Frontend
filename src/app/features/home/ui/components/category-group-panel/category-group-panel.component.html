@@ -21,8 +21,23 @@
     @if (categories().length) {
         <div class="category-rail" [attr.aria-label]="railAriaLabel()">
             @for (category of categories(); track category.id) {
-                <span class="category-chip" [style.--category-color]="category.color">
-                    <span>{{ category.name }}</span>
+                <span
+                    class="category-chip"
+                    [class.category-chip--debt]="category.debtBadgeLabel"
+                    [style.--category-color]="category.color"
+                    [attr.data-debt-tone]="category.debtTone || null"
+                >
+                    <span class="category-chip__copy">
+                        <span class="category-chip__name">
+                            {{ category.displayName || category.name }}
+                        </span>
+                        @if (category.debtHelper) {
+                            <span class="category-chip__helper">{{ category.debtHelper }}</span>
+                        }
+                    </span>
+                    @if (category.debtBadgeLabel) {
+                        <span class="category-chip__badge">{{ category.debtBadgeLabel }}</span>
+                    }
                     @if (!category.isSystem) {
                         <ms-button
                             appearance="icon"

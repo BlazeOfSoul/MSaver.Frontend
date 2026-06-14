@@ -53,10 +53,22 @@
     gap: 0.5rem;
 }
 
-.ms-select__option-label > span:last-child {
+.ms-select__option-copy {
+    display: grid;
+    gap: 0.12rem;
+    min-width: 0;
+}
+
+.ms-select__option-copy > span {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.ms-select__option-description {
+    color: var(--color-ms-white-alpha-55);
+    font-size: 0.76rem;
+    line-height: 1.2;
 }
 
 .ms-select__option:hover,
