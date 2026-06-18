@@ -353,14 +353,16 @@ export class HomeDashboardStore {
     readonly incomeCategoryOptions = computed<MsSelectOption[]>(() =>
         this.incomeCategories().map((category) => ({
             value: category.id,
-            label: category.name,
+            label: category.displayName ?? category.name,
+            description: category.debtHelper,
             color: category.color,
         })),
     );
     readonly expenseCategoryOptions = computed<MsSelectOption[]>(() =>
         this.expenseCategories().map((category) => ({
             value: category.id,
-            label: category.name,
+            label: category.displayName ?? category.name,
+            description: category.debtHelper,
             color: category.color,
         })),
     );
@@ -412,8 +414,10 @@ export class HomeDashboardStore {
             ? this.convertAccountAmount(primaryAccount.id, primaryAccount.balanceValue)
             : 0;
 
-        return calculateDebtSummary(this.yearTransactionResponses(), primaryBalance, (transaction) =>
-            this.convertTransactionAmount(transaction),
+        return calculateDebtSummary(
+            this.yearTransactionResponses(),
+            primaryBalance,
+            (transaction) => this.convertTransactionAmount(transaction),
         );
     });
     readonly incomeVsExpense = computed<ReadonlyArray<AnalyticsStackedPoint>>(() =>
@@ -567,15 +571,15 @@ export class HomeDashboardStore {
     });
     readonly summaryCards = computed<ReadonlyArray<HomeSummaryCard>>(() => {
         const primaryAccount = this.primaryAccount();
-        const primaryBalanceValue = primaryAccount?.balanceValue ?? 0;
+        const primaryBalanceValue = primaryAccount
+            ? this.convertAccountAmount(primaryAccount.id, primaryAccount.balanceValue)
+            : 0;
 
         return [
             {
                 id: 'balance',
                 label: 'Баланс',
-                value:
-                    primaryAccount?.balanceLabel ??
-                    formatMoney(primaryBalanceValue, this.applicationCurrencyCode()),
+                value: formatMoney(primaryBalanceValue, this.applicationCurrencyCode()),
                 helper: 'Основной счёт',
                 tone: primaryBalanceValue < 0 ? 'negative' : 'primary',
                 icon: 'account_balance_wallet',
@@ -785,11 +789,7 @@ export class HomeDashboardStore {
     setApplicationCurrencyCode(currencyCode: string): void {
         const nextCode = toSupportedCurrencyCode(currencyCode);
 
-        if (
-            !nextCode ||
-            nextCode === this.applicationCurrencyCode() ||
-            this.isSaving()
-        ) {
+        if (!nextCode || nextCode === this.applicationCurrencyCode() || this.isSaving()) {
             return;
         }
 
@@ -926,7 +926,10 @@ export class HomeDashboardStore {
         this.runMutation(
             this.homeApi.deleteTransaction(transactionId),
             'Не удалось удалить транзакцию.',
-            () => this.refreshTransactionData(this.shouldRefreshYearTransactionsForTransaction(transaction)),
+            () =>
+                this.refreshTransactionData(
+                    this.shouldRefreshYearTransactionsForTransaction(transaction),
+                ),
         );
     }
 
@@ -1322,7 +1325,10 @@ export class HomeDashboardStore {
                     .getTransferRate(account.id, applicationAccount.id)
                     .pipe(map((response) => [account.id, response.rate] as const));
             }),
-            reduce((rates, [accountId, rate]) => rates.set(accountId, rate), new Map<string, number>()),
+            reduce(
+                (rates, [accountId, rate]) => rates.set(accountId, rate),
+                new Map<string, number>(),
+            ),
         );
     }
 
@@ -1337,10 +1343,7 @@ export class HomeDashboardStore {
 
                 return range(2, firstPage.totalPages - 1).pipe(
                     concatMap((page) => loadPage(page)),
-                    reduce(
-                        (items: T[], page) => [...items, ...page.items],
-                        [...firstPage.items],
-                    ),
+                    reduce((items: T[], page) => [...items, ...page.items], [...firstPage.items]),
                 );
             }),
         );
@@ -1367,10 +1370,7 @@ export class HomeDashboardStore {
             concatMap((request) =>
                 this.homeApi.getMonthBalance(request.accountId, request.year, request.month),
             ),
-            reduce(
-                (balances, balance) => [...balances, balance],
-                [] as MonthBalanceResponse[],
-            ),
+            reduce((balances, balance) => [...balances, balance], [] as MonthBalanceResponse[]),
         );
     }
 
@@ -1653,7 +1653,11 @@ export class HomeDashboardStore {
     }
 
     private loadYearTransactionsForTab(tab: HomeTabId): void {
-        if (tab !== 'analytics' || !this.areYearTransactionsStale || this.isYearTransactionsLoading) {
+        if (
+            tab !== 'analytics' ||
+            !this.areYearTransactionsStale ||
+            this.isYearTransactionsLoading
+        ) {
             return;
         }
 
@@ -1685,9 +1689,7 @@ export class HomeDashboardStore {
             });
     }
 
-    private refreshAccountData(
-        options: { reloadYearTransactions?: boolean } = {},
-    ): void {
+    private refreshAccountData(options: { reloadYearTransactions?: boolean } = {}): void {
         this.errorMessage.set('');
         const requestId = ++this.accountDataRequestId;
         const reloadYearTransactions = options.reloadYearTransactions ?? true;
@@ -1744,23 +1746,23 @@ export class HomeDashboardStore {
                     }).pipe(
                         map(
                             ({
-                            exchangeRatesByAccountId,
-                            transactions,
-                            yearTransactions,
-                            yearBalances,
-                        }) => ({
-                            accounts,
-                            selectedAccountId,
-                            accountsSelectedAccountId,
-                            analyticsSelectedAccountId,
-                            applicationCurrencyCode,
-                            exchangeRatesByAccountId,
-                            transactionPage: transactions,
-                            yearTransactions,
-                            yearBalances,
-                        }),
-                    ),
-                );
+                                exchangeRatesByAccountId,
+                                transactions,
+                                yearTransactions,
+                                yearBalances,
+                            }) => ({
+                                accounts,
+                                selectedAccountId,
+                                accountsSelectedAccountId,
+                                analyticsSelectedAccountId,
+                                applicationCurrencyCode,
+                                exchangeRatesByAccountId,
+                                transactionPage: transactions,
+                                yearTransactions,
+                                yearBalances,
+                            }),
+                        ),
+                    );
                 }),
                 takeUntilDestroyed(this.destroyRef),
             )
@@ -1966,7 +1968,9 @@ export class HomeDashboardStore {
             return;
         }
 
-        this.yearBalanceResponses.set(mergeMonthBalanceCache(this.yearBalanceResponses(), balances));
+        this.yearBalanceResponses.set(
+            mergeMonthBalanceCache(this.yearBalanceResponses(), balances),
+        );
     }
 
     private keepOnlySelectedMonthBalancesForSelectedYear(): void {
@@ -2194,14 +2198,9 @@ export class HomeDashboardStore {
         accounts: AccountResponse[],
     ): string {
         const sortedAccounts = this.sortAccounts(accounts);
-        const savedCurrencyCode = currencyCode?.trim().toUpperCase();
+        const savedCurrencyCode = currencyCode ? toSupportedCurrencyCode(currencyCode) : null;
 
-        return (
-            sortedAccounts.find((account) => account.currencyCode === savedCurrencyCode)
-                ?.currencyCode ||
-            sortedAccounts[0]?.currencyCode ||
-            'BYN'
-        );
+        return savedCurrencyCode || sortedAccounts[0]?.currencyCode || 'BYN';
     }
 
     private sortAccounts(accounts: ReadonlyArray<AccountResponse>): AccountResponse[] {
@@ -2281,11 +2280,15 @@ export class HomeDashboardStore {
             ? this.findLoadedTransaction(editingTransactionId)
             : null;
 
-        return editedTransaction ? this.shouldRefreshYearTransactionsForTransaction(editedTransaction) : false;
+        return editedTransaction
+            ? this.shouldRefreshYearTransactionsForTransaction(editedTransaction)
+            : false;
     }
 
     private shouldRefreshYearTransactionsForTransaction(transaction: TransactionResponse): boolean {
-        return this.activeTab() === 'analytics' || this.isDebtCategoryName(transaction.category.name);
+        return (
+            this.activeTab() === 'analytics' || this.isDebtCategoryName(transaction.category.name)
+        );
     }
 
     private findLoadedTransaction(transactionId: string): TransactionResponse | null {
@@ -2541,9 +2544,11 @@ export class HomeDashboardStore {
         return Math.round((total / activeValues.length) * 100) / 100;
     }
 
-    private transactionQuery(
-        selectedAccountId = this.selectedAccountId(),
-    ): { accountId?: string; fromDate: string; toDate: string } {
+    private transactionQuery(selectedAccountId = this.selectedAccountId()): {
+        accountId?: string;
+        fromDate: string;
+        toDate: string;
+    } {
         const monthStart = this.selectedMonth();
         const nextMonthStart = addMonths(monthStart, 1);
 

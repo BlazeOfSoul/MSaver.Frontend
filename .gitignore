@@ -41,6 +41,8 @@ testem.log
 /typings
 __screenshots__/
 .superpowers/
+.claude/
+/docs/superpowers/
 
 # Local environment overrides
 .env

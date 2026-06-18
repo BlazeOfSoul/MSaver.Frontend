@@ -20,6 +20,8 @@ export interface TransactionItem {
     id: string;
     title: string;
     category: string;
+    categoryDetail?: string;
+    categoryDebtBadge?: string;
     categoryId: string;
     categoryType: 'Debit' | 'Credit' | 'TransferIncome' | 'TransferExpense';
     categoryColor: string;
@@ -132,6 +134,10 @@ export interface AnalyticsCategoryMonthTable {
 export interface CategoryBreakdownItem {
     id: string;
     name: string;
+    displayName?: string;
+    debtBadgeLabel?: string;
+    debtHelper?: string;
+    debtTone?: 'owed-by-me' | 'owed-to-me';
     amount: string;
     amountValue: number;
     progress: number;

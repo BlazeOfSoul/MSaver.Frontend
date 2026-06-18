@@ -185,7 +185,12 @@ describe('CategoriesTabComponent', () => {
     it('does not render delete actions for system categories', () => {
         fixture.componentRef.setInput('incomeCategories', [
             category({ id: 'salary-id', name: 'Зарплата', isSystem: false }),
-            category({ id: 'debt-id', name: 'Взято в долг (+)', isSystem: true }),
+            category({
+                id: 'debt-id',
+                name: 'Взято в долг (+)',
+                displayName: 'Я взял в долг',
+                isSystem: true,
+            }),
         ]);
 
         fixture.detectChanges();
@@ -195,7 +200,7 @@ describe('CategoriesTabComponent', () => {
             (chip) => chip.textContent?.includes('Зарплата'),
         );
         const debtChip = Array.from(host.querySelectorAll<HTMLElement>('.category-chip')).find(
-            (chip) => chip.textContent?.includes('Взято в долг (+)'),
+            (chip) => chip.textContent?.includes('Я взял в долг'),
         );
 
         expect(salaryChip?.querySelector('.category-chip__action')).not.toBeNull();
@@ -325,5 +330,4 @@ describe('CategoriesTabComponent', () => {
 
         expect(options).toEqual([{ value: 'rent-id', label: 'Rent' }]);
     });
-
 });

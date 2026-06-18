@@ -69,7 +69,9 @@ describe('CategoryGroupPanelComponent', () => {
 
         const host = fixture.nativeElement as HTMLElement;
 
-        host.querySelector<HTMLButtonElement>('[data-testid="open-income-category-dialog"]')?.click();
+        host.querySelector<HTMLButtonElement>(
+            '[data-testid="open-income-category-dialog"]',
+        )?.click();
         host.querySelector<HTMLButtonElement>('.category-chip__action')?.click();
 
         expect(addSpy).toHaveBeenCalledOnce();

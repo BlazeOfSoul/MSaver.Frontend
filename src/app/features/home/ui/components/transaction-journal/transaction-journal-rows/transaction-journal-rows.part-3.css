@@ -1,0 +1,64 @@
+.transaction-details__note {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.75rem;
+    padding: 0.85rem 0.9rem;
+    border: 1px solid var(--color-ms-white-alpha-08);
+    border-left: 3px solid color-mix(in oklab, var(--color-ms-primary), transparent 28%);
+    border-radius: 0.5rem;
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-045), transparent),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 34%);
+    box-shadow:
+        inset 0 1px 0 var(--color-ms-white-alpha-06),
+        0 10px 26px var(--color-ms-black-alpha-18);
+}
+
+.transaction-details__icon {
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-ms-primary-alpha-16);
+    border-radius: 0.5rem;
+    color: color-mix(in oklab, var(--color-ms-primary), white 16%);
+    background: var(--color-ms-primary-alpha-08);
+    font-size: 1.05rem;
+    text-transform: none;
+    box-shadow: inset 0 1px 0 var(--color-ms-white-alpha-08);
+}
+
+.transaction-details__content {
+    display: grid;
+    min-width: 0;
+    gap: 0.3rem;
+}
+
+.transaction-details__label {
+    color: var(--color-ms-light-dark);
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.transaction-details__value {
+    color: var(--color-ms-light);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.transaction-details__value--empty {
+    color: var(--color-ms-white-alpha-55);
+    font-style: italic;
+}
+
+@media (max-width: 900px) {
+    .transaction-details__note {
+        gap: 0.65rem;
+        padding: 0.75rem;
+    }
+}

@@ -17,8 +17,14 @@
         </td>
         <td data-label="Категория">
             <span class="transaction-category" [style.--category-color]="item.categoryColor">
-                {{ item.category }}
+                <span>{{ item.category }}</span>
+                @if (item.categoryDebtBadge) {
+                    <span class="transaction-category__badge">{{ item.categoryDebtBadge }}</span>
+                }
             </span>
+            @if (item.categoryDetail) {
+                <span class="transaction-category-helper">{{ item.categoryDetail }}</span>
+            }
         </td>
         <td data-label="Счёт">{{ item.accountName }}</td>
         <td data-label="Сумма" class="transactions-table__amount">
@@ -81,10 +87,23 @@
             <td colspan="6">
                 <div class="transaction-details">
                     <div class="transaction-details__description">
-                        <span>Описание</span>
-                        <strong>
-                            {{ item.description || 'Описание не указано' }}
-                        </strong>
+                        <div class="transaction-details__note">
+                            <span
+                                class="material-symbols-outlined transaction-details__icon"
+                                aria-hidden="true"
+                            >
+                                notes
+                            </span>
+                            <div class="transaction-details__content">
+                                <span class="transaction-details__label">Описание</span>
+                                <span
+                                    class="transaction-details__value"
+                                    [class.transaction-details__value--empty]="!item.description"
+                                >
+                                    {{ item.description || 'Описание не указано' }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </td>

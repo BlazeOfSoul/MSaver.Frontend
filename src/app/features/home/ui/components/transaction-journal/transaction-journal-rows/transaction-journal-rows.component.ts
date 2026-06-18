@@ -10,6 +10,7 @@ import { TransactionItem } from '../../../home-page.models';
     styleUrls: [
         './transaction-journal-rows.component.css',
         './transaction-journal-rows.part-2.css',
+        './transaction-journal-rows.part-3.css',
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
