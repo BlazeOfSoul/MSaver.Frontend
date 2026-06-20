@@ -80,7 +80,6 @@ svg {
 .auth-panel__inner {
     width: 100%;
     max-width: 440px;
-    max-width: min(440px, calc(100vw - 40px));
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -173,7 +172,6 @@ svg {
 
 .auth-card {
     width: 100%;
-    max-width: 100%;
     min-width: 0;
     border-radius: var(--radius-ms-xl);
     border: 1px solid var(--color-ms-white-alpha-08);

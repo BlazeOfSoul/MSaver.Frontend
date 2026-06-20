@@ -1,14 +1,35 @@
-<section class="first-account-setup">
-    <div class="first-account-setup__copy">
+<section
+    class="first-account-setup"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="first-account-setup-title"
+    aria-describedby="first-account-setup-description"
+>
+    <header class="first-account-setup__header">
         <span class="first-account-setup__icon material-symbols-outlined">
             account_balance_wallet
         </span>
-        <p class="eyebrow">Первый шаг</p>
-        <h2>Создайте основной счёт</h2>
-        <p>
+
+        <div class="first-account-setup__heading">
+            <p class="eyebrow">Первый шаг</p>
+            <h2 id="first-account-setup-title">Создайте основной счёт</h2>
+        </div>
+    </header>
+
+    <div class="first-account-setup__body">
+        <p id="first-account-setup-description">
             Выберите валюту, в которой чаще всего ведёте учёт. Мы создадим стартовый счёт, а позже
             вы сможете добавить карты, наличные и резервы в других валютах.
         </p>
+
+        <div class="first-account-setup__summary" aria-label="Что будет создано">
+            <span class="material-symbols-outlined" aria-hidden="true">verified</span>
+
+            <div>
+                <strong>Основной счёт</strong>
+                <span>Появится первым в кабинете и станет базой для баланса.</span>
+            </div>
+        </div>
     </div>
 
     <div class="first-account-setup__form">

@@ -24,7 +24,11 @@ describe('FirstAccountSetupComponent', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
+        const setup = host.querySelector<HTMLElement>('.first-account-setup');
 
+        expect(setup?.getAttribute('role')).toBe('dialog');
+        expect(setup?.getAttribute('aria-modal')).toBe('true');
+        expect(host.querySelector('.first-account-setup__summary')).not.toBeNull();
         expect(host.textContent ?? '').toContain('Создайте основной счёт');
         expect(host.textContent ?? '').toContain('Валюта основного счёта');
         expect(host.textContent ?? '').toContain('BYN - Белорусский рубль');

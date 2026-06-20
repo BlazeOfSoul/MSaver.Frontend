@@ -7,7 +7,7 @@ import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select
     standalone: true,
     imports: [Button, SelectComponent],
     templateUrl: './first-account-setup.component.html',
-    styleUrl: './first-account-setup.component.css',
+    styleUrls: ['./first-account-setup.component.css', './first-account-setup.part-2.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FirstAccountSetupComponent {

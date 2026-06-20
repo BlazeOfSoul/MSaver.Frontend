@@ -1,0 +1,63 @@
+@media (min-width: 760px) {
+    .first-account-setup {
+        grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.72fr);
+        align-items: center;
+        padding: 1.5rem;
+    }
+
+    .first-account-setup__header,
+    .first-account-setup__body {
+        grid-column: 1;
+    }
+
+    .first-account-setup__form {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: stretch;
+        align-content: center;
+        padding: 1rem;
+        border: 1px solid var(--color-ms-white-alpha-08);
+        border-radius: 0.5rem;
+        background: var(--color-ms-white-alpha-035);
+        box-shadow: inset 0 1px 0 var(--color-ms-white-alpha-04);
+    }
+}
+
+@media (max-width: 480px) {
+    :host {
+        width: 100%;
+    }
+
+    .first-account-setup {
+        max-height: calc(100dvh - 1rem);
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .first-account-setup__header {
+        gap: 0.7rem;
+    }
+
+    .first-account-setup__icon {
+        width: 2.7rem;
+        height: 2.7rem;
+    }
+}
+
+@keyframes first-account-setup-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.55rem) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .first-account-setup {
+        animation: none;
+    }
+}

@@ -1,12 +1,14 @@
 <div class="home-page" [class.home-page--setup]="needsAccountSetup()">
     @if (needsAccountSetup()) {
-        <ms-first-account-setup
-            [currencyOptions]="currencyOptions"
-            [selectedCurrency]="newAccountCurrency()"
-            [saving]="isSaving()"
-            (currencyChange)="setNewAccountCurrency($event)"
-            (createAccount)="createPrimaryAccount()"
-        ></ms-first-account-setup>
+        <div class="first-account-backdrop">
+            <ms-first-account-setup
+                [currencyOptions]="currencyOptions"
+                [selectedCurrency]="newAccountCurrency()"
+                [saving]="isSaving()"
+                (currencyChange)="setNewAccountCurrency($event)"
+                (createAccount)="createPrimaryAccount()"
+            ></ms-first-account-setup>
+        </div>
     } @else {
         <div class="home-page__container">
             <div class="home-page__shell">

@@ -269,12 +269,20 @@ describe('HomePageComponent', () => {
 
         const component = fixture.componentInstance;
         const host = fixture.nativeElement as HTMLElement;
+        const setupBackdrop = host.querySelector<HTMLElement>('.first-account-backdrop');
 
+        expect(setupBackdrop).not.toBeNull();
+        expect(setupBackdrop?.querySelector('ms-first-account-setup')).not.toBeNull();
         expect(host.querySelector('.first-account-setup')).not.toBeNull();
         expect(host.querySelector('ms-main-header')).toBeNull();
         expect(host.querySelector('ms-main-summary-cards')).toBeNull();
         expect(host.querySelector('ms-main-tab-bar')).toBeNull();
         expect(host.textContent ?? '').toContain('Создайте основной счёт');
+
+        setupBackdrop?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        fixture.detectChanges();
+
+        expect(host.querySelector('.first-account-setup')).not.toBeNull();
 
         component.setNewAccountCurrency('USD');
         component.createPrimaryAccount();

@@ -176,6 +176,9 @@
 }
 
 html {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
     font-family: Inter, Arial, sans-serif;
     color: var(--color-ms-text-primary);
     min-height: 100%;
@@ -190,8 +193,24 @@ html {
 
 body {
     margin: 0;
+    width: 100%;
+    max-width: 100%;
     min-height: 100vh;
+    overflow-x: clip;
     background: transparent;
+}
+
+app-root {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+}
+
+@supports not (overflow: clip) {
+    html,
+    body {
+        overflow-x: hidden;
+    }
 }
 
 button,

@@ -34,6 +34,35 @@
     }
 }
 
+.first-account-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    overflow-x: clip;
+    overflow-y: auto;
+    padding:
+        max(1rem, env(safe-area-inset-top))
+        max(1rem, env(safe-area-inset-right))
+        max(1rem, env(safe-area-inset-bottom))
+        max(1rem, env(safe-area-inset-left));
+    background:
+        radial-gradient(
+            circle at 20% 16%,
+            color-mix(in oklab, var(--color-ms-primary), transparent 86%),
+            transparent 34%
+        ),
+        radial-gradient(
+            circle at 78% 74%,
+            color-mix(in oklab, var(--color-ms-info), transparent 92%),
+            transparent 36%
+        ),
+        var(--color-ms-overlay-surface);
+    backdrop-filter: blur(14px) saturate(120%);
+}
+
 @media (max-width: 767px) {
     .home-page {
         padding: 0.65rem 0 1.35rem;
@@ -68,6 +97,14 @@
 }
 
 @media (max-width: 420px) {
+    .first-account-backdrop {
+        padding:
+            max(0.5rem, env(safe-area-inset-top))
+            max(0.5rem, env(safe-area-inset-right))
+            max(0.5rem, env(safe-area-inset-bottom))
+            max(0.5rem, env(safe-area-inset-left));
+    }
+
     .home-page__container {
         padding: 0 0.6rem;
     }

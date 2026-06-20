@@ -1,31 +1,73 @@
 :host {
     display: block;
-    width: min(100%, 58rem);
+    width: min(100%, 42rem);
+    min-width: 0;
 }
 
 .first-account-setup {
+    position: relative;
     display: grid;
-    min-height: min(36rem, calc(100dvh - 2rem));
-    gap: 1rem;
-    align-items: center;
+    max-height: min(calc(100dvh - 2rem), 42rem);
+    gap: 1.1rem;
+    overflow: auto;
     padding: 1.25rem;
-    border: 1px solid var(--color-ms-border);
+    border: 1px solid var(--color-ms-white-alpha-08);
     border-radius: 0.5rem;
     background:
-        linear-gradient(180deg, var(--color-ms-white-alpha-06), var(--color-ms-white-alpha-02)),
-        color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
+        linear-gradient(
+            180deg,
+            color-mix(in oklab, var(--color-ms-surface-raised), transparent 2%),
+            color-mix(in oklab, var(--color-ms-surface), transparent 5%)
+        ),
+        color-mix(in oklab, var(--color-ms-surface), transparent 4%);
     box-shadow:
-        0 22px 48px var(--color-ms-black-alpha-18),
-        inset 0 1px 0 var(--color-ms-white-alpha-04);
+        0 32px 78px var(--color-ms-black-alpha-42),
+        0 0 0 1px var(--color-ms-primary-alpha-07),
+        inset 0 1px 0 var(--color-ms-white-alpha-05);
+    animation: first-account-setup-in 0.18s ease-out both;
 }
 
-.first-account-setup__copy {
+.first-account-setup::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        radial-gradient(
+            circle at top left,
+            color-mix(in oklab, var(--color-ms-primary), transparent 86%),
+            transparent 36%
+        ),
+        linear-gradient(180deg, var(--color-ms-white-alpha-04), transparent 32%);
+    pointer-events: none;
+}
+
+.first-account-setup__header,
+.first-account-setup__body,
+.first-account-setup__form {
+    position: relative;
+    z-index: 1;
+}
+
+.first-account-setup__header {
     display: grid;
-    gap: 0.65rem;
-    max-width: 42rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.85rem;
+    align-items: center;
 }
 
-.first-account-setup__copy p {
+.first-account-setup__heading {
+    display: grid;
+    min-width: 0;
+    gap: 0.35rem;
+}
+
+.first-account-setup__body {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.first-account-setup__body p {
     margin: 0;
     color: var(--color-ms-light-dark);
     line-height: 1.55;
@@ -35,13 +77,18 @@
     display: inline-grid;
     width: 3rem;
     height: 3rem;
+    flex: 0 0 auto;
     place-items: center;
     border-radius: 0.5rem;
     color: var(--color-ms-primary);
     background: var(--color-ms-primary-alpha-1);
+    box-shadow:
+        inset 0 1px 0 var(--color-ms-white-alpha-08),
+        0 14px 28px var(--color-ms-black-alpha-18);
 }
 
 .first-account-setup .eyebrow {
+    margin: 0;
     color: var(--color-ms-primary);
     font-size: 0.76rem;
     font-weight: 800;
@@ -51,16 +98,45 @@
 .first-account-setup h2 {
     margin: 0;
     color: var(--color-ms-light);
+    font-size: clamp(1.35rem, 4vw, 1.8rem);
+    line-height: 1.1;
+}
+
+.first-account-setup__summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.85rem;
+    border: 1px solid var(--color-ms-white-alpha-08);
+    border-radius: 0.5rem;
+    color: var(--color-ms-light-dark);
+    background:
+        linear-gradient(135deg, var(--color-ms-primary-alpha-12), transparent 62%),
+        var(--color-ms-white-alpha-035);
+}
+
+.first-account-setup__summary .material-symbols-outlined {
+    color: var(--color-ms-primary);
+    font-size: 1.2rem;
+}
+
+.first-account-setup__summary div {
+    display: grid;
+    min-width: 0;
+    gap: 0.25rem;
+}
+
+.first-account-setup__summary strong {
+    color: var(--color-ms-light);
+}
+
+.first-account-setup__summary span:not(.material-symbols-outlined) {
+    line-height: 1.45;
 }
 
 .first-account-setup__form {
     display: grid;
     gap: 0.85rem;
-}
-
-@media (min-width: 1024px) {
-    .first-account-setup {
-        grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
-        padding: 1.5rem;
-    }
+    padding-top: 0.1rem;
 }

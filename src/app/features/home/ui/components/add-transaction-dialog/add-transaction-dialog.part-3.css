@@ -86,11 +86,12 @@
 .dialog__date-picker {
     position: absolute;
     top: calc(100% + 0.5rem);
+    left: 0;
     right: 0;
     z-index: 40;
     display: grid;
-    width: min(28rem, calc(100vw - 2rem));
-    max-width: calc(100vw - 2rem);
+    width: 100%;
+    max-width: 100%;
     gap: 0.75rem;
     padding: 0.75rem;
     border: 1px solid var(--color-ms-border-strong);
