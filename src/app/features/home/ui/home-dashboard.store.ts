@@ -264,9 +264,14 @@ export class HomeDashboardStore {
 
     readonly accounts = computed<AccountBalanceItem[]>(() =>
         this.sortAccounts(this.accountResponses()).map((account, index) =>
-            mapAccount(account, index, this.selectedMonthBalanceByAccountId().get(account.id)),
+            mapAccount(
+                { ...account, isPrimary: isPrimaryAccountResponse(account) },
+                index,
+                this.selectedMonthBalanceByAccountId().get(account.id),
+            ),
         ),
     );
+    readonly primaryAccountResponse = computed(() => this.sortAccounts(this.accountResponses())[0]);
     readonly primaryAccount = computed(
         () => this.accounts().find((account) => account.isPrimary) ?? this.accounts()[0],
     );
@@ -627,9 +632,9 @@ export class HomeDashboardStore {
         ];
     });
     readonly summaryCards = computed<ReadonlyArray<HomeSummaryCard>>(() => {
-        const primaryAccount = this.primaryAccount();
+        const primaryAccount = this.primaryAccountResponse();
         const primaryBalanceValue = primaryAccount
-            ? this.convertAccountAmount(primaryAccount.id, primaryAccount.balanceValue)
+            ? this.convertAccountAmount(primaryAccount.id, primaryAccount.currentBalance)
             : 0;
 
         return [
