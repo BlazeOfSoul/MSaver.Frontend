@@ -24,11 +24,7 @@ export interface CurrentUserResponse {
     id: string;
     username: string;
     email: string;
-    applicationCurrencyCode: string;
-}
-
-export interface UpdateApplicationCurrencyRequest {
-    applicationCurrencyCode: string;
+    applicationCurrencyCode?: string;
 }
 
 export interface MonthBalanceResponse {

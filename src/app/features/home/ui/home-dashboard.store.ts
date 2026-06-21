@@ -103,7 +103,7 @@ function toSupportedCurrencyCode(value: string): string | null {
 
 interface DashboardPayload {
     accounts: AccountResponse[];
-    currentUser: CurrentUserResponse;
+    currentUser: CurrentUserResponse & { applicationCurrencyCode: string };
     transactionPage: PagedResponse<TransactionResponse>;
     yearTransactions: TransactionResponse[];
     yearBalances: MonthBalanceResponse[];
@@ -793,18 +793,7 @@ export class HomeDashboardStore {
             return;
         }
 
-        this.runMutation(
-            this.homeApi.updateApplicationCurrency({ applicationCurrencyCode: nextCode }),
-            'Не удалось обновить валюту приложения.',
-            (currentUser) => {
-                const applicationCurrencyCode = this.resolvePayloadApplicationCurrencyCode(
-                    currentUser,
-                    this.accountResponses(),
-                );
-
-                this.refreshApplicationExchangeRates(applicationCurrencyCode);
-            },
-        );
+        this.refreshApplicationExchangeRates(nextCode);
     }
 
     goToPreviousMonth(): void {

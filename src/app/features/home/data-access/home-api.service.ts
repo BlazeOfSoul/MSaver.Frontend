@@ -19,7 +19,6 @@ import {
     TagResponse,
     TransactionResponse,
     TransferRateResponse,
-    UpdateApplicationCurrencyRequest,
     UpdateTransactionRequest,
 } from './home-api.models';
 
@@ -39,15 +38,6 @@ export class HomeApiService {
 
     getCurrentUser(): Observable<CurrentUserResponse> {
         return this.http.get<CurrentUserResponse>(`${this.baseUrl}/Users/me`);
-    }
-
-    updateApplicationCurrency(
-        payload: UpdateApplicationCurrencyRequest,
-    ): Observable<CurrentUserResponse> {
-        return this.http.patch<CurrentUserResponse>(
-            `${this.baseUrl}/Users/me/application-currency`,
-            payload,
-        );
     }
 
     getAccounts(request: ListRequestParams = {}): Observable<PagedResponse<AccountResponse>> {

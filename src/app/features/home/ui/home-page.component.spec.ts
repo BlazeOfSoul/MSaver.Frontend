@@ -2714,7 +2714,7 @@ describe('HomePageComponent', () => {
         expect(balanceCard?.tone).toBe('negative');
     });
 
-    it('saves application currency changes and refreshes only exchange rates', () => {
+    it('changes application currency locally without calling the unsupported settings endpoint', () => {
         homeApi.getCurrentUser.mockReturnValue(
             of<CurrentUserResponse>({
                 id: 'user-123',
@@ -2724,12 +2724,13 @@ describe('HomePageComponent', () => {
             }),
         );
         homeApi.updateApplicationCurrency.mockReturnValue(
-            of<CurrentUserResponse>({
-                id: 'user-123',
-                username: 'Alex',
-                email: 'alex@example.com',
-                applicationCurrencyCode: 'EUR',
-            }),
+            throwError(
+                () =>
+                    new HttpErrorResponse({
+                        status: 404,
+                        statusText: 'Not Found',
+                    }),
+            ),
         );
         homeApi.getAccounts.mockReturnValue(
             of(
@@ -2788,9 +2789,7 @@ describe('HomePageComponent', () => {
 
         fixture.componentInstance.updateApplicationCurrency('EUR');
 
-        expect(homeApi.updateApplicationCurrency).toHaveBeenCalledWith({
-            applicationCurrencyCode: 'EUR',
-        });
+        expect(homeApi.updateApplicationCurrency).not.toHaveBeenCalled();
         expect(homeApi.getTransferRate).toHaveBeenCalledTimes(1);
         expect(homeApi.getTransferRate).toHaveBeenCalledWith('byn-account', 'eur-account');
         expect(homeApi.getAccounts).not.toHaveBeenCalled();
@@ -2799,6 +2798,7 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions).not.toHaveBeenCalled();
         expect(homeApi.getMonthBalance).not.toHaveBeenCalled();
         expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
+        expect(fixture.componentInstance.errorMessage()).toBe('');
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('7,50');
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
     });
