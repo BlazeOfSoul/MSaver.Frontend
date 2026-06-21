@@ -4,8 +4,6 @@ import { Observable } from 'rxjs';
 import {
     AuthSessionResponse,
     LoginRequest,
-    LogoutClientRequest,
-    RefreshTokenRequest,
     RegisterRequest,
     RegisterResponse,
 } from '../../../core/models/auth.models';
@@ -23,16 +21,20 @@ export class AuthService {
     }
 
     login(payload: LoginRequest): Observable<AuthSessionResponse> {
-        return this.http.post<AuthSessionResponse>(`${this.baseUrl}/login`, payload);
+        return this.http.post<AuthSessionResponse>(`${this.baseUrl}/login`, payload, {
+            withCredentials: true,
+        });
     }
 
-    refresh(refreshToken: string): Observable<AuthSessionResponse> {
-        const payload: RefreshTokenRequest = { refreshToken };
-        return this.http.post<AuthSessionResponse>(`${this.baseUrl}/refresh`, payload);
+    refresh(): Observable<AuthSessionResponse> {
+        return this.http.post<AuthSessionResponse>(
+            `${this.baseUrl}/refresh`,
+            {},
+            { withCredentials: true },
+        );
     }
 
-    logout(clientId: string): Observable<void> {
-        const payload: LogoutClientRequest = { clientId };
-        return this.http.post<void>(`${this.baseUrl}/logout`, payload);
+    logout(): Observable<void> {
+        return this.http.post<void>(`${this.baseUrl}/logout`, {}, { withCredentials: true });
     }
 }

@@ -149,8 +149,6 @@ describe('AuthPageComponent', () => {
             name: 'Codex QA',
             email: 'codex@example.com',
             clientId: 'client-id',
-            accessToken: 'access-token',
-            refreshToken: 'refresh-token',
         });
         login$.complete();
 

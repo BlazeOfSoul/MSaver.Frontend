@@ -9,14 +9,6 @@ export interface LoginRequest {
     password: string;
 }
 
-export interface RefreshTokenRequest {
-    refreshToken: string;
-}
-
-export interface LogoutClientRequest {
-    clientId: string;
-}
-
 export type RegisterResponse = string;
 
 export interface AuthSessionResponse {
@@ -25,6 +17,4 @@ export interface AuthSessionResponse {
     username?: string | null;
     email: string;
     clientId: string;
-    accessToken: string;
-    refreshToken: string;
 }

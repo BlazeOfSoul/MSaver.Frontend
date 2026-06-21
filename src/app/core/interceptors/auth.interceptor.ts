@@ -1,4 +1,4 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, finalize, Observable, shareReplay, switchMap, tap, throwError } from 'rxjs';
@@ -15,38 +15,22 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const authService = inject(AuthService);
     const router = inject(Router);
 
-    const token = authStore.accessToken();
     const isAuthRequest = isAuthEndpoint(req.url);
     const isApiRequest = isApiRequestUrl(req.url);
+    const request = isApiRequest ? withCookieCredentials(req) : req;
     const clearSessionAndRedirect = () => {
         authStore.clearSession();
         void router.navigateByUrl('/auth');
     };
 
-    const request =
-        token && isApiRequest && !isAuthRequest
-            ? req.clone({
-                  setHeaders: {
-                      Authorization: `Bearer ${token}`,
-                  },
-              })
-            : req;
-
     return next(request).pipe(
         catchError((error: HttpErrorResponse) => {
-            const refreshToken = authStore.refreshToken();
-
             if (error.status !== 401 || isAuthRequest || !isApiRequest) {
                 return throwError(() => error);
             }
 
-            if (!refreshToken) {
-                clearSessionAndRedirect();
-                return throwError(() => error);
-            }
-
             if (!refreshSession$) {
-                refreshSession$ = authService.refresh(refreshToken).pipe(
+                refreshSession$ = authService.refresh().pipe(
                     tap((response) => authStore.setSession(response)),
                     catchError((refreshError) => {
                         clearSessionAndRedirect();
@@ -59,20 +43,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                 );
             }
 
-            return refreshSession$.pipe(
-                switchMap((response) => {
-                    const retryRequest = req.clone({
-                        setHeaders: {
-                            Authorization: `Bearer ${response.accessToken}`,
-                        },
-                    });
-
-                    return next(retryRequest);
-                }),
-            );
+            return refreshSession$.pipe(switchMap(() => next(withCookieCredentials(req))));
         }),
     );
 };
+
+function withCookieCredentials<T>(req: HttpRequest<T>): HttpRequest<T> {
+    return req.withCredentials ? req : req.clone({ withCredentials: true });
+}
 
 function isAuthEndpoint(url: string): boolean {
     try {

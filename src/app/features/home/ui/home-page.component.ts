@@ -316,15 +316,8 @@ export class HomePageComponent {
     }
 
     logout(): void {
-        const clientId = this.authStore.clientId();
-
-        if (!clientId) {
-            this.completeLogout();
-            return;
-        }
-
         this.authService
-            .logout(clientId)
+            .logout()
             .pipe(
                 finalize(() => this.completeLogout()),
                 takeUntilDestroyed(this.destroyRef),

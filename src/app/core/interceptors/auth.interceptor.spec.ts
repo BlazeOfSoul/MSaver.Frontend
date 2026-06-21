@@ -1,7 +1,6 @@
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpErrorResponse } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { Subject, throwError } from 'rxjs';
@@ -14,8 +13,6 @@ describe('authInterceptor', () => {
     let http: HttpClient;
     let httpMock: HttpTestingController;
     let authStore: {
-        accessToken: ReturnType<typeof signal<string | null>>;
-        refreshToken: ReturnType<typeof signal<string | null>>;
         clearSession: ReturnType<typeof vi.fn>;
         setSession: ReturnType<typeof vi.fn>;
     };
@@ -28,8 +25,6 @@ describe('authInterceptor', () => {
 
     beforeEach(() => {
         authStore = {
-            accessToken: signal('access-token'),
-            refreshToken: signal<string | null>(null),
             clearSession: vi.fn(),
             setSession: vi.fn(),
         };
@@ -58,41 +53,27 @@ describe('authInterceptor', () => {
         httpMock.verify();
     });
 
-    it('redirects to auth when a protected request returns unauthorized without a refresh token', () => {
-        const errorSpy = vi.fn();
-
-        http.get('/api/Accounts').subscribe({ error: errorSpy });
-
-        const request = httpMock.expectOne('/api/Accounts');
-        expect(request.request.headers.get('Authorization')).toBe('Bearer access-token');
-
-        request.flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
-
-        expect(authStore.clearSession).toHaveBeenCalledOnce();
-        expect(router.navigateByUrl).toHaveBeenCalledWith('/auth');
-        expect(errorSpy).toHaveBeenCalledOnce();
-        expect(authService.refresh).not.toHaveBeenCalled();
-    });
-
-    it('keeps authorization on protected endpoints that only share an auth URL prefix', () => {
+    it('sends API requests with credentials and without an authorization header', () => {
         const responseSpy = vi.fn();
 
-        http.get('/api/Auth/login-history').subscribe({ next: responseSpy });
+        http.get('/api/Accounts').subscribe({ next: responseSpy });
 
-        const request = httpMock.expectOne('/api/Auth/login-history');
-        expect(request.request.headers.get('Authorization')).toBe('Bearer access-token');
+        const request = httpMock.expectOne('/api/Accounts');
+        expect(request.request.withCredentials).toBe(true);
+        expect(request.request.headers.has('Authorization')).toBe(false);
 
         request.flush({ ok: true });
 
         expect(responseSpy).toHaveBeenCalledWith({ ok: true });
     });
 
-    it('does not attach authorization to non-api requests', () => {
+    it('does not attach credentials to non-api requests', () => {
         const responseSpy = vi.fn();
 
         http.get('https://cdn.example.com/config.json').subscribe({ next: responseSpy });
 
         const request = httpMock.expectOne('https://cdn.example.com/config.json');
+        expect(request.request.withCredentials).toBe(false);
         expect(request.request.headers.has('Authorization')).toBe(false);
 
         request.flush({ ok: true });
@@ -100,52 +81,41 @@ describe('authInterceptor', () => {
         expect(responseSpy).toHaveBeenCalledWith({ ok: true });
     });
 
-    it('does not refresh or clear the session when a non-api request returns unauthorized', () => {
-        const errorSpy = vi.fn();
-        authStore.refreshToken.set('refresh-token');
+    it('refreshes from cookies and retries protected requests after unauthorized responses', () => {
+        const responseSpy = vi.fn();
+        const refreshResponse: AuthSessionResponse = {
+            id: 'user-id',
+            name: 'Alex',
+            email: 'alex@example.com',
+            clientId: 'client-id',
+        };
+        const refresh$ = new Subject<AuthSessionResponse>();
+        authService.refresh.mockReturnValue(refresh$);
 
-        http.get('/assets/config.json').subscribe({ error: errorSpy });
-
-        const request = httpMock.expectOne('/assets/config.json');
-        expect(request.request.headers.has('Authorization')).toBe(false);
-
-        request.flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
-
-        expect(authService.refresh).not.toHaveBeenCalled();
-        expect(authStore.clearSession).not.toHaveBeenCalled();
-        expect(router.navigateByUrl).not.toHaveBeenCalled();
-        expect(errorSpy).toHaveBeenCalledOnce();
-    });
-
-    it('redirects to auth when token refresh fails', () => {
-        const errorSpy = vi.fn();
-        authStore.refreshToken.set('refresh-token');
-        authService.refresh.mockReturnValue(
-            throwError(
-                () =>
-                    new HttpErrorResponse({
-                        status: 401,
-                        statusText: 'Unauthorized',
-                    }),
-            ),
-        );
-
-        http.get('/api/Accounts').subscribe({ error: errorSpy });
+        http.get('/api/Accounts').subscribe({ next: responseSpy });
 
         const request = httpMock.expectOne('/api/Accounts');
         request.flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
 
-        expect(authService.refresh).toHaveBeenCalledWith('refresh-token');
-        expect(authStore.clearSession).toHaveBeenCalledOnce();
-        expect(router.navigateByUrl).toHaveBeenCalledWith('/auth');
-        expect(errorSpy).toHaveBeenCalledOnce();
+        expect(authService.refresh).toHaveBeenCalledTimes(1);
+        expect(authService.refresh).toHaveBeenCalledWith();
+
+        refresh$.next(refreshResponse);
+        refresh$.complete();
+
+        const retryRequest = httpMock.expectOne('/api/Accounts');
+        expect(retryRequest.request.withCredentials).toBe(true);
+        expect(retryRequest.request.headers.has('Authorization')).toBe(false);
+        retryRequest.flush({ ok: true });
+
+        expect(authStore.setSession).toHaveBeenCalledWith(refreshResponse);
+        expect(responseSpy).toHaveBeenCalledWith({ ok: true });
     });
 
     it('shares one refresh request across parallel unauthorized responses', () => {
         const firstSpy = vi.fn();
         const secondSpy = vi.fn();
         const refreshResponse$ = new Subject<AuthSessionResponse>();
-        authStore.refreshToken.set('refresh-token');
         authService.refresh.mockReturnValue(refreshResponse$);
 
         http.get('/api/Accounts').subscribe({ next: firstSpy });
@@ -164,15 +134,13 @@ describe('authInterceptor', () => {
         );
 
         expect(authService.refresh).toHaveBeenCalledTimes(1);
-        expect(authService.refresh).toHaveBeenCalledWith('refresh-token');
+        expect(authService.refresh).toHaveBeenCalledWith();
 
         refreshResponse$.next({
-            accessToken: 'next-access-token',
-            refreshToken: 'next-refresh-token',
-            clientId: 'client-id',
             id: 'user-id',
             name: 'Alex',
             email: 'alex@example.com',
+            clientId: 'client-id',
         });
         refreshResponse$.complete();
 
@@ -181,11 +149,9 @@ describe('authInterceptor', () => {
         );
 
         expect(retriedRequests).toHaveLength(2);
+        expect(retriedRequests.every((request) => request.request.withCredentials)).toBe(true);
         expect(
-            retriedRequests.every(
-                (request) =>
-                    request.request.headers.get('Authorization') === 'Bearer next-access-token',
-            ),
+            retriedRequests.every((request) => !request.request.headers.has('Authorization')),
         ).toBe(true);
 
         retriedRequests[0].flush({ ok: true });
@@ -194,5 +160,28 @@ describe('authInterceptor', () => {
         expect(authStore.setSession).toHaveBeenCalledOnce();
         expect(firstSpy).toHaveBeenCalledWith({ ok: true });
         expect(secondSpy).toHaveBeenCalledWith({ ok: true });
+    });
+
+    it('clears the session and redirects to auth when cookie refresh fails', () => {
+        const errorSpy = vi.fn();
+        authService.refresh.mockReturnValue(
+            throwError(
+                () =>
+                    new HttpErrorResponse({
+                        status: 401,
+                        statusText: 'Unauthorized',
+                    }),
+            ),
+        );
+
+        http.get('/api/Accounts').subscribe({ error: errorSpy });
+
+        const request = httpMock.expectOne('/api/Accounts');
+        request.flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
+
+        expect(authService.refresh).toHaveBeenCalledWith();
+        expect(authStore.clearSession).toHaveBeenCalledOnce();
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/auth');
+        expect(errorSpy).toHaveBeenCalledOnce();
     });
 });

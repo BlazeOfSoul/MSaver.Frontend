@@ -4672,7 +4672,7 @@ describe('HomePageComponent', () => {
 
         logoutButton?.click();
 
-        expect(authService.logout).toHaveBeenCalledWith('client-123');
+        expect(authService.logout).toHaveBeenCalledWith();
         expect(authStore.clearSession).toHaveBeenCalledOnce();
         expect(router.navigateByUrl).toHaveBeenCalledWith('/auth');
     });
