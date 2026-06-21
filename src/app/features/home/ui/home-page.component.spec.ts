@@ -2308,14 +2308,14 @@ describe('HomePageComponent', () => {
         expect(host.textContent ?? '').toContain('25,00 Br');
     });
 
-    it('shows the current primary account balance when the current month balance is stale', () => {
+    it('shows the selected month primary account balance when the account current balance is stale', () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-06-21T12:00:00'));
 
         const mainAccount = account({
             id: 'main-account',
             name: 'Main account',
-            currentBalance: 11,
+            currentBalance: 0,
             currencyCode: 'BYN',
             isPrimary: true,
         });
@@ -2341,8 +2341,8 @@ describe('HomePageComponent', () => {
                     accountName: 'Main account',
                     currencyCode: 'BYN',
                     openingBalance: 0,
-                    monthChange: 0,
-                    closingBalance: 0,
+                    monthChange: -14,
+                    closingBalance: -14,
                     year,
                     month,
                 }),
@@ -2354,11 +2354,13 @@ describe('HomePageComponent', () => {
 
             const cards = fixture.componentInstance.summaryCards();
             const balanceCard = cards.find((card) => card.id === 'balance');
+            const debtBalanceCard = cards.find((card) => card.id === 'debt-balance');
             const incomeCard = cards.find((card) => card.id === 'income');
 
             expect(incomeCard?.value).toContain('11');
-            expect(balanceCard?.value).toContain('11');
+            expect(balanceCard?.value).toContain('-14');
             expect(balanceCard?.value).not.toContain('0,00');
+            expect(debtBalanceCard?.value).toBe(balanceCard?.value);
         } finally {
             vi.useRealTimers();
         }

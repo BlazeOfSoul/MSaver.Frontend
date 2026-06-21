@@ -271,7 +271,6 @@ export class HomeDashboardStore {
             ),
         ),
     );
-    readonly primaryAccountResponse = computed(() => this.sortAccounts(this.accountResponses())[0]);
     readonly primaryAccount = computed(
         () => this.accounts().find((account) => account.isPrimary) ?? this.accounts()[0],
     );
@@ -632,9 +631,9 @@ export class HomeDashboardStore {
         ];
     });
     readonly summaryCards = computed<ReadonlyArray<HomeSummaryCard>>(() => {
-        const primaryAccount = this.primaryAccountResponse();
+        const primaryAccount = this.primaryAccount();
         const primaryBalanceValue = primaryAccount
-            ? this.convertAccountAmount(primaryAccount.id, primaryAccount.currentBalance)
+            ? this.convertAccountAmount(primaryAccount.id, primaryAccount.balanceValue)
             : 0;
 
         return [
