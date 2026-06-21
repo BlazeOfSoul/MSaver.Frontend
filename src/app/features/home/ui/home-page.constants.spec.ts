@@ -15,4 +15,10 @@ describe('home-page constants', () => {
 
         expect(values).toEqual([...values].sort((left, right) => left.localeCompare(right, 'en')));
     });
+
+    it('includes Polish zloty in the shared currency options', () => {
+        expect(CURRENCY_OPTIONS).toContainEqual(
+            expect.objectContaining({ value: 'PLN' }),
+        );
+    });
 });
