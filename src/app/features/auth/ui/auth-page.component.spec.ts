@@ -99,6 +99,33 @@ describe('AuthPageComponent', () => {
         expect(component.errorMessage()).toBe('Пользователь не найден.');
     });
 
+    it('stores the session and redirects to the app after successful login', () => {
+        const login$ = new Subject<AuthSessionResponse>();
+        const session: AuthSessionResponse = {
+            id: 'user-id',
+            name: 'Codex QA',
+            email: 'codex@example.com',
+            clientId: 'client-id',
+        };
+
+        authService.login.mockReturnValue(login$.asObservable());
+
+        component.form.setValue({
+            username: '',
+            email: 'codex@example.com',
+            password: 'Qwerty123!',
+            confirmPassword: '',
+        });
+
+        component.submit();
+
+        login$.next(session);
+        login$.complete();
+
+        expect(authStore.setSession).toHaveBeenCalledWith(session);
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/');
+    });
+
     it('ignores malformed registration field details and shows the backend message', () => {
         authService.register.mockReturnValue(
             throwError(

@@ -34,6 +34,26 @@ describe('FirstAccountSetupComponent', () => {
         expect(host.textContent ?? '').toContain('BYN - Белорусский рубль');
     });
 
+    it('uses a roomier setup layout for the currency selector', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const selectDebug = fixture.debugElement.query(By.directive(SelectComponent));
+        const selectHost = selectDebug.nativeElement as HTMLElement;
+        const select = selectDebug.componentInstance as SelectComponent & {
+            valueWrap?: () => boolean;
+        };
+
+        const styleText = componentStyleText();
+
+        expect(styleText).toContain('max-width: 48rem');
+        expect(styleText).toContain(
+            'grid-template-columns: minmax(0, 1fr) minmax(19rem, 0.78fr)',
+        );
+        expect(select.valueWrap?.()).toBe(true);
+        expect(selectHost.classList.contains('ms-select-host--wrap-value')).toBe(true);
+    });
+
     it('emits currency and create actions', () => {
         const currencySpy = vi.fn();
         const createSpy = vi.fn();
@@ -53,3 +73,15 @@ describe('FirstAccountSetupComponent', () => {
         expect(createSpy).toHaveBeenCalledOnce();
     });
 });
+
+function componentStyleText(): string {
+    return Array.from(document.styleSheets)
+        .flatMap((sheet) => {
+            try {
+                return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+            } catch {
+                return [];
+            }
+        })
+        .join('\n');
+}

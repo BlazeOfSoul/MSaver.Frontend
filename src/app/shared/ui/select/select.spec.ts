@@ -32,6 +32,21 @@ describe('SelectComponent', () => {
         expect(getComputedStyle(shell!).overflow).toBe('visible');
     });
 
+    it('allows the selected value to wrap when requested', () => {
+        fixture.componentRef.setInput('valueWrap', true);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const trigger = host.querySelector<HTMLElement>('.ms-select__trigger');
+        const value = host.querySelector<HTMLElement>('.ms-select__value');
+
+        expect(host.classList.contains('ms-select-host--wrap-value')).toBe(true);
+        expect(getComputedStyle(trigger!).minHeight).toBe('56px');
+        expect(getComputedStyle(value!).whiteSpace).toBe('normal');
+        expect(getComputedStyle(value!).overflow).toBe('visible');
+        expect(getComputedStyle(value!).textOverflow).toBe('clip');
+    });
+
     it('closes without throwing when a document click target is not a DOM node', () => {
         fixture.detectChanges();
 

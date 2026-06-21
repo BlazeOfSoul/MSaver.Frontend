@@ -126,3 +126,16 @@
         font-size: 0.92rem;
     }
 }
+
+:host(.ms-select-host--wrap-value) .ms-select__trigger {
+    min-height: 56px;
+    height: auto;
+    padding-block: 0.65rem;
+}
+
+:host(.ms-select-host--wrap-value) .ms-select__value {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    line-height: 1.25;
+}

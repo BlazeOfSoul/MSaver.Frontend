@@ -25,6 +25,7 @@ export interface MsSelectOption {
     changeDetection: ChangeDetectionStrategy.OnPush,
     host: {
         '[class.ms-select-host--open]': 'isOpen()',
+        '[class.ms-select-host--wrap-value]': 'valueWrap()',
     },
 })
 export class SelectComponent {
@@ -36,6 +37,7 @@ export class SelectComponent {
     label = input<string>('');
     icon = input<string>('expand_more');
     disabled = input<boolean>(false);
+    valueWrap = input<boolean>(false);
 
     readonly isOpen = signal(false);
     readonly selectedOption = computed(() => {

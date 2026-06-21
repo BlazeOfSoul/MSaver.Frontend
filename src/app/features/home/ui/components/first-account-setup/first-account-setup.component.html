@@ -37,6 +37,7 @@
             label="Валюта основного счёта"
             [options]="currencyOptions()"
             [value]="selectedCurrency()"
+            [valueWrap]="true"
             (valueChange)="currencyChange.emit($event)"
         ></ms-select>
 

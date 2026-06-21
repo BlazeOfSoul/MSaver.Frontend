@@ -1,6 +1,6 @@
 @media (min-width: 760px) {
     .first-account-setup {
-        grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.72fr);
+        grid-template-columns: minmax(0, 1fr) minmax(19rem, 0.78fr);
         align-items: center;
         padding: 1.5rem;
     }
