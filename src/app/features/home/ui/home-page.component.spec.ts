@@ -1518,6 +1518,46 @@ describe('HomePageComponent', () => {
         expect(expense?.value).toContain('100');
     });
 
+    it('splits monthly totals by amount sign when an expense category type is inconsistent', () => {
+        const mainAccount = account({ id: 'main-account', name: 'Main account' });
+        const salaryCategory: CategoryResponse = {
+            id: 'salary',
+            name: 'Salary',
+            type: 'Credit',
+            color: '#23c78b',
+        };
+        const inconsistentExpenseCategory: CategoryResponse = {
+            id: 'food',
+            name: 'Food',
+            type: 'Credit',
+            color: '#ff6f91',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
+        homeApi.getTransactions.mockImplementation(
+            (query: { size?: number; fromDate: string; toDate: string }) => {
+                const transactions = [
+                    transaction('salary', mainAccount, salaryCategory, 100),
+                    transaction('debt-given', mainAccount, inconsistentExpenseCategory, -12),
+                    transaction('food', mainAccount, inconsistentExpenseCategory, -15),
+                ];
+
+                return of(page(query.size ? transactions.slice(0, 1) : transactions));
+            },
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const cards = fixture.componentInstance.summaryCards();
+        const income = cards.find((card) => card.id === 'income');
+        const expense = cards.find((card) => card.id === 'expense');
+
+        expect(income?.value).toContain('100');
+        expect(income?.value).not.toContain('127');
+        expect(expense?.value).toContain('27');
+    });
+
     it('formats analytics for a selected account in that account currency', () => {
         const bynAccount = account({ id: 'byn-account', name: 'BYN account', currencyCode: 'BYN' });
         const usdAccount = account({

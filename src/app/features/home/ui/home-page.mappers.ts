@@ -145,19 +145,28 @@ export function isExpenseCategory(type: CategoryType | null | undefined): boolea
     return type === 'Debit' || type === 'TransferExpense';
 }
 
+export function isExpenseTransaction(transaction: {
+    amount: number;
+    category: { type: CategoryType | null | undefined };
+}): boolean {
+    if (transaction.amount < 0) {
+        return true;
+    }
+
+    if (transaction.amount > 0) {
+        return false;
+    }
+
+    return isExpenseCategory(transaction.category.type);
+}
+
 function resolveTransactionTone(
     amount: number,
     categoryType: CategoryType | null | undefined,
 ): 'income' | 'expense' {
-    if (amount < 0) {
-        return 'expense';
-    }
-
-    if (amount > 0) {
-        return 'income';
-    }
-
-    return isExpenseCategory(categoryType) ? 'expense' : 'income';
+    return isExpenseTransaction({ amount, category: { type: categoryType } })
+        ? 'expense'
+        : 'income';
 }
 
 function resolveExpenseTone(progress: number): 'warning' | 'danger' {

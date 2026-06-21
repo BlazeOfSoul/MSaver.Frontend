@@ -85,6 +85,7 @@ import {
 import {
     categoryTotals,
     isExpenseCategory,
+    isExpenseTransaction,
     mapAccount,
     mapCategories,
     mapTags,
@@ -337,7 +338,9 @@ export class HomeDashboardStore {
     readonly incomeCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
             this.categoryResponses(),
-            this.selectedMonthTransactions(),
+            this.selectedMonthTransactions().filter(
+                (transaction) => !isExpenseTransaction(transaction),
+            ),
             'income',
             this.applicationCurrencyCode(),
             (transaction) => Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
@@ -346,7 +349,9 @@ export class HomeDashboardStore {
     readonly expenseCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
             this.categoryResponses(),
-            this.selectedMonthTransactions(),
+            this.selectedMonthTransactions().filter((transaction) =>
+                isExpenseTransaction(transaction),
+            ),
             'expense',
             this.applicationCurrencyCode(),
             (transaction) => Math.abs(this.convertTransactionAmount(transaction)),
@@ -355,7 +360,9 @@ export class HomeDashboardStore {
     readonly analyticsIncomeCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
             this.categoryResponses(),
-            this.analyticsMonthTransactions(),
+            this.analyticsMonthTransactions().filter(
+                (transaction) => !isExpenseTransaction(transaction),
+            ),
             'income',
             this.analyticsCurrencyCode(),
             (transaction) => Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
@@ -364,7 +371,9 @@ export class HomeDashboardStore {
     readonly analyticsExpenseCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
             this.categoryResponses(),
-            this.analyticsMonthTransactions(),
+            this.analyticsMonthTransactions().filter((transaction) =>
+                isExpenseTransaction(transaction),
+            ),
             'expense',
             this.analyticsCurrencyCode(),
             (transaction) => Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
@@ -451,22 +460,22 @@ export class HomeDashboardStore {
     );
     readonly incomeTotal = computed(() =>
         this.selectedMonthTransactions()
-            .filter((item) => !isExpenseCategory(item.category.type))
+            .filter((item) => !isExpenseTransaction(item))
             .reduce((sum, item) => sum + Math.abs(this.convertTransactionAmount(item)), 0),
     );
     readonly expenseTotal = computed(() =>
         this.selectedMonthTransactions()
-            .filter((item) => isExpenseCategory(item.category.type))
+            .filter((item) => isExpenseTransaction(item))
             .reduce((sum, item) => sum + Math.abs(this.convertTransactionAmount(item)), 0),
     );
     readonly analyticsIncomeTotal = computed(() =>
         this.analyticsMonthTransactions()
-            .filter((item) => !isExpenseCategory(item.category.type))
+            .filter((item) => !isExpenseTransaction(item))
             .reduce((sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)), 0),
     );
     readonly analyticsExpenseTotal = computed(() =>
         this.analyticsMonthTransactions()
-            .filter((item) => isExpenseCategory(item.category.type))
+            .filter((item) => isExpenseTransaction(item))
             .reduce((sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)), 0),
     );
     readonly debtSummary = computed<DebtSummary>(() => {
@@ -488,13 +497,13 @@ export class HomeDashboardStore {
             return {
                 label: compactMonthLabel(month),
                 income: transactions
-                    .filter((item) => !isExpenseCategory(item.category.type))
+                    .filter((item) => !isExpenseTransaction(item))
                     .reduce(
                         (sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)),
                         0,
                     ),
                 expense: transactions
-                    .filter((item) => isExpenseCategory(item.category.type))
+                    .filter((item) => isExpenseTransaction(item))
                     .reduce(
                         (sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)),
                         0,
@@ -559,7 +568,7 @@ export class HomeDashboardStore {
     readonly tagExpensesChart = computed<ReadonlyArray<CategoryBreakdownItem>>(() => {
         const totals = categoryTotals(
             this.selectedYearTransactions().filter((transaction) =>
-                isExpenseCategory(transaction.category.type),
+                isExpenseTransaction(transaction),
             ),
             (transaction) => Math.abs(this.convertTransactionAmount(transaction)),
         );
@@ -2486,6 +2495,11 @@ export class HomeDashboardStore {
                 const cells = monthKeys.map((key, index) => {
                     const value = this.selectedYearTransactions()
                         .filter((transaction) => transaction.category.id === category.id)
+                        .filter((transaction) =>
+                            type === 'expense'
+                                ? isExpenseTransaction(transaction)
+                                : !isExpenseTransaction(transaction),
+                        )
                         .filter((transaction) => monthKey(new Date(transaction.date)) === key)
                         .reduce(
                             (sum, transaction) =>
@@ -2668,7 +2682,7 @@ export class HomeDashboardStore {
 
     private transactionToDraft(transaction: TransactionResponse): TransactionDraft {
         return {
-            type: isExpenseCategory(transaction.category.type) ? 'expense' : 'income',
+            type: isExpenseTransaction(transaction) ? 'expense' : 'income',
             accountId: transaction.account.id,
             categoryId: transaction.category.id,
             amount: Math.abs(transaction.amount),
