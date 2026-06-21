@@ -2290,6 +2290,45 @@ describe('HomePageComponent', () => {
         expect(balanceCard?.value).not.toContain('$');
     });
 
+    it('prefills new account currency from saved application settings', () => {
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'USD',
+            }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    account({
+                        id: 'byn-account',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                    }),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        expect(component.newAccountCurrency()).toBe('USD');
+
+        component.setNewAccountName('Savings');
+        component.createNewAccount();
+
+        expect(homeApi.createAccount).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: 'Savings',
+                currencyCode: 'USD',
+            }),
+        );
+    });
+
     it('keeps the saved application currency visible when it has no matching account', () => {
         homeApi.getCurrentUser.mockReturnValue(
             of<CurrentUserResponse>({
@@ -2798,6 +2837,7 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions).not.toHaveBeenCalled();
         expect(homeApi.getMonthBalance).not.toHaveBeenCalled();
         expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
+        expect(fixture.componentInstance.newAccountCurrency()).toBe('EUR');
         expect(fixture.componentInstance.errorMessage()).toBe('');
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('7,50');
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');

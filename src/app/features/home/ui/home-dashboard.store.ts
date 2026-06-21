@@ -1374,7 +1374,7 @@ export class HomeDashboardStore {
 
     private setPayload(payload: DashboardPayload): void {
         this.accountResponses.set(payload.accounts);
-        this.applicationCurrencyCodeSignal.set(payload.currentUser.applicationCurrencyCode);
+        this.setApplicationCurrency(payload.currentUser.applicationCurrencyCode);
         this.exchangeRatesByAccountId.set(payload.exchangeRatesByAccountId);
         this.setTransactionPage(payload.transactionPage);
         this.yearTransactionResponses.set(payload.yearTransactions);
@@ -1674,7 +1674,7 @@ export class HomeDashboardStore {
                         return;
                     }
 
-                    this.applicationCurrencyCodeSignal.set(applicationCurrencyCode);
+                    this.setApplicationCurrency(applicationCurrencyCode);
                     this.exchangeRatesByAccountId.set(exchangeRatesByAccountId);
                 },
                 error: (error) => {
@@ -1794,7 +1794,7 @@ export class HomeDashboardStore {
                     this.selectedAccountId.set(selectedAccountId);
                     this.accountsSelectedAccountId.set(accountsSelectedAccountId);
                     this.analyticsSelectedAccountId.set(analyticsSelectedAccountId);
-                    this.applicationCurrencyCodeSignal.set(applicationCurrencyCode);
+                    this.setApplicationCurrency(applicationCurrencyCode);
                     this.exchangeRatesByAccountId.set(exchangeRatesByAccountId);
                     this.setTransactionPage(transactionPage);
                     this.yearTransactionResponses.set(yearTransactions);
@@ -2180,6 +2180,11 @@ export class HomeDashboardStore {
         }
 
         return this.convertAccountAmount(accountId, amount);
+    }
+
+    private setApplicationCurrency(currencyCode: string): void {
+        this.applicationCurrencyCodeSignal.set(currencyCode);
+        this.newAccountCurrency.set(currencyCode);
     }
 
     private resolveApplicationAccount(
