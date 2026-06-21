@@ -2,6 +2,7 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     Observable,
+    catchError,
     concatMap,
     finalize,
     forkJoin,
@@ -1317,7 +1318,10 @@ export class HomeDashboardStore {
 
                 return this.homeApi
                     .getTransferRate(account.id, applicationAccount.id)
-                    .pipe(map((response) => [account.id, response.rate] as const));
+                    .pipe(
+                        map((response) => [account.id, response.rate] as const),
+                        catchError(() => of([account.id, 1] as const)),
+                    );
             }),
             reduce(
                 (rates, [accountId, rate]) => rates.set(accountId, rate),

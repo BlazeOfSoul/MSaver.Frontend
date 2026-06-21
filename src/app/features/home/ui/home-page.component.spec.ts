@@ -2803,6 +2803,83 @@ describe('HomePageComponent', () => {
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
     });
 
+    it('keeps the selected application currency when one display-rate request fails', () => {
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'BYN',
+            }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'BYN account',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'eur-account',
+                        name: 'EUR reserve',
+                        currencyCode: 'EUR',
+                        currentBalance: 5,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) => {
+            if (fromAccountId === 'byn-account' && toAccountId === 'eur-account') {
+                return throwError(
+                    () =>
+                        new HttpErrorResponse({
+                            status: 404,
+                            statusText: 'Not Found',
+                        }),
+                );
+            }
+
+            return of({
+                rate: 1,
+                fromCurrencyCode: fromAccountId === 'eur-account' ? 'EUR' : 'BYN',
+                toCurrencyCode: toAccountId === 'eur-account' ? 'EUR' : 'BYN',
+            });
+        });
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId,
+                    currencyCode: accountId === 'eur-account' ? 'EUR' : 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: accountId === 'eur-account' ? 5 : 10,
+                    year,
+                    month,
+                }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        homeApi.getTransferRate.mockClear();
+
+        fixture.componentInstance.updateApplicationCurrency('EUR');
+
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('byn-account', 'eur-account');
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
+        expect(fixture.componentInstance.errorMessage()).toBe('');
+        expect(fixture.componentInstance.accountSummaryBalanceLabel()).not.toContain('Br');
+    });
+
     it('keeps the selected settings currency even without an account in that currency', () => {
         homeApi.getCurrentUser.mockReturnValue(
             of<CurrentUserResponse>({
