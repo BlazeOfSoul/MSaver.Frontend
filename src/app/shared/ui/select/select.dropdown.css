@@ -25,6 +25,13 @@
     animation: ms-select-dropdown-in 0.16s ease-out both;
 }
 
+:host(.ms-select-host--dropdown-top) .ms-select__dropdown {
+    top: auto;
+    bottom: calc(100% + 0.55rem);
+    transform-origin: bottom center;
+    animation-name: ms-select-dropdown-top-in;
+}
+
 .ms-select__option {
     --option-color: var(--color-ms-primary);
     display: flex;
@@ -94,6 +101,18 @@
     from {
         opacity: 0;
         transform: translateY(-0.25rem) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes ms-select-dropdown-top-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.25rem) scale(0.98);
     }
 
     to {

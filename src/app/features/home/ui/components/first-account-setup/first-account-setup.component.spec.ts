@@ -42,6 +42,7 @@ describe('FirstAccountSetupComponent', () => {
         const selectHost = selectDebug.nativeElement as HTMLElement;
         const select = selectDebug.componentInstance as SelectComponent & {
             valueWrap?: () => boolean;
+            dropdownPlacement?: () => string;
         };
 
         const styleText = componentStyleText();
@@ -51,7 +52,9 @@ describe('FirstAccountSetupComponent', () => {
             'grid-template-columns: minmax(0, 1fr) minmax(19rem, 0.78fr)',
         );
         expect(select.valueWrap?.()).toBe(true);
+        expect(select.dropdownPlacement?.()).toBe('top');
         expect(selectHost.classList.contains('ms-select-host--wrap-value')).toBe(true);
+        expect(selectHost.classList.contains('ms-select-host--dropdown-top')).toBe(true);
     });
 
     it('emits currency and create actions', () => {

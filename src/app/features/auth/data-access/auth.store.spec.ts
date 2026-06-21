@@ -58,6 +58,21 @@ describe('AuthStore', () => {
         expect(store.userName()).toBe('Alex');
     });
 
+    it('treats a restored cookie session as authenticated even when client id is empty', () => {
+        const store = TestBed.inject(AuthStore);
+        const legacySession: AuthSessionResponse = {
+            id: 'legacy-user-id',
+            name: 'Legacy User',
+            email: 'legacy@example.com',
+            clientId: '',
+        };
+
+        store.setSession(legacySession);
+
+        expect(store.isAuthenticated()).toBe(true);
+        expect(store.userId()).toBe('legacy-user-id');
+    });
+
     it('removes legacy browser storage session values when it starts', () => {
         window.localStorage.setItem('access_token', 'legacy-access-token');
         window.localStorage.setItem('refresh_token', 'legacy-refresh-token');

@@ -27,7 +27,7 @@ export class AuthStore {
     readonly userId = computed(() => this.userIdSignal());
     readonly userName = computed(() => this.userNameSignal());
     readonly userEmail = computed(() => this.userEmailSignal());
-    readonly isAuthenticated = computed(() => !!this.clientIdSignal());
+    readonly isAuthenticated = computed(() => !!this.userIdSignal());
 
     constructor() {
         this.clearLegacyBrowserSession();

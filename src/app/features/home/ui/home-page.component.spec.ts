@@ -70,6 +70,10 @@ function account(overrides: Partial<AccountResponse> = {}): AccountResponse {
     };
 }
 
+function summaryCardValue(component: HomePageComponent, id: string): string | undefined {
+    return component.summaryCards().find((card) => card.id === id)?.value;
+}
+
 describe('HomePageComponent', () => {
     let fixture: ComponentFixture<HomePageComponent>;
     let authStore: {
@@ -613,7 +617,7 @@ describe('HomePageComponent', () => {
         fixture.componentInstance.transferBetweenAccounts();
 
         expect(homeApi.createTransfer).toHaveBeenCalled();
-        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 2);
         expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls + 2);
         expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
         expect(homeApi.getCurrentUser.mock.calls.length).toBe(initialCurrentUserCalls);
@@ -3612,7 +3616,7 @@ describe('HomePageComponent', () => {
         fixture.componentInstance.saveTransaction();
 
         expect(homeApi.createTransaction).toHaveBeenCalled();
-        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 2);
         expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls + 1);
         expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
         expect(homeApi.getCurrentUser.mock.calls.length).toBe(initialCurrentUserCalls);
@@ -3622,14 +3626,53 @@ describe('HomePageComponent', () => {
 
         fixture.componentInstance.setActiveTab('analytics');
 
-        expect(homeApi.getTransactions).toHaveBeenCalledTimes(1);
-        expect(homeApi.getTransactions).toHaveBeenCalledWith(
-            expect.objectContaining({
-                fromDate: '2026-01-01',
-                toDate: '2027-01-01',
-                page: 1,
-            }),
+        expect(homeApi.getTransactions).not.toHaveBeenCalled();
+    });
+
+    it('updates overview income totals after creating a transaction', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-11T12:00:00'));
+
+        const mainAccount = account({ id: 'main-account', name: 'Main account' });
+        const incomeCategory: CategoryResponse = {
+            id: 'income-category',
+            name: 'Salary',
+            type: 'Credit',
+            color: '#23c78b',
+        };
+        let includeCreatedTransaction = false;
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([incomeCategory])));
+        homeApi.getTransactions.mockImplementation(() =>
+            of(
+                page(
+                    includeCreatedTransaction
+                        ? [transaction('income-transaction', mainAccount, incomeCategory, 150)]
+                        : [],
+                ),
+            ),
         );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.updateTransactionDraft({
+            type: 'income',
+            accountId: 'main-account',
+            categoryId: 'income-category',
+            amount: 150,
+            date: '2026-06-05T12:00',
+            description: 'Salary',
+        });
+        includeCreatedTransaction = true;
+        component.saveTransaction();
+
+        expect(summaryCardValue(component, 'income')).toContain('150');
+
+        vi.useRealTimers();
     });
 
     it('keeps the newest selected month balance when balance refreshes resolve out of order', () => {
@@ -3884,11 +3927,55 @@ describe('HomePageComponent', () => {
         component.saveTransaction();
 
         expect(homeApi.updateTransaction).toHaveBeenCalled();
-        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 2);
         expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls + 1);
         expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
         expect(homeApi.getCurrentUser.mock.calls.length).toBe(initialCurrentUserCalls);
         expect(homeApi.getCategories.mock.calls.length).toBe(initialCategoryCalls);
+    });
+
+    it('updates overview expense totals after editing a transaction', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-11T12:00:00'));
+
+        const mainAccount = account({ id: 'main-account', name: 'Main account' });
+        const expenseCategory: CategoryResponse = {
+            id: 'expense-category',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff8fab',
+        };
+        let expenseAmount = -25;
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([expenseCategory])));
+        homeApi.getTransactions.mockImplementation(() =>
+            of(
+                page<TransactionResponse>([
+                    transaction('expense-transaction', mainAccount, expenseCategory, expenseAmount),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        expect(summaryCardValue(component, 'expense')).toContain('25');
+
+        component.startEditingTransaction(component.filteredTransactions()[0]);
+        component.updateTransactionDraft({
+            ...component.transactionDraft(),
+            amount: 30,
+            description: 'Updated lunch',
+        });
+        expenseAmount = -30;
+        component.saveTransaction();
+
+        expect(summaryCardValue(component, 'expense')).toContain('30');
+
+        vi.useRealTimers();
     });
 
     it('refreshes transaction data after deleting without reloading static dashboard data', () => {
@@ -3929,11 +4016,51 @@ describe('HomePageComponent', () => {
         fixture.componentInstance.deleteTransaction('expense-transaction');
 
         expect(homeApi.deleteTransaction).toHaveBeenCalledWith('expense-transaction');
-        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
+        expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 2);
         expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls + 1);
         expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
         expect(homeApi.getCurrentUser.mock.calls.length).toBe(initialCurrentUserCalls);
         expect(homeApi.getCategories.mock.calls.length).toBe(initialCategoryCalls);
+    });
+
+    it('updates overview expense totals after deleting a transaction', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-11T12:00:00'));
+
+        const mainAccount = account({ id: 'main-account', name: 'Main account' });
+        const expenseCategory: CategoryResponse = {
+            id: 'expense-category',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff8fab',
+        };
+        let isDeleted = false;
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([expenseCategory])));
+        homeApi.getTransactions.mockImplementation(() =>
+            of(
+                page(
+                    isDeleted
+                        ? []
+                        : [transaction('expense-transaction', mainAccount, expenseCategory, -25)],
+                ),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        expect(summaryCardValue(component, 'expense')).toContain('25');
+
+        isDeleted = true;
+        component.deleteTransaction('expense-transaction');
+
+        expect(summaryCardValue(component, 'expense')).not.toContain('25');
+
+        vi.useRealTimers();
     });
 
     it('does not delete unknown transaction rows directly', () => {

@@ -80,7 +80,6 @@ import {
     DebtSummary,
     calculateDebtSummary,
     calculateDebtTotalsUntilMonth,
-    resolveDebtCategoryKind,
 } from './home-debt.utils';
 import {
     categoryTotals,
@@ -938,11 +937,6 @@ export class HomeDashboardStore {
         };
 
         if (editingTransactionId) {
-            const shouldReloadYearTransactions = this.shouldRefreshYearTransactionsForDraft(
-                draft,
-                editingTransactionId,
-            );
-
             this.runMutation(
                 this.homeApi.updateTransaction(editingTransactionId, payload),
                 'Не удалось обновить транзакцию.',
@@ -950,13 +944,11 @@ export class HomeDashboardStore {
                     this.isTransactionDialogOpen.set(false);
                     this.editingTransactionId.set(null);
                     this.transactionDraft.set(this.getDefaultTransactionDraft());
-                    this.refreshTransactionData(shouldReloadYearTransactions);
+                    this.refreshTransactionData();
                 },
             );
             return;
         }
-
-        const shouldReloadYearTransactions = this.shouldRefreshYearTransactionsForDraft(draft);
 
         this.runMutation(
             this.homeApi.createTransaction({
@@ -968,7 +960,7 @@ export class HomeDashboardStore {
                 this.isTransactionDialogOpen.set(false);
                 this.editingTransactionId.set(null);
                 this.transactionDraft.set(this.getDefaultTransactionDraft());
-                this.refreshTransactionData(shouldReloadYearTransactions);
+                this.refreshTransactionData();
             },
         );
     }
@@ -985,10 +977,7 @@ export class HomeDashboardStore {
         this.runMutation(
             this.homeApi.deleteTransaction(transactionId),
             'Не удалось удалить транзакцию.',
-            () =>
-                this.refreshTransactionData(
-                    this.shouldRefreshYearTransactionsForTransaction(transaction),
-                ),
+            () => this.refreshTransactionData(),
         );
     }
 
@@ -1046,7 +1035,7 @@ export class HomeDashboardStore {
                     rate: null,
                     description: '',
                 }));
-                this.refreshTransactionData(this.activeTab() === 'analytics');
+                this.refreshTransactionData();
             },
         );
     }
@@ -1679,14 +1668,9 @@ export class HomeDashboardStore {
             });
     }
 
-    private refreshTransactionData(reloadYearTransactions: boolean): void {
+    private refreshTransactionData(): void {
         this.reloadCurrentTransactionPage();
-
-        if (reloadYearTransactions || this.activeTab() === 'analytics') {
-            this.reloadSelectedYearTransactions();
-        } else {
-            this.areYearTransactionsStale = true;
-        }
+        this.reloadSelectedYearTransactions();
 
         if (this.activeTab() === 'analytics') {
             this.reloadSelectedYearBalances();
@@ -2349,47 +2333,6 @@ export class HomeDashboardStore {
 
     private isAssignableTagCategory(categoryId: string): boolean {
         return this.allCategoryOptions().some((category) => category.value === categoryId);
-    }
-
-    private shouldRefreshYearTransactionsForDraft(
-        draft: TransactionDraft,
-        editingTransactionId?: string | null,
-    ): boolean {
-        if (this.activeTab() === 'analytics') {
-            return true;
-        }
-
-        const category = this.categoryResponses().find((item) => item.id === draft.categoryId);
-
-        if (category && this.isDebtCategoryName(category.name)) {
-            return true;
-        }
-
-        const editedTransaction = editingTransactionId
-            ? this.findLoadedTransaction(editingTransactionId)
-            : null;
-
-        return editedTransaction
-            ? this.shouldRefreshYearTransactionsForTransaction(editedTransaction)
-            : false;
-    }
-
-    private shouldRefreshYearTransactionsForTransaction(transaction: TransactionResponse): boolean {
-        return (
-            this.activeTab() === 'analytics' || this.isDebtCategoryName(transaction.category.name)
-        );
-    }
-
-    private findLoadedTransaction(transactionId: string): TransactionResponse | null {
-        return (
-            this.transactionResponses().find((item) => item.id === transactionId) ??
-            this.yearTransactionResponses().find((item) => item.id === transactionId) ??
-            null
-        );
-    }
-
-    private isDebtCategoryName(categoryName: string): boolean {
-        return resolveDebtCategoryKind(categoryName) !== null;
     }
 
     private canSaveTransactionDraft(draft: TransactionDraft): boolean {

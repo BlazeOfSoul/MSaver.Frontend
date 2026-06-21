@@ -38,6 +38,7 @@
             [options]="currencyOptions()"
             [value]="selectedCurrency()"
             [valueWrap]="true"
+            dropdownPlacement="top"
             (valueChange)="currencyChange.emit($event)"
         ></ms-select>
 

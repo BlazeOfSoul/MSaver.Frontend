@@ -47,6 +47,24 @@ describe('SelectComponent', () => {
         expect(getComputedStyle(value!).textOverflow).toBe('clip');
     });
 
+    it('can place the dropdown above the trigger when requested', () => {
+        fixture.componentRef.setInput('dropdownPlacement', 'top');
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>('.ms-select__trigger')?.click();
+        fixture.detectChanges();
+
+        const dropdown = host.querySelector<HTMLElement>('.ms-select__dropdown');
+        const dropdownStyles = getComputedStyle(dropdown!);
+
+        expect(host.classList.contains('ms-select-host--dropdown-top')).toBe(true);
+        expect(dropdownStyles.top).toBe('auto');
+        expect(dropdownStyles.bottom).toBe('calc(100% + 0.55rem)');
+        expect(dropdownStyles.transformOrigin).toBe('bottom center');
+    });
+
     it('closes without throwing when a document click target is not a DOM node', () => {
         fixture.detectChanges();
 

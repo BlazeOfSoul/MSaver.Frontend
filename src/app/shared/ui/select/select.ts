@@ -17,6 +17,8 @@ export interface MsSelectOption {
     color?: string;
 }
 
+export type MsSelectDropdownPlacement = 'bottom' | 'top';
+
 @Component({
     selector: 'ms-select',
     standalone: true,
@@ -26,6 +28,7 @@ export interface MsSelectOption {
     host: {
         '[class.ms-select-host--open]': 'isOpen()',
         '[class.ms-select-host--wrap-value]': 'valueWrap()',
+        '[class.ms-select-host--dropdown-top]': 'dropdownPlacement() === "top"',
     },
 })
 export class SelectComponent {
@@ -38,6 +41,7 @@ export class SelectComponent {
     icon = input<string>('expand_more');
     disabled = input<boolean>(false);
     valueWrap = input<boolean>(false);
+    dropdownPlacement = input<MsSelectDropdownPlacement>('bottom');
 
     readonly isOpen = signal(false);
     readonly selectedOption = computed(() => {
