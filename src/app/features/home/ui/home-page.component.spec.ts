@@ -872,6 +872,54 @@ describe('HomePageComponent', () => {
         expect(suffix?.textContent?.trim()).toBe('USD');
     });
 
+    it('keeps the user primary account first in transaction options and selects it by default', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'reserve-account',
+                        name: 'Резерв',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#67a6c1',
+                        isArchived: false,
+                    },
+                    {
+                        id: 'primary-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                    {
+                        id: 'alpha-account',
+                        name: 'Альфа',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#e8b45d',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        expect(component.accountOptions().map((option) => option.value)).toEqual([
+            'primary-account',
+            'alpha-account',
+            'reserve-account',
+        ]);
+
+        component.startAddingTransaction();
+
+        expect(component.transactionDraft().accountId).toBe('primary-account');
+    });
+
     it('loads categories when a category-backed tab is opened', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();

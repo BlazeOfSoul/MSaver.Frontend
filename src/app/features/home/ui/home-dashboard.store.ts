@@ -94,8 +94,21 @@ import {
 const FRIENDLY_LOAD_ERROR_MESSAGE =
     'Не получилось загрузить данные. Проверьте подключение и попробуйте ещё раз.';
 const PRIMARY_ACCOUNT_NAME = 'Основной счёт';
+const PRIMARY_ACCOUNT_NAME_KEY = normalizeAccountName(PRIMARY_ACCOUNT_NAME);
 const APPLICATION_CURRENCY_STORAGE_KEY = 'msaver:application-currency';
 const SUPPORTED_CURRENCY_CODES = new Set(CURRENCY_OPTIONS.map((option) => option.value));
+
+function normalizeAccountName(value: string): string {
+    return value.trim().toLocaleLowerCase('ru').replaceAll('ё', 'е');
+}
+
+function isPrimaryAccountResponse(account: AccountResponse): boolean {
+    return (
+        account.isPrimary === true ||
+        (account.isPrimary === undefined &&
+            normalizeAccountName(account.name) === PRIMARY_ACCOUNT_NAME_KEY)
+    );
+}
 
 function toSupportedCurrencyCode(value: string): string | null {
     const nextCode = value.trim().toUpperCase();
@@ -2265,8 +2278,11 @@ export class HomeDashboardStore {
 
     private sortAccounts(accounts: ReadonlyArray<AccountResponse>): AccountResponse[] {
         return [...accounts].sort((left, right) => {
-            if (left.isPrimary !== right.isPrimary) {
-                return left.isPrimary ? -1 : 1;
+            const leftIsPrimary = isPrimaryAccountResponse(left);
+            const rightIsPrimary = isPrimaryAccountResponse(right);
+
+            if (leftIsPrimary !== rightIsPrimary) {
+                return leftIsPrimary ? -1 : 1;
             }
 
             return left.name.localeCompare(right.name, 'ru');
