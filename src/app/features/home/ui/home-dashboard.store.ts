@@ -94,12 +94,55 @@ import {
 const FRIENDLY_LOAD_ERROR_MESSAGE =
     'Не получилось загрузить данные. Проверьте подключение и попробуйте ещё раз.';
 const PRIMARY_ACCOUNT_NAME = 'Основной счёт';
+const APPLICATION_CURRENCY_STORAGE_KEY = 'msaver:application-currency';
 const SUPPORTED_CURRENCY_CODES = new Set(CURRENCY_OPTIONS.map((option) => option.value));
 
 function toSupportedCurrencyCode(value: string): string | null {
     const nextCode = value.trim().toUpperCase();
 
     return SUPPORTED_CURRENCY_CODES.has(nextCode) ? nextCode : null;
+}
+
+interface ApplicationCurrencyStorage {
+    getItem(key: string): string | null;
+    setItem(key: string, value: string): void;
+}
+
+function getBrowserApplicationCurrencyStorage(): ApplicationCurrencyStorage | null {
+    try {
+        return globalThis.localStorage ?? null;
+    } catch {
+        return null;
+    }
+}
+
+function readStoredApplicationCurrencyCode(
+    storage: ApplicationCurrencyStorage | null = getBrowserApplicationCurrencyStorage(),
+): string | null {
+    try {
+        const value = storage?.getItem(APPLICATION_CURRENCY_STORAGE_KEY);
+
+        return value ? toSupportedCurrencyCode(value) : null;
+    } catch {
+        return null;
+    }
+}
+
+function writeStoredApplicationCurrencyCode(
+    currencyCode: string,
+    storage: ApplicationCurrencyStorage | null = getBrowserApplicationCurrencyStorage(),
+): void {
+    const nextCode = toSupportedCurrencyCode(currencyCode);
+
+    if (!nextCode) {
+        return;
+    }
+
+    try {
+        storage?.setItem(APPLICATION_CURRENCY_STORAGE_KEY, nextCode);
+    } catch {
+        return;
+    }
 }
 
 interface DashboardPayload {
@@ -2185,6 +2228,7 @@ export class HomeDashboardStore {
     private setApplicationCurrency(currencyCode: string): void {
         this.applicationCurrencyCodeSignal.set(currencyCode);
         this.newAccountCurrency.set(currencyCode);
+        writeStoredApplicationCurrencyCode(currencyCode);
     }
 
     private resolveApplicationAccount(
@@ -2203,7 +2247,10 @@ export class HomeDashboardStore {
         currentUser: CurrentUserResponse,
         accounts: AccountResponse[],
     ): string {
-        return this.resolveApplicationCurrencyCode(currentUser.applicationCurrencyCode, accounts);
+        return this.resolveApplicationCurrencyCode(
+            readStoredApplicationCurrencyCode() ?? currentUser.applicationCurrencyCode,
+            accounts,
+        );
     }
 
     private resolveApplicationCurrencyCode(

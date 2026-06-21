@@ -2838,9 +2838,72 @@ describe('HomePageComponent', () => {
         expect(homeApi.getMonthBalance).not.toHaveBeenCalled();
         expect(fixture.componentInstance.applicationCurrencyCode()).toBe('EUR');
         expect(fixture.componentInstance.newAccountCurrency()).toBe('EUR');
+        expect(window.localStorage.getItem('msaver:application-currency')).toBe('EUR');
         expect(fixture.componentInstance.errorMessage()).toBe('');
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('7,50');
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
+    });
+
+    it('restores the locally selected application currency after a page reload', () => {
+        window.localStorage.setItem('msaver:application-currency', 'BYN');
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'USD',
+            }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'usd-account',
+                        name: 'USD account',
+                        currencyCode: 'USD',
+                        currentBalance: 5,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'byn-account',
+                        name: 'BYN account',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) =>
+            of({
+                rate: fromAccountId === 'usd-account' && toAccountId === 'byn-account' ? 3 : 1,
+                fromCurrencyCode: fromAccountId === 'usd-account' ? 'USD' : 'BYN',
+                toCurrencyCode: toAccountId === 'byn-account' ? 'BYN' : 'USD',
+            }),
+        );
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId,
+                    currencyCode: accountId === 'usd-account' ? 'USD' : 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: accountId === 'usd-account' ? 5 : 10,
+                    year,
+                    month,
+                }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.applicationCurrencyCode()).toBe('BYN');
+        expect(homeApi.getTransferRate).toHaveBeenCalledWith('usd-account', 'byn-account');
     });
 
     it('keeps the selected application currency when one display-rate request fails', () => {
