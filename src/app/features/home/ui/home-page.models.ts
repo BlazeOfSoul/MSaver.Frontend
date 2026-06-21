@@ -23,7 +23,7 @@ export interface TransactionItem {
     categoryDetail?: string;
     categoryDebtBadge?: string;
     categoryId: string;
-    categoryType: 'Debit' | 'Credit' | 'TransferIncome' | 'TransferExpense';
+    categoryType: 'Debit' | 'Credit' | 'TransferIncome' | 'TransferExpense' | null;
     categoryColor: string;
     accountId: string;
     accountName: string;

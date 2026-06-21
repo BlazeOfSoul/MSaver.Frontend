@@ -383,6 +383,13 @@ describe('HomePageComponent', () => {
         expect(homeApi.getAccounts.mock.calls.length).toBeGreaterThan(1);
         expect(homeApi.getCurrentUser).toHaveBeenCalledTimes(initialUserCalls);
         expect(component.accounts().map((account) => account.id)).toEqual(['primary-account']);
+
+        expect(component.applicationCurrencyCode()).toBe('USD');
+
+        component.setActiveTab('settings');
+        fixture.detectChanges();
+
+        expect((fixture.nativeElement as HTMLElement).textContent ?? '').toContain('USD');
     });
 
     it('ignores stale dashboard payloads after creating the primary account during initial load', () => {

@@ -135,6 +135,22 @@ describe('TransactionJournalRowsComponent', () => {
         expect(host.querySelectorAll('[data-testid="delete-transaction"]')).toHaveLength(1);
     });
 
+    it('keeps expense rows editable when the category type is missing', () => {
+        const expense = transaction({
+            id: 'expense-without-type',
+            categoryType: null,
+            tone: 'expense',
+        });
+        hostComponent.transactions.set([expense]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.querySelector('[data-testid="edit-transaction"]')).not.toBeNull();
+        expect(host.querySelector('[data-testid="delete-transaction"]')).not.toBeNull();
+    });
+
     it('renders the expanded transaction details row', () => {
         hostComponent.transactions.set([
             transaction({ id: 'expanded', description: 'Coffee with team' }),

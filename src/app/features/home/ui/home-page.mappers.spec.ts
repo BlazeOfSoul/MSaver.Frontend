@@ -59,6 +59,23 @@ describe('home page mappers', () => {
         expect(item.categoryColor).toBe(CATEGORY_COLORS[0]);
     });
 
+    it('maps negative transaction amounts as expenses even when category type is missing', () => {
+        const item = mapTransaction(
+            createTransaction({
+                amount: -42,
+                category: {
+                    id: 'category-id',
+                    name: 'Food',
+                    type: undefined as unknown as TransactionResponse['category']['type'],
+                    color: '#ff6f91',
+                },
+            }),
+        );
+
+        expect(item.tone).toBe('expense');
+        expect(item.amountLabel).toContain('-');
+    });
+
     it('falls back from unsafe category and tag colors returned by the backend', () => {
         const categories = mapCategories(
             [

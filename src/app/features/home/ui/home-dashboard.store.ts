@@ -1012,10 +1012,12 @@ export class HomeDashboardStore {
             return;
         }
 
+        const currencyCode = this.newAccountCurrency();
+
         this.runMutation(
             this.homeApi.createAccount({
                 name: PRIMARY_ACCOUNT_NAME,
-                currencyCode: this.newAccountCurrency(),
+                currencyCode,
                 color: ACCOUNT_COLORS[0],
             }),
             'Не получилось создать основной счёт. Проверьте валюту и попробуйте ещё раз.',
@@ -1023,7 +1025,10 @@ export class HomeDashboardStore {
                 this.newAccountName.set('');
                 this.accountNameError.set('');
                 this.dashboardLoadRequestId++;
-                this.refreshAccountData({ reloadYearTransactions: false });
+                this.refreshAccountData({
+                    reloadYearTransactions: false,
+                    defaultApplicationCurrencyCode: currencyCode,
+                });
             },
         );
     }
@@ -1689,10 +1694,18 @@ export class HomeDashboardStore {
             });
     }
 
-    private refreshAccountData(options: { reloadYearTransactions?: boolean } = {}): void {
+    private refreshAccountData(
+        options: {
+            reloadYearTransactions?: boolean;
+            defaultApplicationCurrencyCode?: string;
+        } = {},
+    ): void {
         this.errorMessage.set('');
         const requestId = ++this.accountDataRequestId;
         const reloadYearTransactions = options.reloadYearTransactions ?? true;
+        const defaultApplicationCurrencyCode = options.defaultApplicationCurrencyCode
+            ? toSupportedCurrencyCode(options.defaultApplicationCurrencyCode)
+            : null;
 
         this.loadAccounts()
             .pipe(
@@ -1706,10 +1719,12 @@ export class HomeDashboardStore {
                         this.analyticsSelectedAccountId(),
                         accounts,
                     );
-                    const applicationCurrencyCode = this.resolveApplicationCurrencyCode(
-                        this.applicationCurrencyCode(),
-                        accounts,
-                    );
+                    const applicationCurrencyCode =
+                        defaultApplicationCurrencyCode ??
+                        this.resolveApplicationCurrencyCode(
+                            this.applicationCurrencyCode(),
+                            accounts,
+                        );
 
                     if (!accounts.length) {
                         return of({

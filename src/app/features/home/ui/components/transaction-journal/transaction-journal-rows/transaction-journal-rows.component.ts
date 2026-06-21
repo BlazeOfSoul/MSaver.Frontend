@@ -28,10 +28,14 @@ export class TransactionJournalRowsComponent {
     }
 
     isTransactionEditable(transaction: TransactionItem): boolean {
-        return transaction.categoryType === 'Credit' || transaction.categoryType === 'Debit';
+        return !isTransferCategory(transaction.categoryType);
     }
 
     canDeleteTransaction(transaction: TransactionItem): boolean {
         return this.isTransactionEditable(transaction);
     }
+}
+
+function isTransferCategory(categoryType: TransactionItem['categoryType']): boolean {
+    return categoryType === 'TransferIncome' || categoryType === 'TransferExpense';
 }

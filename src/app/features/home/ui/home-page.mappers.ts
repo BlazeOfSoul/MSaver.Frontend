@@ -47,7 +47,8 @@ export function mapAccount(
 }
 
 export function mapTransaction(transaction: TransactionResponse): TransactionItem {
-    const tone = isExpenseCategory(transaction.category.type) ? 'expense' : 'income';
+    const categoryType = transaction.category.type ?? null;
+    const tone = resolveTransactionTone(transaction.amount, categoryType);
     const amount = Math.abs(transaction.amount);
     const categoryName = safeText(transaction.category.name, 'Категория без названия');
     const accountName = safeText(transaction.account.name, 'Счёт без названия');
@@ -58,7 +59,7 @@ export function mapTransaction(transaction: TransactionResponse): TransactionIte
         title: description || categoryName,
         category: categoryName,
         categoryId: transaction.category.id,
-        categoryType: transaction.category.type,
+        categoryType,
         categoryColor: safeHexColor(transaction.category.color, CATEGORY_COLORS[0]),
         accountId: transaction.account.id,
         accountName,
@@ -140,8 +141,23 @@ export function categoryTotals(
     return totals;
 }
 
-export function isExpenseCategory(type: CategoryType): boolean {
+export function isExpenseCategory(type: CategoryType | null | undefined): boolean {
     return type === 'Debit' || type === 'TransferExpense';
+}
+
+function resolveTransactionTone(
+    amount: number,
+    categoryType: CategoryType | null | undefined,
+): 'income' | 'expense' {
+    if (amount < 0) {
+        return 'expense';
+    }
+
+    if (amount > 0) {
+        return 'income';
+    }
+
+    return isExpenseCategory(categoryType) ? 'expense' : 'income';
 }
 
 function resolveExpenseTone(progress: number): 'warning' | 'danger' {
