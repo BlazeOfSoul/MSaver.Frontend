@@ -2308,6 +2308,62 @@ describe('HomePageComponent', () => {
         expect(host.textContent ?? '').toContain('25,00 Br');
     });
 
+    it('shows the current primary account balance when the current month balance is stale', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-21T12:00:00'));
+
+        const mainAccount = account({
+            id: 'main-account',
+            name: 'Main account',
+            currentBalance: 11,
+            currencyCode: 'BYN',
+            isPrimary: true,
+        });
+        const incomeCategory: CategoryResponse = {
+            id: 'income-category',
+            name: 'Salary',
+            type: 'Credit',
+            color: '#23c78b',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
+        homeApi.getTransactions.mockReturnValue(
+            of(
+                page<TransactionResponse>([
+                    transaction('income-id', mainAccount, incomeCategory, 11),
+                ]),
+            ),
+        );
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: 'Main account',
+                    currencyCode: 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: 0,
+                    year,
+                    month,
+                }),
+        );
+
+        try {
+            fixture = TestBed.createComponent(HomePageComponent);
+            fixture.detectChanges();
+
+            const cards = fixture.componentInstance.summaryCards();
+            const balanceCard = cards.find((card) => card.id === 'balance');
+            const incomeCard = cards.find((card) => card.id === 'income');
+
+            expect(incomeCard?.value).toContain('11');
+            expect(balanceCard?.value).toContain('11');
+            expect(balanceCard?.value).not.toContain('0,00');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('keeps dashboard totals in the primary account currency when new account currency changes', () => {
         homeApi.getAccounts.mockReturnValue(
             of(
