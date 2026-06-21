@@ -13,7 +13,7 @@ export class AuthStore {
     private readonly refreshTokenSignal = signal<string | null>(this.readStorage('refresh_token'));
     private readonly clientIdSignal = signal<string | null>(this.readStorage('client_id'));
     private readonly userIdSignal = signal<string | null>(this.readStorage('user_id'));
-    private readonly userNameSignal = signal<string | null>(this.readStorage('user_name'));
+    private readonly userNameSignal = signal<string | null>(this.readUserNameStorage());
     private readonly userEmailSignal = signal<string | null>(this.readStorage('user_email'));
 
     readonly accessToken = computed(() => this.accessTokenSignal());
@@ -25,18 +25,20 @@ export class AuthStore {
     readonly isAuthenticated = computed(() => !!this.accessTokenSignal());
 
     setSession(response: AuthSessionResponse): void {
+        const userName = this.resolveSessionUserName(response);
+
         this.writeStorage('access_token', response.accessToken);
         this.writeStorage('refresh_token', response.refreshToken);
         this.writeStorage('client_id', response.clientId);
         this.writeStorage('user_id', response.id);
-        this.writeStorage('user_name', response.name);
+        this.writeOptionalStorage('user_name', userName);
         this.writeStorage('user_email', response.email);
 
         this.accessTokenSignal.set(response.accessToken);
         this.refreshTokenSignal.set(response.refreshToken);
         this.clientIdSignal.set(response.clientId);
         this.userIdSignal.set(response.id);
-        this.userNameSignal.set(response.name);
+        this.userNameSignal.set(userName);
         this.userEmailSignal.set(response.email);
     }
 
@@ -86,6 +88,15 @@ export class AuthStore {
 
         this.safeSetStorageValue(this.getBrowserStorage('sessionStorage'), key, value);
         this.safeRemoveStorageValue(this.getBrowserStorage('localStorage'), key);
+    }
+
+    private writeOptionalStorage(key: string, value: string | null): void {
+        if (value === null) {
+            this.removeStorage(key);
+            return;
+        }
+
+        this.writeStorage(key, value);
     }
 
     private removeStorage(key: string): void {
@@ -139,5 +150,23 @@ export class AuthStore {
         } catch {
             return;
         }
+    }
+
+    private readUserNameStorage(): string | null {
+        return this.normalizeUserName(this.readStorage('user_name'));
+    }
+
+    private resolveSessionUserName(response: AuthSessionResponse): string | null {
+        return this.normalizeUserName(response.name) ?? this.normalizeUserName(response.username);
+    }
+
+    private normalizeUserName(value: string | null | undefined): string | null {
+        const trimmed = value?.trim();
+
+        if (!trimmed || trimmed === 'undefined' || trimmed === 'null') {
+            return null;
+        }
+
+        return trimmed;
     }
 }

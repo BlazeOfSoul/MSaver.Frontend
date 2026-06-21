@@ -21,7 +21,8 @@ export type RegisterResponse = string;
 
 export interface AuthSessionResponse {
     id: string;
-    name: string;
+    name?: string | null;
+    username?: string | null;
     email: string;
     clientId: string;
     accessToken: string;

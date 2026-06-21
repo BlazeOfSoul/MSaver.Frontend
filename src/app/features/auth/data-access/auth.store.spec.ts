@@ -43,6 +43,31 @@ describe('AuthStore', () => {
         expect(store.isAuthenticated()).toBe(false);
     });
 
+    it('uses username as the display name when the auth session does not include name', () => {
+        const store = TestBed.inject(AuthStore);
+        const sessionWithUsername: AuthSessionResponse = {
+            id: 'user-id',
+            username: 'Alex',
+            email: 'alex@example.com',
+            clientId: 'client-id',
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+        };
+
+        store.setSession(sessionWithUsername);
+
+        expect(window.sessionStorage.getItem('user_name')).toBe('Alex');
+        expect(store.userName()).toBe('Alex');
+    });
+
+    it('ignores an undefined display name restored from browser storage', () => {
+        window.sessionStorage.setItem('user_name', 'undefined');
+
+        const store = TestBed.inject(AuthStore);
+
+        expect(store.userName()).toBeNull();
+    });
+
     it('migrates legacy local storage sessions into session storage and removes the persistent copy', () => {
         window.localStorage.setItem('access_token', 'legacy-access-token');
         window.localStorage.setItem('refresh_token', 'legacy-refresh-token');
