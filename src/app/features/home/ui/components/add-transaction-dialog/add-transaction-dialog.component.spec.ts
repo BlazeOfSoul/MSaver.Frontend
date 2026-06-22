@@ -183,6 +183,29 @@ describe('AddTransactionDialogComponent', () => {
         expect(host.querySelector('.dialog__amount-section .dialog__amount-card')).not.toBeNull();
     });
 
+    it('renders the category dropdown with searchable filtering enabled', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const accountSelect = host.querySelector<HTMLElement>('.dialog__account-section ms-select');
+        const categorySelect = host.querySelector<HTMLElement>('.dialog__grid ms-select');
+
+        accountSelect?.querySelector<HTMLButtonElement>('.ms-select__trigger')?.click();
+        fixture.detectChanges();
+
+        expect(accountSelect?.querySelector('.ms-select__search-input')).toBeNull();
+
+        categorySelect?.querySelector<HTMLButtonElement>('.ms-select__trigger')?.click();
+        fixture.detectChanges();
+
+        const searchInput = categorySelect?.querySelector<HTMLInputElement>(
+            '.ms-select__search-input',
+        );
+
+        expect(searchInput).not.toBeNull();
+        expect(searchInput?.placeholder).toBe('Поиск категории');
+    });
+
     it('renders date and time through an app-styled picker instead of a native datetime-local input', () => {
         fixture.detectChanges();
 

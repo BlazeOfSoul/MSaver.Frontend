@@ -27,6 +27,7 @@ describe('home formatters', () => {
 
     it('formats date-time values without dropping the time', () => {
         expect(formatDateTime('2026-06-05T14:37:00')).toContain('14:37');
+        expect(formatDateTime('2026-06-05T14:37:00+03:00')).toContain('14:37');
         expect(formatDateTime(null)).toBe('Дата не указана');
     });
 });

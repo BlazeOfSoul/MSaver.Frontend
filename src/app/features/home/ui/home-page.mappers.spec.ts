@@ -17,8 +17,21 @@ describe('home page mappers', () => {
 
         expect(item.date).toBe('05.06.2026');
         expect(item.dateTimeLabel).toContain('14:37');
-        expect(item.timestamp).toBe(new Date('2026-06-05T14:37:00').getTime());
+        expect(item.timestamp).toBe(Date.UTC(2026, 5, 5, 14, 37, 0));
         expect(item.description).toBe('Lunch');
+    });
+
+    it('keeps api timezone offsets from shifting transaction display time', () => {
+        const transaction = createTransaction({
+            date: '2026-06-05T14:37:00+03:00',
+            description: 'Lunch',
+        });
+
+        const item = mapTransaction(transaction);
+
+        expect(item.date).toBe('05.06.2026');
+        expect(item.dateTimeLabel).toContain('14:37');
+        expect(item.timestamp).toBe(Date.UTC(2026, 5, 5, 14, 37, 0));
     });
 
     it('preserves category system flags for UI delete guards', () => {

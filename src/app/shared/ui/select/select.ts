@@ -8,6 +8,7 @@ import {
     input,
     output,
     signal,
+    viewChild,
 } from '@angular/core';
 
 export interface MsSelectOption {
@@ -23,7 +24,7 @@ export type MsSelectDropdownPlacement = 'bottom' | 'top';
     selector: 'ms-select',
     standalone: true,
     templateUrl: './select.html',
-    styleUrls: ['./select.css', './select.dropdown.css'],
+    styleUrls: ['./select.css', './select.dropdown.css', './select.search.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
     host: {
         '[class.ms-select-host--open]': 'isOpen()',
@@ -42,8 +43,13 @@ export class SelectComponent {
     disabled = input<boolean>(false);
     valueWrap = input<boolean>(false);
     dropdownPlacement = input<MsSelectDropdownPlacement>('bottom');
+    searchable = input<boolean>(false);
+    searchPlaceholder = input<string>('');
+    emptyText = input<string>('');
 
     readonly isOpen = signal(false);
+    readonly searchText = signal('');
+    private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
     readonly selectedOption = computed(() => {
         const match = this.options().find((option) => option.value === this.value());
 
@@ -53,6 +59,17 @@ export class SelectComponent {
 
         return this.placeholder() ? { value: '', label: this.placeholder() } : null;
     });
+    readonly filteredOptions = computed(() => {
+        const searchText = this.normalizeSearchValue(this.searchText());
+
+        if (!this.searchable() || !searchText) {
+            return this.options();
+        }
+
+        return this.options().filter((option) =>
+            this.normalizeSearchValue(option.label).startsWith(searchText),
+        );
+    });
 
     valueChange = output<string>();
 
@@ -61,7 +78,12 @@ export class SelectComponent {
             return;
         }
 
-        this.isOpen.update((value) => !value);
+        if (this.isOpen()) {
+            this.closeDropdown();
+            return;
+        }
+
+        this.openDropdown();
     }
 
     selectOption(option: MsSelectOption): void {
@@ -70,7 +92,13 @@ export class SelectComponent {
         }
 
         this.valueChange.emit(option.value);
-        this.isOpen.set(false);
+        this.closeDropdown();
+    }
+
+    onSearchInput(event: Event): void {
+        const target = event.target;
+
+        this.searchText.set(target instanceof HTMLInputElement ? target.value : '');
     }
 
     @HostListener('document:click', ['$event'])
@@ -81,11 +109,34 @@ export class SelectComponent {
             return;
         }
 
-        this.isOpen.set(false);
+        this.closeDropdown();
     }
 
     @HostListener('document:keydown.escape')
     onEscape(): void {
+        this.closeDropdown();
+    }
+
+    private openDropdown(): void {
+        this.searchText.set('');
+        this.isOpen.set(true);
+        this.focusSearchInput();
+    }
+
+    private closeDropdown(): void {
         this.isOpen.set(false);
+        this.searchText.set('');
+    }
+
+    private focusSearchInput(): void {
+        if (!this.searchable()) {
+            return;
+        }
+
+        setTimeout(() => this.searchInput()?.nativeElement.focus());
+    }
+
+    private normalizeSearchValue(value: string): string {
+        return value.trim().toLocaleLowerCase();
     }
 }

@@ -88,6 +88,9 @@
                             [options]="categoryOptions()"
                             [value]="draft().categoryId"
                             placeholder="Выберите категорию"
+                            [searchable]="true"
+                            searchPlaceholder="Поиск категории"
+                            emptyText="Категория не найдена"
                             (valueChange)="draftChange.emit({ ...draft(), categoryId: $event })"
                         ></ms-select>
 

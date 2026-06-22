@@ -21,8 +21,12 @@
         <ms-select
             label="Добавить категорию"
             [options]="availableCategoryOptions()"
-            value=""
+            [value]="selectedCategoryId()"
             placeholder="Выберите категорию"
+            [disabled]="saving()"
+            [searchable]="true"
+            searchPlaceholder="Поиск категории"
+            emptyText="Категория не найдена"
             (valueChange)="onAssignCategory($event)"
         ></ms-select>
     } @else {

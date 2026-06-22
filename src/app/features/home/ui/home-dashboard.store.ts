@@ -46,6 +46,7 @@ import { ACCOUNT_COLORS, CATEGORY_COLORS, CURRENCY_OPTIONS } from './home-page.c
 import { getApiFieldError, toFriendlyApiError } from '../../../core/api-error.utils';
 import {
     addMonths,
+    apiDateMonthKey,
     apiMonthKey,
     compactMonthLabel,
     getYearMonths,
@@ -54,6 +55,7 @@ import {
     startOfMonth,
     startOfYear,
     toApiDate,
+    toApiDateTimeInputValue,
     toIsoDate,
     toIsoDateTimeLocal,
 } from './home-date.utils';
@@ -325,14 +327,14 @@ export class HomeDashboardStore {
         const key = monthKey(this.selectedMonth());
 
         return this.yearTransactionResponses().filter(
-            (transaction) => monthKey(new Date(transaction.date)) === key,
+            (transaction) => this.transactionMonthKey(transaction.date) === key,
         );
     });
     readonly analyticsMonthTransactions = computed(() => {
         const key = monthKey(this.selectedMonth());
 
         return this.selectedYearTransactions().filter(
-            (transaction) => monthKey(new Date(transaction.date)) === key,
+            (transaction) => this.transactionMonthKey(transaction.date) === key,
         );
     });
     readonly filteredTransactions = computed(() =>
@@ -505,7 +507,7 @@ export class HomeDashboardStore {
             : 0;
         const selectedMonthKey = monthKey(this.selectedMonth());
         const debtTransactions = this.yearTransactionResponses().filter(
-            (transaction) => monthKey(new Date(transaction.date)) <= selectedMonthKey,
+            (transaction) => this.transactionMonthKey(transaction.date) <= selectedMonthKey,
         );
 
         return calculateDebtSummary(debtTransactions, primaryBalance, (transaction) =>
@@ -2458,7 +2460,7 @@ export class HomeDashboardStore {
         const key = monthKey(month);
 
         return this.selectedYearTransactions().filter(
-            (transaction) => monthKey(new Date(transaction.date)) === key,
+            (transaction) => this.transactionMonthKey(transaction.date) === key,
         );
     }
 
@@ -2483,7 +2485,7 @@ export class HomeDashboardStore {
                                 ? isExpenseOperationTransaction(transaction)
                                 : isIncomeOperationTransaction(transaction),
                         )
-                        .filter((transaction) => monthKey(new Date(transaction.date)) === key)
+                        .filter((transaction) => this.transactionMonthKey(transaction.date) === key)
                         .reduce(
                             (sum, transaction) =>
                                 sum + Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
@@ -2694,13 +2696,10 @@ export class HomeDashboardStore {
 
     private toDraftDate(value: string): string {
         const trimmed = value.trim();
+        const apiDateTimeInput = toApiDateTimeInputValue(trimmed);
 
-        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) {
-            return trimmed.slice(0, 16);
-        }
-
-        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-            return `${trimmed}T00:00`;
+        if (apiDateTimeInput) {
+            return apiDateTimeInput;
         }
 
         const date = new Date(trimmed);
@@ -2708,6 +2707,10 @@ export class HomeDashboardStore {
         return Number.isFinite(date.getTime())
             ? toIsoDateTimeLocal(date)
             : this.defaultDateForSelectedMonth();
+    }
+
+    private transactionMonthKey(value: string): string {
+        return apiDateMonthKey(value) ?? monthKey(new Date(value));
     }
 
     private getDefaultTransactionDraft(): TransactionDraft {

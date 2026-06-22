@@ -1,4 +1,4 @@
-import { monthKey } from './home-date.utils';
+import { apiDateMonthKey, monthKey } from './home-date.utils';
 
 export type DebtCategoryKind = 'taken' | 'returned' | 'given' | 'received';
 
@@ -97,7 +97,11 @@ export function calculateDebtTotalsUntilMonth<T extends DebtTransactionSource>(
     const limitKey = monthKey(month);
 
     return calculateDebtTotals(
-        transactions.filter((transaction) => monthKey(new Date(transaction.date)) <= limitKey),
+        transactions.filter((transaction) => transactionMonthKey(transaction.date) <= limitKey),
         readAmount,
     );
+}
+
+function transactionMonthKey(value: string): string {
+    return apiDateMonthKey(value) ?? monthKey(new Date(value));
 }

@@ -74,6 +74,52 @@ describe('TagGroupCardComponent', () => {
         });
     });
 
+    it('renders category assignment as a searchable dropdown', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const select = host.querySelector<HTMLElement>('ms-select');
+
+        select?.querySelector<HTMLButtonElement>('.ms-select__trigger')?.click();
+        fixture.detectChanges();
+
+        const searchInput = select?.querySelector<HTMLInputElement>('.ms-select__search-input');
+
+        expect(searchInput).not.toBeNull();
+        expect(searchInput?.placeholder).toBe('Поиск категории');
+    });
+
+    it('emits category assignments from the dropdown and resets the pending value', () => {
+        const assignSpy = vi.fn();
+        component.assignCategoryToTag.subscribe(assignSpy);
+        component.selectedCategoryId.set('rent-id');
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>('.ms-select__trigger')?.click();
+        fixture.detectChanges();
+        host.querySelector<HTMLButtonElement>('.ms-select__option')?.click();
+        fixture.detectChanges();
+
+        expect(assignSpy).toHaveBeenCalledWith({ tagId: 'home-tag', categoryId: 'rent-id' });
+        expect(component.selectedCategoryId()).toBe('');
+        expect(host.querySelector('.ms-select__value')?.textContent).toContain(
+            'Выберите категорию',
+        );
+    });
+
+    it('does not emit category assignments while saving', () => {
+        const assignSpy = vi.fn();
+        component.assignCategoryToTag.subscribe(assignSpy);
+        fixture.componentRef.setInput('saving', true);
+        fixture.detectChanges();
+
+        component.onAssignCategory('rent-id');
+
+        expect(assignSpy).not.toHaveBeenCalled();
+    });
+
     it('renders empty states when no options or categories are available', () => {
         fixture.componentRef.setInput('group', { ...group, categories: [] });
         fixture.componentRef.setInput('availableCategoryOptions', []);

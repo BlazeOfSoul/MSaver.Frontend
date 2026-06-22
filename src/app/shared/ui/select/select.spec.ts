@@ -32,6 +32,61 @@ describe('SelectComponent', () => {
         expect(getComputedStyle(shell!).overflow).toBe('visible');
     });
 
+    it('filters searchable options by label prefix while the dropdown is open', () => {
+        fixture.componentRef.setInput('options', [
+            { value: 'snacks', label: 'Snacks' },
+            { value: 'late-snacks', label: 'Late Snacks' },
+            { value: 'salary', label: 'Salary' },
+        ]);
+        fixture.componentRef.setInput('value', '');
+        fixture.componentRef.setInput('searchable', true);
+        fixture.componentRef.setInput('searchPlaceholder', 'Search category');
+        fixture.componentRef.setInput('emptyText', 'No matches');
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>('.ms-select__trigger')?.click();
+        fixture.detectChanges();
+
+        const searchInput = host.querySelector<HTMLInputElement>('.ms-select__search-input');
+
+        expect(searchInput).not.toBeNull();
+        expect(searchInput?.placeholder).toBe('Search category');
+
+        searchInput!.value = 'sna';
+        searchInput!.dispatchEvent(new Event('input', { bubbles: true }));
+        fixture.detectChanges();
+
+        const matchingLabels = Array.from(host.querySelectorAll<HTMLElement>('.ms-select__option'))
+            .map((option) => option.textContent?.trim())
+            .filter(Boolean);
+
+        expect(matchingLabels).toEqual(['Snacks']);
+
+        searchInput!.value = 'rent';
+        searchInput!.dispatchEvent(new Event('input', { bubbles: true }));
+        fixture.detectChanges();
+
+        expect(host.querySelectorAll('.ms-select__option')).toHaveLength(0);
+        expect(host.querySelector('.ms-select__empty')?.textContent?.trim()).toBe('No matches');
+    });
+
+    it('resets searchable text when the dropdown closes', () => {
+        fixture.componentRef.setInput('searchable', true);
+        fixture.detectChanges();
+
+        const component = fixture.componentInstance;
+
+        component.searchText.set('eur');
+        component.isOpen.set(true);
+
+        component.onEscape();
+
+        expect(component.isOpen()).toBe(false);
+        expect(component.searchText()).toBe('');
+    });
+
     it('allows the selected value to wrap when requested', () => {
         fixture.componentRef.setInput('valueWrap', true);
         fixture.detectChanges();

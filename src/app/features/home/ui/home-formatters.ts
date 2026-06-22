@@ -1,3 +1,5 @@
+import { type ApiDateParts, readApiDateParts } from './home-date.utils';
+
 export function safeText(value: string | null | undefined, fallback: string): string {
     const text = value?.trim();
 
@@ -40,6 +42,12 @@ export function formatDate(value: string | null | undefined): string {
         return 'Дата не указана';
     }
 
+    const parts = readApiDateParts(value);
+
+    if (parts) {
+        return formatApiDate(parts);
+    }
+
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
@@ -52,6 +60,12 @@ export function formatDate(value: string | null | undefined): string {
 export function formatDateTime(value: string | null | undefined): string {
     if (!value) {
         return 'Дата не указана';
+    }
+
+    const parts = readApiDateParts(value);
+
+    if (parts) {
+        return `${formatApiDate(parts)}, ${padDatePart(parts.hour)}:${padDatePart(parts.minute)}`;
     }
 
     const date = new Date(value);
@@ -203,4 +217,12 @@ function resolveCurrencyPrecision(currencyCode: string | null | undefined): numb
         default:
             return 2;
     }
+}
+
+function formatApiDate(parts: ApiDateParts): string {
+    return `${padDatePart(parts.day)}.${padDatePart(parts.month)}.${parts.year}`;
+}
+
+function padDatePart(value: number): string {
+    return `${value}`.padStart(2, '0');
 }

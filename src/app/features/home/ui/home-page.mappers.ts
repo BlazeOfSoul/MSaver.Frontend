@@ -14,6 +14,7 @@ import {
 } from './home-page.models';
 import { ACCOUNT_COLORS, CATEGORY_COLORS } from './home-page.constants';
 import { safeHexColor } from './home-color.utils';
+import { apiDateTimestamp } from './home-date.utils';
 import {
     formatDate,
     formatDateTime,
@@ -74,7 +75,7 @@ export function mapTransaction(transaction: TransactionResponse): TransactionIte
         date: formatDate(transaction.date),
         dateValue: transaction.date,
         dateTimeLabel: formatDateTime(transaction.date),
-        timestamp: readTimestamp(transaction.date),
+        timestamp: apiDateTimestamp(transaction.date),
         description,
         amountValue: amount,
         amountLabel: `${tone === 'income' ? '+' : '-'}${formatMoney(
@@ -217,10 +218,4 @@ function resolveTransactionTone(
 
 function resolveExpenseTone(progress: number): 'warning' | 'danger' {
     return progress >= 75 ? 'danger' : 'warning';
-}
-
-function readTimestamp(value: string): number {
-    const timestamp = new Date(value).getTime();
-
-    return Number.isFinite(timestamp) ? timestamp : 0;
 }
