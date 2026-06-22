@@ -22,15 +22,21 @@ import {
     resolveCurrencyLabel,
     safeText,
 } from './home-formatters';
+import { isDebtCategoryName } from './home-debt.utils';
 
 export function mapAccount(
     account: AccountResponse,
     index: number,
     balance?: MonthBalanceResponse,
+    options: { useCurrentBalanceFallback?: boolean } = {},
 ): AccountBalanceItem {
-    const balanceValue = balance?.closingBalance ?? account.currentBalance;
+    const useCurrentBalanceFallback = options.useCurrentBalanceFallback ?? true;
+    const hasBalance = !!balance;
+    const balanceValue =
+        balance?.closingBalance ?? (useCurrentBalanceFallback ? account.currentBalance : 0);
     const monthChangeValue = balance?.monthChange ?? 0;
     const currencyCode = safeText(account.currencyCode, '');
+    const canShowBalance = hasBalance || useCurrentBalanceFallback;
 
     return {
         id: account.id,
@@ -38,9 +44,11 @@ export function mapAccount(
         currencyCode,
         currencyLabel: resolveCurrencyLabel(currencyCode),
         balanceValue,
-        balanceLabel: formatMoney(balanceValue, currencyCode),
+        balanceLabel: canShowBalance ? formatMoney(balanceValue, currencyCode) : '...',
         monthChangeValue,
-        monthChangeLabel: formatSignedMoney(monthChangeValue, currencyCode),
+        monthChangeLabel: canShowBalance
+            ? formatSignedMoney(monthChangeValue, currencyCode)
+            : '...',
         color: safeHexColor(account.color, ACCOUNT_COLORS[index % ACCOUNT_COLORS.length]),
         isPrimary: !!account.isPrimary,
     };
@@ -86,7 +94,9 @@ export function mapCategories(
         Math.abs(transaction.amount),
 ): CategoryBreakdownItem[] {
     const categoryType = type === 'income' ? 'Credit' : 'Debit';
-    const visibleCategories = categories.filter((category) => category.type === categoryType);
+    const visibleCategories = categories.filter(
+        (category) => category.type === categoryType && !isDebtCategoryName(category.name),
+    );
     const totals = categoryTotals(transactions, readAmount);
     const max = Math.max(1, ...visibleCategories.map((category) => totals.get(category.id) ?? 0));
 
@@ -145,6 +155,10 @@ export function isExpenseCategory(type: CategoryType | null | undefined): boolea
     return type === 'Debit' || type === 'TransferExpense';
 }
 
+export function isTransferCategory(type: CategoryType | null | undefined): boolean {
+    return type === 'TransferIncome' || type === 'TransferExpense';
+}
+
 export function isExpenseTransaction(transaction: {
     amount: number;
     category: { type: CategoryType | null | undefined };
@@ -158,6 +172,38 @@ export function isExpenseTransaction(transaction: {
     }
 
     return isExpenseCategory(transaction.category.type);
+}
+
+export function isOperationTransaction(transaction: {
+    category: {
+        name?: string | null | undefined;
+        type: CategoryType | null | undefined;
+    };
+}): boolean {
+    return (
+        !isTransferCategory(transaction.category.type) &&
+        !isDebtCategoryName(transaction.category.name)
+    );
+}
+
+export function isIncomeOperationTransaction(transaction: {
+    amount: number;
+    category: {
+        name?: string | null | undefined;
+        type: CategoryType | null | undefined;
+    };
+}): boolean {
+    return isOperationTransaction(transaction) && !isExpenseTransaction(transaction);
+}
+
+export function isExpenseOperationTransaction(transaction: {
+    amount: number;
+    category: {
+        name?: string | null | undefined;
+        type: CategoryType | null | undefined;
+    };
+}): boolean {
+    return isOperationTransaction(transaction) && isExpenseTransaction(transaction);
 }
 
 function resolveTransactionTone(

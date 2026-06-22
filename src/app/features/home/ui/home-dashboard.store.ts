@@ -83,8 +83,10 @@ import {
 } from './home-debt.utils';
 import {
     categoryTotals,
+    isExpenseOperationTransaction,
     isExpenseCategory,
     isExpenseTransaction,
+    isIncomeOperationTransaction,
     mapAccount,
     mapCategories,
     mapTags,
@@ -223,6 +225,7 @@ export class HomeDashboardStore {
     private readonly transactionResponses = signal<TransactionResponse[]>([]);
     private readonly yearTransactionResponses = signal<TransactionResponse[]>([]);
     private readonly yearBalanceResponses = signal<MonthBalanceResponse[]>([]);
+    private readonly transactionPageMonthKey = signal<string | null>(null);
     private readonly exchangeRatesByAccountId = signal(new Map<string, number>());
     private readonly applicationCurrencyCodeSignal = signal('BYN');
     private readonly hasLoadedTagDetails = signal(false);
@@ -261,6 +264,17 @@ export class HomeDashboardStore {
                 .map((balance) => [balance.accountId, balance] as const),
         );
     });
+    readonly hasSelectedMonthBalances = computed(() => {
+        const accounts = this.accountResponses();
+
+        if (!accounts.length) {
+            return true;
+        }
+
+        const balancesByAccountId = this.selectedMonthBalanceByAccountId();
+
+        return accounts.every((account) => balancesByAccountId.has(account.id));
+    });
 
     readonly accounts = computed<AccountBalanceItem[]>(() =>
         this.sortAccounts(this.accountResponses()).map((account, index) =>
@@ -268,6 +282,7 @@ export class HomeDashboardStore {
                 { ...account, isPrimary: isPrimaryAccountResponse(account) },
                 index,
                 this.selectedMonthBalanceByAccountId().get(account.id),
+                { useCurrentBalanceFallback: !this.hasLoaded() },
             ),
         ),
     );
@@ -288,9 +303,13 @@ export class HomeDashboardStore {
             this.accountSearchQuery(),
         ),
     );
-    readonly transactions = computed<TransactionItem[]>(() =>
-        this.transactionResponses().map((transaction) => mapTransaction(transaction)),
-    );
+    readonly transactions = computed<TransactionItem[]>(() => {
+        if (this.transactionPageMonthKey() !== monthKey(this.selectedMonth())) {
+            return [];
+        }
+
+        return this.transactionResponses().map((transaction) => mapTransaction(transaction));
+    });
     readonly selectedYearTransactions = computed(() => {
         const selectedAccountId = this.analyticsSelectedAccountId();
 
@@ -337,8 +356,8 @@ export class HomeDashboardStore {
     readonly incomeCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
             this.categoryResponses(),
-            this.selectedMonthTransactions().filter(
-                (transaction) => !isExpenseTransaction(transaction),
+            this.selectedMonthTransactions().filter((transaction) =>
+                isIncomeOperationTransaction(transaction),
             ),
             'income',
             this.applicationCurrencyCode(),
@@ -349,7 +368,7 @@ export class HomeDashboardStore {
         mapCategories(
             this.categoryResponses(),
             this.selectedMonthTransactions().filter((transaction) =>
-                isExpenseTransaction(transaction),
+                isExpenseOperationTransaction(transaction),
             ),
             'expense',
             this.applicationCurrencyCode(),
@@ -359,8 +378,8 @@ export class HomeDashboardStore {
     readonly analyticsIncomeCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
             this.categoryResponses(),
-            this.analyticsMonthTransactions().filter(
-                (transaction) => !isExpenseTransaction(transaction),
+            this.analyticsMonthTransactions().filter((transaction) =>
+                isIncomeOperationTransaction(transaction),
             ),
             'income',
             this.analyticsCurrencyCode(),
@@ -371,7 +390,7 @@ export class HomeDashboardStore {
         mapCategories(
             this.categoryResponses(),
             this.analyticsMonthTransactions().filter((transaction) =>
-                isExpenseTransaction(transaction),
+                isExpenseOperationTransaction(transaction),
             ),
             'expense',
             this.analyticsCurrencyCode(),
@@ -455,26 +474,28 @@ export class HomeDashboardStore {
         ),
     );
     readonly accountSummaryBalanceLabel = computed(() =>
-        formatMoney(this.accountSummaryBalance(), this.applicationCurrencyCode()),
+        this.hasSelectedMonthBalances()
+            ? formatMoney(this.accountSummaryBalance(), this.applicationCurrencyCode())
+            : '...',
     );
     readonly incomeTotal = computed(() =>
         this.selectedMonthTransactions()
-            .filter((item) => !isExpenseTransaction(item))
+            .filter((item) => isIncomeOperationTransaction(item))
             .reduce((sum, item) => sum + Math.abs(this.convertTransactionAmount(item)), 0),
     );
     readonly expenseTotal = computed(() =>
         this.selectedMonthTransactions()
-            .filter((item) => isExpenseTransaction(item))
+            .filter((item) => isExpenseOperationTransaction(item))
             .reduce((sum, item) => sum + Math.abs(this.convertTransactionAmount(item)), 0),
     );
     readonly analyticsIncomeTotal = computed(() =>
         this.analyticsMonthTransactions()
-            .filter((item) => !isExpenseTransaction(item))
+            .filter((item) => isIncomeOperationTransaction(item))
             .reduce((sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)), 0),
     );
     readonly analyticsExpenseTotal = computed(() =>
         this.analyticsMonthTransactions()
-            .filter((item) => isExpenseTransaction(item))
+            .filter((item) => isExpenseOperationTransaction(item))
             .reduce((sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)), 0),
     );
     readonly debtSummary = computed<DebtSummary>(() => {
@@ -482,11 +503,13 @@ export class HomeDashboardStore {
         const primaryBalance = primaryAccount
             ? this.convertAccountAmount(primaryAccount.id, primaryAccount.balanceValue)
             : 0;
+        const selectedMonthKey = monthKey(this.selectedMonth());
+        const debtTransactions = this.yearTransactionResponses().filter(
+            (transaction) => monthKey(new Date(transaction.date)) <= selectedMonthKey,
+        );
 
-        return calculateDebtSummary(
-            this.yearTransactionResponses(),
-            primaryBalance,
-            (transaction) => this.convertTransactionAmount(transaction),
+        return calculateDebtSummary(debtTransactions, primaryBalance, (transaction) =>
+            this.convertTransactionAmount(transaction),
         );
     });
     readonly incomeVsExpense = computed<ReadonlyArray<AnalyticsStackedPoint>>(() =>
@@ -496,13 +519,13 @@ export class HomeDashboardStore {
             return {
                 label: compactMonthLabel(month),
                 income: transactions
-                    .filter((item) => !isExpenseTransaction(item))
+                    .filter((item) => isIncomeOperationTransaction(item))
                     .reduce(
                         (sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)),
                         0,
                     ),
                 expense: transactions
-                    .filter((item) => isExpenseTransaction(item))
+                    .filter((item) => isExpenseOperationTransaction(item))
                     .reduce(
                         (sum, item) => sum + Math.abs(this.convertAnalyticsTransactionAmount(item)),
                         0,
@@ -567,7 +590,7 @@ export class HomeDashboardStore {
     readonly tagExpensesChart = computed<ReadonlyArray<CategoryBreakdownItem>>(() => {
         const totals = categoryTotals(
             this.selectedYearTransactions().filter((transaction) =>
-                isExpenseTransaction(transaction),
+                isExpenseOperationTransaction(transaction),
             ),
             (transaction) => Math.abs(this.convertTransactionAmount(transaction)),
         );
@@ -633,7 +656,9 @@ export class HomeDashboardStore {
             {
                 id: 'metric-balance',
                 label: 'Баланс',
-                value: formatMoney(this.totalBalance(), currencyCode),
+                value: this.hasSelectedMonthBalances()
+                    ? formatMoney(this.totalBalance(), currencyCode)
+                    : '...',
                 caption: 'Закрывающий баланс выбранного месяца',
             },
         ];
@@ -643,28 +668,35 @@ export class HomeDashboardStore {
         const primaryBalanceValue = primaryAccount
             ? this.convertAccountAmount(primaryAccount.id, primaryAccount.balanceValue)
             : 0;
+        const hasSelectedMonthBalances = this.hasSelectedMonthBalances();
+        const balanceValue = hasSelectedMonthBalances
+            ? formatMoney(primaryBalanceValue, this.applicationCurrencyCode())
+            : '...';
+        const debtSummary = this.debtSummary();
+        const debtBalanceValue = hasSelectedMonthBalances
+            ? formatMoney(debtSummary.balanceAfterClosing, this.applicationCurrencyCode())
+            : '...';
 
         return [
             {
                 id: 'balance',
                 label: 'Баланс',
-                value: formatMoney(primaryBalanceValue, this.applicationCurrencyCode()),
+                value: balanceValue,
                 helper: 'Основной счёт',
-                tone: primaryBalanceValue < 0 ? 'negative' : 'primary',
+                tone: hasSelectedMonthBalances && primaryBalanceValue < 0 ? 'negative' : 'primary',
                 icon: 'account_balance_wallet',
             },
             {
                 id: 'debt-balance',
                 label: 'После долгов',
-                value: formatMoney(
-                    this.debtSummary().balanceAfterClosing,
-                    this.applicationCurrencyCode(),
-                ),
+                value: debtBalanceValue,
                 helper: 'Баланс после закрытия долгов',
-                helperLines: [
-                    `Я должен: ${formatMoney(this.debtSummary().owedByMe, this.applicationCurrencyCode())}`,
-                    `Мне должны: ${formatMoney(this.debtSummary().owedToMe, this.applicationCurrencyCode())}`,
-                ],
+                helperLines: hasSelectedMonthBalances
+                    ? [
+                          `Я должен: ${formatMoney(debtSummary.owedByMe, this.applicationCurrencyCode())}`,
+                          `Мне должны: ${formatMoney(debtSummary.owedToMe, this.applicationCurrencyCode())}`,
+                      ]
+                    : ['Я должен: ...', 'Мне должны: ...'],
                 tone: 'neutral',
                 icon: 'balance',
             },
@@ -1067,6 +1099,7 @@ export class HomeDashboardStore {
                 name: PRIMARY_ACCOUNT_NAME,
                 currencyCode,
                 color: ACCOUNT_COLORS[0],
+                initialBalance: 0,
             }),
             'Не получилось создать основной счёт. Проверьте валюту и попробуйте ещё раз.',
             () => {
@@ -1093,6 +1126,7 @@ export class HomeDashboardStore {
                 name,
                 currencyCode: this.newAccountCurrency(),
                 color: ACCOUNT_COLORS[this.accounts().length % ACCOUNT_COLORS.length],
+                initialBalance: 0,
             }),
             'Не удалось создать счёт.',
             () => {
@@ -1374,12 +1408,10 @@ export class HomeDashboardStore {
                     return of([account.id, 1] as const);
                 }
 
-                return this.homeApi
-                    .getTransferRate(account.id, applicationAccount.id)
-                    .pipe(
-                        map((response) => [account.id, response.rate] as const),
-                        catchError(() => of([account.id, 1] as const)),
-                    );
+                return this.homeApi.getTransferRate(account.id, applicationAccount.id).pipe(
+                    map((response) => [account.id, response.rate] as const),
+                    catchError(() => of([account.id, 1] as const)),
+                );
             }),
             reduce(
                 (rates, [accountId, rate]) => rates.set(accountId, rate),
@@ -1457,16 +1489,20 @@ export class HomeDashboardStore {
         this.hasLoadedTagDetails.set(false);
         this.isYearTransactionsLoading = false;
         this.areYearTransactionsStale = false;
-        this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()));
+        this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()), null);
         this.yearTransactionResponses.set([]);
         this.yearBalanceResponses.set([]);
         this.exchangeRatesByAccountId.set(new Map<string, number>());
         this.loadedFullBalanceYear = null;
     }
 
-    private setTransactionPage(page: PagedResponse<TransactionResponse>): void {
+    private setTransactionPage(
+        page: PagedResponse<TransactionResponse>,
+        pageMonthKey: string | null = monthKey(this.selectedMonth()),
+    ): void {
         this.transactionResponses.set(page.items);
         this.transactionPagination.set(mapTransactionPagination(page));
+        this.transactionPageMonthKey.set(pageMonthKey);
     }
 
     private createCategory(nameValue: string, type: CategoryType, color: string): void {
@@ -1519,9 +1555,13 @@ export class HomeDashboardStore {
     private reloadCurrentTransactionPage(page = 1): void {
         this.errorMessage.set('');
         const requestId = ++this.currentTransactionPageRequestId;
+        const pageMonthKey = monthKey(this.selectedMonth());
 
         if (!this.accountResponses().length) {
-            this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()));
+            this.setTransactionPage(
+                createEmptyTransactionPage(this.transactionPageSize()),
+                pageMonthKey,
+            );
             return;
         }
 
@@ -1533,7 +1573,7 @@ export class HomeDashboardStore {
                         return;
                     }
 
-                    this.setTransactionPage(transactionPage);
+                    this.setTransactionPage(transactionPage, pageMonthKey);
                 },
                 error: (error) => {
                     if (requestId !== this.currentTransactionPageRequestId) {
@@ -2440,8 +2480,8 @@ export class HomeDashboardStore {
                         .filter((transaction) => transaction.category.id === category.id)
                         .filter((transaction) =>
                             type === 'expense'
-                                ? isExpenseTransaction(transaction)
-                                : !isExpenseTransaction(transaction),
+                                ? isExpenseOperationTransaction(transaction)
+                                : isIncomeOperationTransaction(transaction),
                         )
                         .filter((transaction) => monthKey(new Date(transaction.date)) === key)
                         .reduce(

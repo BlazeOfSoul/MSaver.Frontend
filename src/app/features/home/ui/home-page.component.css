@@ -70,9 +70,6 @@
 }
 
 .home-page__sticky {
-    position: sticky;
-    top: 0.65rem;
-    z-index: 10;
     display: grid;
     gap: 1rem;
     min-width: 0;

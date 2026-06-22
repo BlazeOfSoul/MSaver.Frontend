@@ -10,6 +10,7 @@
         "build": "ng build",
         "watch": "ng build --watch --configuration development",
         "test": "ng test",
+        "test:home-layout": "node scripts/verify-home-scroll-behavior.mjs",
         "test:style-budgets": "node scripts/verify-component-style-budgets.mjs",
         "serve:ssr:MSaver": "node dist/MSaver/server/server.mjs"
     },

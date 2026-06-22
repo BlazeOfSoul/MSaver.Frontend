@@ -24,8 +24,8 @@ describe('home page mappers', () => {
     it('preserves category system flags for UI delete guards', () => {
         const categories: CategoryResponse[] = [
             {
-                id: 'debt-given',
-                name: 'Дано в долг (-)',
+                id: 'system-expense',
+                name: 'System expense',
                 type: 'Debit',
                 color: '#EC4899',
                 isSystem: true,

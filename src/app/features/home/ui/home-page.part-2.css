@@ -131,9 +131,4 @@
     .home-page__shell {
         gap: 1.25rem;
     }
-
-    .home-page__sticky {
-        top: 0.9rem;
-    }
-
 }

@@ -41,6 +41,10 @@ export function resolveDebtCategoryKind(categoryName: string): DebtCategoryKind 
     return null;
 }
 
+export function isDebtCategoryName(categoryName: string | null | undefined): boolean {
+    return !!categoryName && !!resolveDebtCategoryKind(categoryName);
+}
+
 export function createEmptyDebtTotals(): Map<DebtCategoryKind, number> {
     return new Map<DebtCategoryKind, number>([
         ['taken', 0],

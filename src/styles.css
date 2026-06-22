@@ -134,6 +134,7 @@
     --color-ms-success-alpha-085: rgba(16, 185, 129, 0.085);
     --color-ms-success-alpha-12: rgba(16, 185, 129, 0.12);
     --color-ms-success-alpha-2: rgba(16, 185, 129, 0.2);
+    --color-ms-success-alpha-24: rgba(16, 185, 129, 0.24);
 
     --color-ms-overlay-backdrop: rgba(2, 4, 4, 0.72);
     --color-ms-overlay-surface: rgba(2, 4, 4, 0.76);
@@ -257,6 +258,13 @@ ms-button.ms-btn {
     --border-color: color-mix(in oklab, var(--bg-color), white 12%);
     --accent-color: var(--color-ms-primary-soft);
     --glow-color: var(--color-ms-primary-alpha-22);
+    --green-hover-bg: linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--bg-color), white 18%),
+        color-mix(in oklab, var(--bg-color), black 8%)
+    );
+    --green-hover-border: color-mix(in oklab, var(--border-color), white 22%);
+    --green-hover-glow: color-mix(in oklab, var(--glow-color), transparent 42%);
 
     position: relative;
     isolation: isolate;
@@ -292,7 +300,8 @@ ms-button.ms-btn {
     transition:
         transform 0.22s ease,
         box-shadow 0.28s ease,
-        background-color 0.3s,
+        background 0.3s ease,
+        background-color 0.3s ease,
         border-color 0.3s,
         color 0.3s;
 }
@@ -312,12 +321,14 @@ ms-button.ms-btn .ms-btn__content {
     z-index: 1;
     display: inline-flex;
     width: 100%;
+    height: 100%;
     min-height: 100%;
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
+    margin: auto;
     text-align: center;
-    line-height: 1;
+    line-height: 1.1;
 }
 
 ms-button.ms-btn .ms-btn__spinner {
@@ -446,6 +457,19 @@ ms-button.ms-btn.ms-btn-sort::after {
             inset 0 1px 0 var(--color-ms-white-alpha-18);
     }
 
+    ms-button.ms-btn.ms-btn-primary:hover,
+    ms-button.ms-btn.ms-btn-success:hover {
+        color: var(--color-ms-text-on-primary);
+        border-color: var(--green-hover-border);
+        background: var(--green-hover-bg);
+        box-shadow:
+            0 20px 38px var(--green-hover-glow),
+            0 0 24px color-mix(in oklab, var(--glow-color), transparent 58%),
+            0 0 0 1px color-mix(in oklab, var(--border-color), white 10%),
+            inset 0 1px 0 var(--color-ms-white-alpha-24),
+            inset 0 -1px 0 var(--color-ms-black-alpha-16);
+    }
+
     ms-button.ms-btn.ms-btn-plain:hover,
     ms-button.ms-btn.ms-btn-sort:hover {
         transform: none;
@@ -502,11 +526,11 @@ ms-button.ms-btn.ms-btn-loading {
 }
 
 ms-button.ms-btn.ms-btn-primary {
-    --bg-color: var(--color-ms-primary-deep);
+    --bg-color: var(--color-ms-primary);
     --text-color: var(--color-ms-text-on-primary);
-    --border-color: color-mix(in oklab, var(--color-ms-primary-deep), white 7%);
+    --border-color: color-mix(in oklab, var(--color-ms-primary), white 18%);
     --accent-color: var(--color-ms-primary-soft);
-    --glow-color: var(--color-ms-primary-deep-alpha-14);
+    --glow-color: var(--color-ms-primary-alpha-28);
 }
 
 ms-button.ms-btn.ms-btn-primary.ms-btn-outline {
@@ -527,7 +551,7 @@ ms-button.ms-btn.ms-btn-success {
     --text-color: var(--color-ms-text-inverse);
     --border-color: color-mix(in oklab, var(--color-ms-success), white 20%);
     --accent-color: var(--color-ms-primary-soft);
-    --glow-color: var(--color-ms-primary-alpha-2);
+    --glow-color: var(--color-ms-success-alpha-24);
 }
 
 ms-button.ms-btn.ms-btn-danger {

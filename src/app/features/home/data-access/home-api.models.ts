@@ -42,6 +42,7 @@ export interface CreateAccountRequest {
     currencyCode: string;
     name: string;
     color: string;
+    initialBalance: number;
 }
 
 export interface CategoryResponse {
