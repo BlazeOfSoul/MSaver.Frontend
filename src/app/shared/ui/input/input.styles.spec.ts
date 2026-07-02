@@ -29,6 +29,13 @@ describe('Input and select mobile text sizing', () => {
         expect(selectStyles).not.toContain('font-size: 0.92rem');
     });
 
+    it('keeps a blurred fade below the sticky select search on mobile scroll', () => {
+        const stickyFadeRule = extractRule(selectSearchStyles, '.ms-select__search::after');
+
+        expect(stickyFadeRule).toContain('backdrop-filter: blur(');
+        expect(stickyFadeRule).toContain('pointer-events: none');
+    });
+
     function extractRule(styles: string, selector: string): string {
         const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const match = styles.match(new RegExp(`${escapedSelector}\\s*\\{(?<body>[^}]*)\\}`));

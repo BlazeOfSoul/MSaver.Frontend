@@ -26,6 +26,7 @@ describe('AnalyticsTabComponent', () => {
         fixture.componentRef.setInput('incomeCategories', []);
         fixture.componentRef.setInput('monthlyExpenses', []);
         fixture.componentRef.setInput('balanceDynamics', []);
+        fixture.componentRef.setInput('transferIncome', []);
         fixture.componentRef.setInput('savingsRate', []);
         fixture.componentRef.setInput('tagExpenses', []);
         fixture.componentRef.setInput('topExpenses', []);
@@ -114,6 +115,25 @@ describe('AnalyticsTabComponent', () => {
 
         expect(component.netCashFlowLabels()).toEqual(['Янв', 'Фев']);
         expect(component.netCashFlowDatasets()[0].data).toEqual([40, -30]);
+    });
+
+    it('renders yearly transfers into accounts as a separate chart', () => {
+        fixture.componentRef.setInput('transferIncome', [
+            { label: 'Jan', value: 150 },
+            { label: 'Feb', value: 0 },
+        ]);
+        component.activeView.set('yearly');
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const chartTitles = Array.from(host.querySelectorAll('ms-chart-card h3')).map((title) =>
+            title.textContent?.trim(),
+        );
+
+        expect(chartTitles).toContain('Переводы на счёт');
+        expect(component.transferIncomeLabels()).toEqual(['Jan', 'Feb']);
+        expect(component.transferIncomeDatasets()[0].data).toEqual([150, 0]);
     });
 
     it('renders the tag chart without the redundant tag filter strip', () => {

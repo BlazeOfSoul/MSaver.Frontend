@@ -116,6 +116,7 @@ export class HomePageComponent {
     readonly categoryMonthTable = this.dashboard.categoryMonthTable;
     readonly monthlyExpensesChart = this.dashboard.monthlyExpensesChart;
     readonly balanceDynamicsChart = this.dashboard.balanceDynamicsChart;
+    readonly transferIncomeChart = this.dashboard.transferIncomeChart;
     readonly savingsRateChart = this.dashboard.savingsRateChart;
     readonly tagExpensesChart = this.dashboard.tagExpensesChart;
     readonly topExpensesChart = this.dashboard.topExpensesChart;

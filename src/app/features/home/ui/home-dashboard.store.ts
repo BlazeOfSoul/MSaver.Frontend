@@ -20,6 +20,7 @@ import {
     CurrentUserResponse,
     MonthBalanceResponse,
     PagedResponse,
+    TagCategoryResponse,
     TagDetailsResponse,
     TagResponse,
     TransactionResponse,
@@ -237,6 +238,7 @@ export class HomeDashboardStore {
     private isYearTransactionsLoading = false;
     private shouldRefreshTagDetailsAfterLoad = false;
     private areYearTransactionsStale = false;
+    private readonly optimisticTagCategoryIds = new Map<string, ReadonlyArray<string>>();
     private isDestroyed = false;
     private loadedFullBalanceYear: number | null = null;
     private loadingYearBalanceYear: number | null = null;
@@ -525,6 +527,22 @@ export class HomeDashboardStore {
             };
         }),
     );
+    readonly transferIncomeChart = computed<ReadonlyArray<AnalyticsSeriesPoint>>(() =>
+        this.monthsForSelectedYear().map((month) => {
+            const value = this.transactionsForMonth(month)
+                .filter((transaction) => transaction.category.type === 'TransferIncome')
+                .reduce(
+                    (sum, transaction) =>
+                        sum + Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
+                    0,
+                );
+
+            return {
+                label: compactMonthLabel(month),
+                value,
+            };
+        }),
+    );
     readonly categoryMonthTable = computed<AnalyticsCategoryMonthTable>(() => {
         const months = this.monthsForSelectedYear();
         const incomeRows = this.buildCategoryMonthRows(months, 'income');
@@ -644,14 +662,6 @@ export class HomeDashboardStore {
                 label: 'Чистый итог',
                 value: formatMoney(net, currencyCode),
                 caption: net >= 0 ? 'Период закрывается в плюс' : 'Расходы выше доходов',
-            },
-            {
-                id: 'metric-balance',
-                label: 'Баланс',
-                value: this.hasSelectedMonthBalances()
-                    ? formatMoney(this.totalBalance(), currencyCode)
-                    : '...',
-                caption: 'Закрывающий баланс выбранного месяца',
             },
         ];
     });
@@ -2081,7 +2091,10 @@ export class HomeDashboardStore {
         this.runMutation(
             this.homeApi.assignTagCategories(tagId, { categoryIds }),
             'Не удалось обновить категории тега.',
-            () => this.reloadTags(),
+            () => {
+                this.applyTagCategoryAssignment(tagId, categoryIds);
+                this.reloadTags();
+            },
         );
     }
 
@@ -2134,7 +2147,7 @@ export class HomeDashboardStore {
                         return;
                     }
 
-                    this.tagDetailsResponses.set(tags);
+                    this.tagDetailsResponses.set(this.applyOptimisticTagAssignments(tags));
                     this.hasLoadedTagDetails.set(true);
                 },
                 error: (error) => {
@@ -2365,6 +2378,90 @@ export class HomeDashboardStore {
 
     private isAssignableTagCategory(categoryId: string): boolean {
         return this.allCategoryOptions().some((category) => category.value === categoryId);
+    }
+
+    private applyTagCategoryAssignment(tagId: string, categoryIds: ReadonlyArray<string>): void {
+        const nextCategoryIds = [...new Set(categoryIds)];
+
+        this.optimisticTagCategoryIds.set(tagId, nextCategoryIds);
+        this.tagDetailsResponses.set(
+            this.tagDetailsResponses().map((tag) =>
+                tag.id === tagId ? this.withTagCategories(tag, nextCategoryIds) : tag,
+            ),
+        );
+    }
+
+    private applyOptimisticTagAssignments(
+        tags: ReadonlyArray<TagDetailsResponse>,
+    ): TagDetailsResponse[] {
+        return tags.map((tag) => {
+            const categoryIds = this.optimisticTagCategoryIds.get(tag.id);
+
+            if (!categoryIds) {
+                return tag;
+            }
+
+            if (this.hasTagCategoryIds(tag, categoryIds)) {
+                this.optimisticTagCategoryIds.delete(tag.id);
+                return tag;
+            }
+
+            return this.withTagCategories(tag, categoryIds);
+        });
+    }
+
+    private hasTagCategoryIds(
+        tag: TagDetailsResponse,
+        categoryIds: ReadonlyArray<string>,
+    ): boolean {
+        const actualIds = new Set(
+            tag.categories
+                .filter((category) => !category.isDeleted)
+                .map((category) => category.id),
+        );
+        const expectedIds = new Set(categoryIds);
+
+        return (
+            actualIds.size === expectedIds.size && [...expectedIds].every((id) => actualIds.has(id))
+        );
+    }
+
+    private withTagCategories(
+        tag: TagDetailsResponse,
+        categoryIds: ReadonlyArray<string>,
+    ): TagDetailsResponse {
+        const existingById = new Map(tag.categories.map((category) => [category.id, category]));
+        const categoryById = new Map(
+            this.categoryResponses().map((category) => [category.id, category]),
+        );
+        const categories = categoryIds
+            .map((categoryId): TagCategoryResponse | null => {
+                const existing = existingById.get(categoryId);
+
+                if (existing) {
+                    return { ...existing, isDeleted: false };
+                }
+
+                const category = categoryById.get(categoryId);
+
+                if (!category) {
+                    return null;
+                }
+
+                return {
+                    id: category.id,
+                    name: category.name,
+                    color: category.color,
+                    type: category.type,
+                    isDeleted: false,
+                };
+            })
+            .filter((category): category is TagCategoryResponse => category !== null);
+
+        return {
+            ...tag,
+            categories,
+        };
     }
 
     private canSaveTransactionDraft(draft: TransactionDraft): boolean {

@@ -89,6 +89,14 @@
                 ></ms-chart-card>
 
                 <ms-chart-card
+                    title="Переводы на счёт"
+                    subtitle="Сколько пришло внутренними переводами на выбранный счёт по месяцам."
+                    type="bar"
+                    [labels]="transferIncomeLabels()"
+                    [datasets]="transferIncomeDatasets()"
+                ></ms-chart-card>
+
+                <ms-chart-card
                     title="Норма накоплений"
                     subtitle="Доля денег, которая остаётся после расходов в каждом месяце."
                     type="line"

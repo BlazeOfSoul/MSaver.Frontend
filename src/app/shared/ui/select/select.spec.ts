@@ -32,7 +32,7 @@ describe('SelectComponent', () => {
         expect(getComputedStyle(shell!).overflow).toBe('visible');
     });
 
-    it('filters searchable options by label prefix while the dropdown is open', () => {
+    it('filters searchable options by any label text while the dropdown is open', () => {
         fixture.componentRef.setInput('options', [
             { value: 'snacks', label: 'Snacks' },
             { value: 'late-snacks', label: 'Late Snacks' },
@@ -62,7 +62,7 @@ describe('SelectComponent', () => {
             .map((option) => option.textContent?.trim())
             .filter(Boolean);
 
-        expect(matchingLabels).toEqual(['Snacks']);
+        expect(matchingLabels).toEqual(['Snacks', 'Late Snacks']);
 
         searchInput!.value = 'rent';
         searchInput!.dispatchEvent(new Event('input', { bubbles: true }));
@@ -70,6 +70,33 @@ describe('SelectComponent', () => {
 
         expect(host.querySelectorAll('.ms-select__option')).toHaveLength(0);
         expect(host.querySelector('.ms-select__empty')?.textContent?.trim()).toBe('No matches');
+    });
+
+    it('filters searchable options by description text too', () => {
+        fixture.componentRef.setInput('options', [
+            { value: 'internet', label: 'Internet', description: 'Monthly utilities' },
+            { value: 'salary', label: 'Salary', description: 'Work income' },
+        ]);
+        fixture.componentRef.setInput('value', '');
+        fixture.componentRef.setInput('searchable', true);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>('.ms-select__trigger')?.click();
+        fixture.detectChanges();
+
+        const searchInput = host.querySelector<HTMLInputElement>('.ms-select__search-input');
+
+        searchInput!.value = 'utilities';
+        searchInput!.dispatchEvent(new Event('input', { bubbles: true }));
+        fixture.detectChanges();
+
+        const matchingLabels = Array.from(host.querySelectorAll<HTMLElement>('.ms-select__option'))
+            .map((option) => option.textContent?.trim())
+            .filter(Boolean);
+
+        expect(matchingLabels).toEqual(['Internet Monthly utilities']);
     });
 
     it('does not autofocus the search field on touch devices', () => {

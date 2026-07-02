@@ -59,6 +59,7 @@ export class AnalyticsTabComponent {
     incomeCategories = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     monthlyExpenses = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     balanceDynamics = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
+    transferIncome = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     savingsRate = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     tagExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     topExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
@@ -161,6 +162,15 @@ export class AnalyticsTabComponent {
             this.balanceDynamics(),
             MS_ANALYTICS_CHART_COLORS.balance,
             true,
+        ),
+    );
+
+    readonly transferIncomeLabels = computed(() => chartLabels(this.transferIncome()));
+    readonly transferIncomeDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
+        buildValueDataset(
+            'Переводы на счёт',
+            this.transferIncome(),
+            MS_ANALYTICS_CHART_COLORS.balance,
         ),
     );
 

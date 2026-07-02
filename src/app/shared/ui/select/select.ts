@@ -67,7 +67,9 @@ export class SelectComponent {
         }
 
         return this.options().filter((option) =>
-            this.normalizeSearchValue(option.label).startsWith(searchText),
+            this.normalizeSearchValue(`${option.label} ${option.description ?? ''}`).includes(
+                searchText,
+            ),
         );
     });
 

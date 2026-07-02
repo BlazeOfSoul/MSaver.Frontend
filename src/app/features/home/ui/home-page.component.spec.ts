@@ -1710,6 +1710,72 @@ describe('HomePageComponent', () => {
         ).not.toContain('transfer-expense');
     });
 
+    it('shows account transfer income separately by month in analytics', () => {
+        const mainAccount = account({ id: 'main-account', name: 'Main', currentBalance: 500 });
+        const savingsAccount = account({
+            id: 'savings-account',
+            name: 'Savings',
+            currentBalance: 250,
+            isPrimary: false,
+        });
+        const transferIncomeCategory: CategoryResponse = {
+            id: 'transfer-income',
+            name: 'Transfer in',
+            type: 'TransferIncome',
+            color: '#67a6c1',
+        };
+        const transferExpenseCategory: CategoryResponse = {
+            id: 'transfer-expense',
+            name: 'Transfer out',
+            type: 'TransferExpense',
+            color: '#c77dff',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page([mainAccount, savingsAccount])));
+        homeApi.getCategories.mockReturnValue(
+            of(page([transferIncomeCategory, transferExpenseCategory])),
+        );
+        homeApi.getTransactions.mockReturnValue(
+            of(
+                page<TransactionResponse>([
+                    transaction('transfer-out', mainAccount, transferExpenseCategory, -150),
+                    transaction('transfer-in', savingsAccount, transferIncomeCategory, 150),
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('analytics');
+
+        const activeMonthIndex = new Date().getMonth();
+        const points = fixture.componentInstance.transferIncomeChart();
+
+        expect(points[activeMonthIndex].value).toBe(150);
+        expect(points.reduce((sum, point) => sum + point.value, 0)).toBe(150);
+
+        fixture.componentInstance.setAnalyticsAccountFilter('main-account');
+
+        expect(fixture.componentInstance.transferIncomeChart()[activeMonthIndex].value).toBe(0);
+
+        fixture.componentInstance.setAnalyticsAccountFilter('savings-account');
+
+        expect(fixture.componentInstance.transferIncomeChart()[activeMonthIndex].value).toBe(150);
+    });
+
+    it('keeps analytics overview to income expense and net metrics only', () => {
+        homeApi.getAccounts.mockReturnValue(of(page([account({ currentBalance: 100 })])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.analyticsMetrics().map((metric) => metric.id)).toEqual([
+            'metric-income',
+            'metric-expense',
+            'metric-net',
+        ]);
+    });
+
     it('does not count debt transactions as monthly income or expenses', () => {
         const mainAccount = account({ id: 'main-account', name: 'Main account' });
         const salaryCategory: CategoryResponse = {
@@ -4751,6 +4817,48 @@ describe('HomePageComponent', () => {
         expect(homeApi.getCategories.mock.calls.length).toBe(initialCategoryCalls);
         expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls);
         expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls);
+    });
+
+    it('shows a category in the tag immediately after a successful assignment', () => {
+        const linkedCategory: CategoryResponse = {
+            id: 'food-id',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff6f91',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([linkedCategory])));
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+        homeApi.getTagById.mockReturnValue(
+            of<TagDetailsResponse>({
+                id: 'tag-id',
+                name: 'Essentials',
+                color: '#23c78b',
+                isDeleted: false,
+                categories: [],
+            }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('categories');
+
+        fixture.componentInstance.assignCategoryToTag({
+            tagId: 'tag-id',
+            categoryId: linkedCategory.id,
+        });
+
+        expect(fixture.componentInstance.tagGroups()[0]?.categories).toEqual([
+            {
+                id: linkedCategory.id,
+                name: linkedCategory.name,
+                color: linkedCategory.color,
+                type: 'expense',
+            },
+        ]);
     });
 
     it('ignores unknown tag/category assignment changes without calling the backend', () => {

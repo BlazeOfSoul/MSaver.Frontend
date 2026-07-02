@@ -30,6 +30,23 @@
         color-mix(in oklab, var(--color-ms-surface-raised), transparent 16%);
 }
 
+.ms-select__search::after {
+    content: '';
+    position: absolute;
+    left: -0.45rem;
+    right: -0.45rem;
+    bottom: -1rem;
+    height: 1rem;
+    pointer-events: none;
+    background: linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 28%),
+        transparent
+    );
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
 .ms-select__search:focus-within {
     border-color: color-mix(in oklab, var(--color-ms-primary), white 14%);
     background:
