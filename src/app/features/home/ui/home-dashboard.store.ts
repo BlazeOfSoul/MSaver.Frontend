@@ -599,10 +599,10 @@ export class HomeDashboardStore {
     );
     readonly tagExpensesChart = computed<ReadonlyArray<CategoryBreakdownItem>>(() => {
         const totals = categoryTotals(
-            this.selectedYearTransactions().filter((transaction) =>
+            this.analyticsMonthTransactions().filter((transaction) =>
                 isExpenseOperationTransaction(transaction),
             ),
-            (transaction) => Math.abs(this.convertTransactionAmount(transaction)),
+            (transaction) => Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
         );
         const tagGroups = this.tagGroups();
         const max = Math.max(

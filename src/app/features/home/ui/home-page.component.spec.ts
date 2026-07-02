@@ -1710,6 +1710,65 @@ describe('HomePageComponent', () => {
         ).not.toContain('transfer-expense');
     });
 
+    it('counts tag expenses only for the selected analytics month', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-06-11T12:00:00'));
+
+        const mainAccount = account({ id: 'main-account', name: 'Main account' });
+        const foodCategory: CategoryResponse = {
+            id: 'food',
+            name: 'Food',
+            type: 'Debit',
+            color: '#ff6f91',
+        };
+        const currentMonthExpense = transaction('current-food', mainAccount, foodCategory, -40);
+        const previousMonthExpense: TransactionResponse = {
+            ...transaction('previous-food', mainAccount, foodCategory, -90),
+            date: '2026-05-05T12:00:00',
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
+        homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([foodCategory])));
+        homeApi.getTags.mockReturnValue(
+            of(page<TagResponse>([{ id: 'tag-id', name: 'Essentials', color: '#23c78b' }])),
+        );
+        homeApi.getTagById.mockReturnValue(
+            of<TagDetailsResponse>({
+                id: 'tag-id',
+                name: 'Essentials',
+                color: '#23c78b',
+                isDeleted: false,
+                categories: [
+                    {
+                        id: foodCategory.id,
+                        name: foodCategory.name,
+                        color: foodCategory.color,
+                        type: foodCategory.type,
+                        isDeleted: false,
+                    },
+                ],
+            }),
+        );
+        homeApi.getTransactions.mockImplementation(
+            (query: { size?: number; fromDate: string; toDate: string }) =>
+                of(
+                    page(
+                        query.size
+                            ? [currentMonthExpense]
+                            : [currentMonthExpense, previousMonthExpense],
+                    ),
+                ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        fixture.componentInstance.setActiveTab('analytics');
+
+        expect(fixture.componentInstance.tagExpensesChart()[0]?.amountValue).toBe(40);
+
+        vi.useRealTimers();
+    });
+
     it('shows account transfer income separately by month in analytics', () => {
         const mainAccount = account({ id: 'main-account', name: 'Main', currentBalance: 500 });
         const savingsAccount = account({
