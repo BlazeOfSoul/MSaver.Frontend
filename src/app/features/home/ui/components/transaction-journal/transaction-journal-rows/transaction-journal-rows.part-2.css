@@ -59,20 +59,22 @@ ms-button.transaction-edit-action {
     }
 
     .transactions-table__actions {
-        display: grid;
+        display: flex;
         width: 100%;
         align-items: center;
+        justify-content: flex-start;
         gap: 0.45rem;
+        box-sizing: border-box;
         padding-top: 0.2rem;
+        padding-left: calc(5.2rem + 0.75rem);
     }
 
     .transactions-table__actions--with-edit {
-        grid-template-columns: minmax(0, 1fr) 2.75rem;
+        flex-wrap: nowrap;
     }
 
     .transactions-table__actions--split {
-        grid-template-columns: minmax(0, 1fr);
-        justify-content: end;
+        justify-content: flex-start;
     }
 
     .transactions-table__actions::before {
@@ -92,8 +94,8 @@ ms-button.transaction-edit-action {
     }
 
     ms-button.transaction-edit-action {
-        width: 100%;
-        min-width: 0;
+        width: auto;
+        min-width: 5.25rem;
         height: 2.5rem;
         min-height: 2.5rem;
         padding: 0 0.75rem;
