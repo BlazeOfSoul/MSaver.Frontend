@@ -4,9 +4,9 @@
 
 .dialog {
     width: min(100%, 42rem);
-    max-height: min(100dvh - 2rem, 46rem);
     display: grid;
     gap: 1rem;
+    margin-block: auto;
     padding: 1.5rem;
     border: 1px solid var(--color-ms-white-alpha-08);
     border-radius: 0.5rem;
@@ -20,7 +20,7 @@
     box-shadow:
         0 36px 72px var(--color-ms-black-alpha-34),
         inset 0 1px 0 var(--color-ms-white-alpha-05);
-    overflow: auto;
+    overflow: visible;
     transform-origin: center;
     animation: dialog-pop-in 0.18s ease-out both;
 }

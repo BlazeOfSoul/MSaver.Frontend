@@ -1,6 +1,6 @@
 .dialog__footer {
-    position: sticky;
-    bottom: -1.5rem;
+    position: static;
+    bottom: auto;
     margin: 0 -1.5rem -1.5rem;
     padding: 0.85rem 1.5rem 1.5rem;
     border-top: 1px solid var(--color-ms-white-alpha-06);
@@ -46,7 +46,6 @@
 @media (max-width: 480px) {
     .dialog {
         width: 100%;
-        max-height: min(100dvh - 1rem, 100dvh);
         gap: 1rem;
         padding: 1rem;
         border-radius: 0.5rem;

@@ -13,6 +13,10 @@ describe('Input and select mobile text sizing', () => {
         join(process.cwd(), 'src/app/shared/ui/select/select.search.css'),
         'utf8',
     );
+    const selectDropdownStyles = readFileSync(
+        join(process.cwd(), 'src/app/shared/ui/select/select.dropdown.css'),
+        'utf8',
+    );
 
     it('keeps text inputs at 16px so iOS does not zoom the PWA on focus', () => {
         const inputRule = extractRule(globalStyles, 'ms-input input');
@@ -29,11 +33,29 @@ describe('Input and select mobile text sizing', () => {
         expect(selectStyles).not.toContain('font-size: 0.92rem');
     });
 
-    it('keeps a blurred fade below the sticky select search on mobile scroll', () => {
+    it('keeps select surfaces sharp without backdrop blur filters', () => {
+        const shellRule = extractRule(selectStyles, '.ms-select__shell');
+        const searchRule = extractRule(selectSearchStyles, '.ms-select__search');
+
+        expect(shellRule).not.toContain('backdrop-filter');
+        expect(searchRule).not.toContain('backdrop-filter');
+    });
+
+    it('keeps the sticky select search fade sharp instead of blurring options', () => {
         const stickyFadeRule = extractRule(selectSearchStyles, '.ms-select__search::after');
 
-        expect(stickyFadeRule).toContain('backdrop-filter: blur(');
+        expect(stickyFadeRule).not.toContain('backdrop-filter');
         expect(stickyFadeRule).toContain('pointer-events: none');
+    });
+
+    it('prevents horizontal dropdown scrollbars while preserving vertical option scroll', () => {
+        const dropdownRule = extractRule(selectDropdownStyles, '.ms-select__dropdown');
+        const hoverRule = extractRule(selectDropdownStyles, '.ms-select__option:hover');
+
+        expect(dropdownRule).toContain('overflow-x: hidden');
+        expect(dropdownRule).toContain('overflow-y: auto');
+        expect(dropdownRule).not.toContain('overflow: auto');
+        expect(hoverRule).not.toContain('transform');
     });
 
     function extractRule(styles: string, selector: string): string {

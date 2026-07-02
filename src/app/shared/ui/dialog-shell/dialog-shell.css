@@ -10,12 +10,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 1rem;
+    overscroll-behavior: contain;
 }
 
 .dialog-backdrop {
     background: var(--color-ms-overlay-backdrop);
-    backdrop-filter: blur(8px);
 }
 
 .category-dialog-backdrop {

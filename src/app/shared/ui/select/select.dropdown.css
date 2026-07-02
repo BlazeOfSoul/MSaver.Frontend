@@ -7,7 +7,9 @@
     display: grid;
     gap: 0.35rem;
     max-height: 16rem;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 0.45rem;
     border: 1px solid var(--color-ms-border-strong);
     border-radius: 0.5rem;
@@ -35,6 +37,7 @@
 .ms-select__option {
     --option-color: var(--color-ms-primary);
     display: flex;
+    max-width: 100%;
     min-height: 2.8rem;
     align-items: center;
     justify-content: space-between;
@@ -64,6 +67,7 @@
     display: grid;
     gap: 0.12rem;
     min-width: 0;
+    max-width: 100%;
 }
 
 .ms-select__option-copy > span {
@@ -88,7 +92,7 @@
 }
 
 .ms-select__option:hover {
-    transform: translateX(2px);
+    box-shadow: inset 2px 0 0 var(--option-color);
 }
 
 @media (max-width: 480px) {
