@@ -60,7 +60,6 @@ export class TransactionJournalComponent implements OnInit {
     readonly sortDirection = signal<SortDirection>('desc');
     readonly pageIndex = signal(0);
     readonly searchQuery = signal('');
-    readonly expandedTransactionId = signal<string | null>(null);
 
     readonly sortedTransactions = computed(() => {
         const direction = this.sortDirection() === 'asc' ? 1 : -1;
@@ -155,12 +154,6 @@ export class TransactionJournalComponent implements OnInit {
         }
 
         this.pageIndex.update((page) => Math.min(this.totalPages() - 1, page + 1));
-    }
-
-    toggleTransactionDetails(transactionId: string): void {
-        this.expandedTransactionId.update((current) =>
-            current === transactionId ? null : transactionId,
-        );
     }
 
     onPageSizeChange(value: string): void {

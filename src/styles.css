@@ -798,7 +798,7 @@ ms-input input {
     background: transparent;
     outline: 0;
     caret-color: var(--color-ms-primary);
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1;
     letter-spacing: 0;
 }
@@ -858,6 +858,6 @@ ms-input input.invalid::placeholder {
 
     ms-input input {
         min-height: 48px;
-        font-size: 15px;
+        font-size: 16px;
     }
 }

@@ -37,7 +37,12 @@ const REGISTER_PASSWORD_VALIDATORS = [
     standalone: true,
     imports: [CommonModule, ReactiveFormsModule, InputComponent, Button],
     templateUrl: './auth-page.component.html',
-    styleUrls: ['./auth-page.component.css', './auth-page.part-2.css', './auth-page.part-3.css'],
+    styleUrls: [
+        './auth-page.component.css',
+        './auth-page.part-2.css',
+        './auth-page.part-3.css',
+        './auth-page.part-4.css',
+    ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AuthPageComponent {

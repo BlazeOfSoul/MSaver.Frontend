@@ -21,6 +21,23 @@ describe('home page mappers', () => {
         expect(item.description).toBe('Lunch');
     });
 
+    it('uses the category as the transaction title even when a description exists', () => {
+        const item = mapTransaction(
+            createTransaction({
+                description: 'Coffee with team',
+                category: {
+                    id: 'category-id',
+                    name: 'Food',
+                    type: 'Debit',
+                    color: '#ff6f91',
+                },
+            }),
+        );
+
+        expect(item.title).toBe('Food');
+        expect(item.description).toBe('Coffee with team');
+    });
+
     it('keeps api timezone offsets from shifting transaction display time', () => {
         const transaction = createTransaction({
             date: '2026-06-05T14:37:00+03:00',

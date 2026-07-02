@@ -1,0 +1,54 @@
+@media (max-width: 640px) and (max-height: 720px) {
+    .auth-panel {
+        padding: 12px 14px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    }
+
+    .auth-header {
+        padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+        padding-bottom: 10px;
+    }
+
+    .auth-body {
+        justify-content: flex-start;
+    }
+
+    .auth-copy {
+        margin-bottom: 12px;
+    }
+
+    .auth-copy h2 {
+        margin-bottom: 6px;
+        font-size: 1.85rem;
+    }
+
+    .auth-copy p,
+    .security-note,
+    .field-error:not(.field-error--visible) {
+        display: none;
+    }
+
+    .auth-card {
+        padding: 14px;
+    }
+
+    .auth-mode-tabs {
+        margin-bottom: 12px;
+    }
+
+    .auth-form {
+        gap: 10px;
+    }
+
+    .form-field {
+        gap: 5px;
+    }
+
+    .field-error {
+        min-height: 0;
+        line-height: 1.2;
+    }
+
+    .auth-footnote {
+        margin-top: 12px;
+    }
+}

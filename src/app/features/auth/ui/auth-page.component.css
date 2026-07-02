@@ -1,6 +1,6 @@
 :host {
     display: block;
-    min-height: 100dvh;
+    min-height: 100svh;
     background:
         radial-gradient(
             55% 70% at 18% 22%,
@@ -47,7 +47,7 @@ svg {
 }
 
 .auth-shell {
-    min-height: 100dvh;
+    min-height: 100svh;
     display: flex;
     flex-direction: column;
     background: transparent;

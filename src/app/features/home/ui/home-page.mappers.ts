@@ -65,7 +65,7 @@ export function mapTransaction(transaction: TransactionResponse): TransactionIte
 
     return {
         id: transaction.id,
-        title: description || categoryName,
+        title: categoryName,
         category: categoryName,
         categoryId: transaction.category.id,
         categoryType,

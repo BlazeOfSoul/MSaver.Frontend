@@ -59,7 +59,7 @@ import {
     toIsoDate,
     toIsoDateTimeLocal,
 } from './home-date.utils';
-import { formatMoney } from './home-formatters';
+import { formatMoney, safeText } from './home-formatters';
 import { resolveHexColor, safeHexColor } from './home-color.utils';
 import {
     findMissingBalanceMonths,
@@ -441,20 +441,10 @@ export class HomeDashboardStore {
         })),
     );
     readonly incomeCategoryOptions = computed<MsSelectOption[]>(() =>
-        this.incomeCategories().map((category) => ({
-            value: category.id,
-            label: category.displayName ?? category.name,
-            description: category.debtHelper,
-            color: category.color,
-        })),
+        this.transactionCategoryOptions('Credit'),
     );
     readonly expenseCategoryOptions = computed<MsSelectOption[]>(() =>
-        this.expenseCategories().map((category) => ({
-            value: category.id,
-            label: category.displayName ?? category.name,
-            description: category.debtHelper,
-            color: category.color,
-        })),
+        this.transactionCategoryOptions('Debit'),
     );
     readonly totalBalance = computed(() =>
         this.accounts()
@@ -2454,6 +2444,16 @@ export class HomeDashboardStore {
         }
 
         return items.filter((item) => pickText(item).toLowerCase().includes(query));
+    }
+
+    private transactionCategoryOptions(type: 'Credit' | 'Debit'): MsSelectOption[] {
+        return this.categoryResponses()
+            .filter((category) => category.type === type)
+            .map((category) => ({
+                value: category.id,
+                label: safeText(category.name, 'Категория без названия'),
+                color: safeHexColor(category.color, CATEGORY_COLORS[0]),
+            }));
     }
 
     private transactionsForMonth(month: Date): TransactionResponse[] {

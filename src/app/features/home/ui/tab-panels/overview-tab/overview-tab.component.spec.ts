@@ -49,7 +49,13 @@ describe('OverviewTabComponent', () => {
 
     it('renders transactions as a date-sorted table and applies category colors', () => {
         fixture.componentRef.setInput('transactions', [
-            transaction({ id: 'old', title: 'Old', date: '01.06.2026', dateValue: '2026-06-01' }),
+            transaction({
+                id: 'old',
+                title: 'Old',
+                category: 'Old',
+                date: '01.06.2026',
+                dateValue: '2026-06-01',
+            }),
             transaction({
                 id: 'new',
                 title: 'Newest',
@@ -63,6 +69,7 @@ describe('OverviewTabComponent', () => {
             transaction({
                 id: 'middle',
                 title: 'Middle',
+                category: 'Middle',
                 date: '03.06.2026',
                 dateValue: '2026-06-03',
             }),
@@ -75,7 +82,7 @@ describe('OverviewTabComponent', () => {
         const firstCategory = rows[0].querySelector<HTMLElement>('.transaction-category');
 
         expect(rows).toHaveLength(3);
-        expect(rows[0].textContent ?? '').toContain('Newest');
+        expect(rows[0].textContent ?? '').toContain('Salary');
         expect(rows[1].textContent ?? '').toContain('Middle');
         expect(rows[2].textContent ?? '').toContain('Old');
         expect(firstCategory?.style.getPropertyValue('--category-color')).toBe('#23c78b');
@@ -86,6 +93,7 @@ describe('OverviewTabComponent', () => {
             transaction({
                 id: 'morning',
                 title: 'Morning coffee',
+                category: 'Morning coffee',
                 date: '05.06.2026',
                 dateValue: '2026-06-05',
                 dateTimeLabel: '05.06.2026, 08:15',
@@ -94,6 +102,7 @@ describe('OverviewTabComponent', () => {
             transaction({
                 id: 'evening',
                 title: 'Evening market',
+                category: 'Evening market',
                 date: '05.06.2026',
                 dateValue: '2026-06-05',
                 dateTimeLabel: '05.06.2026, 19:40',
@@ -113,11 +122,12 @@ describe('OverviewTabComponent', () => {
         expect(rows[1].textContent ?? '').toContain('Morning coffee');
     });
 
-    it('shows saved time and expands only the transaction description', () => {
+    it('shows saved time and the transaction description inline', () => {
         fixture.componentRef.setInput('transactions', [
             transaction({
                 id: 'detailed',
                 title: 'Market',
+                category: 'Market',
                 description: 'Long description with the full payment context',
                 date: '05.06.2026',
                 dateValue: '2026-06-05T14:37:00',
@@ -131,22 +141,11 @@ describe('OverviewTabComponent', () => {
         const host = fixture.nativeElement as HTMLElement;
 
         expect(host.textContent ?? '').toContain('05.06.2026, 14:37');
-        expect(host.textContent ?? '').not.toContain(
+        expect(host.querySelector('.transaction-name__description')?.textContent).toContain(
             'Long description with the full payment context',
         );
-
-        host.querySelector<HTMLButtonElement>(
-            '[data-testid="toggle-transaction-details"]',
-        )?.click();
-        fixture.detectChanges();
-
-        expect(host.querySelector('.transaction-details')).not.toBeNull();
-        const detailsText = host.querySelector('.transaction-details')?.textContent ?? '';
-
-        expect(detailsText).toContain('Long description with the full payment context');
-        expect(detailsText).not.toContain('05.06.2026, 14:37');
-        expect(detailsText).not.toContain('Main');
-        expect(detailsText).not.toContain('Food');
+        expect(host.querySelector('.transaction-details')).toBeNull();
+        expect(host.querySelector('[data-testid="toggle-transaction-details"]')).toBeNull();
     });
 
     it('emits the selected transaction item when editing starts', () => {
@@ -210,7 +209,7 @@ describe('OverviewTabComponent', () => {
         expect(editLabel?.textContent?.trim()).toBe('Изменить');
     });
 
-    it('keeps only the details action for transfer transaction rows', () => {
+    it('renders no row actions for transfer transaction rows', () => {
         fixture.componentRef.setInput('transactions', [
             transaction({
                 id: 'transfer',
@@ -227,7 +226,7 @@ describe('OverviewTabComponent', () => {
         expect(actions?.classList.contains('transactions-table__actions--inline')).toBe(true);
         expect(actions?.classList.contains('transactions-table__actions--split')).toBe(true);
         expect(actions?.classList.contains('transactions-table__actions--with-edit')).toBe(false);
-        expect(actions?.querySelectorAll('ms-button')).toHaveLength(1);
+        expect(actions?.querySelectorAll('ms-button')).toHaveLength(0);
     });
 
     it('does not render edit action for transfer transaction rows', () => {
@@ -270,6 +269,7 @@ describe('OverviewTabComponent', () => {
                 transaction({
                     id: `operation-${index + 1}`,
                     title: `Operation ${index + 1}`,
+                    category: `Operation ${index + 1}`,
                     date: `0${index + 1}.06.2026`,
                     dateValue: `2026-06-0${index + 1}`,
                 }),

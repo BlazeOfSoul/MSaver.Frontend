@@ -2,14 +2,14 @@
     .auth-shell {
         display: grid;
         grid-template-columns: minmax(0, 1.08fr) minmax(420px, 0.92fr);
-        min-height: 100dvh;
+        min-height: 100svh;
     }
 
     .auth-visual {
         position: relative;
         display: flex;
         flex-direction: column;
-        min-height: 100dvh;
+        min-height: 100svh;
         overflow: hidden;
         background-position: center;
         background-size: cover;

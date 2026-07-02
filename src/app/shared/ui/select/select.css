@@ -69,7 +69,7 @@
     color: var(--color-ms-light);
     background: transparent;
     outline: 0;
-    font-size: 0.95rem;
+    font-size: 1rem;
     text-align: left;
     cursor: pointer;
 }
@@ -123,7 +123,7 @@
 @media (max-width: 480px) {
     .ms-select__trigger {
         min-height: 50px;
-        font-size: 0.92rem;
+        font-size: 1rem;
     }
 }
 

@@ -15,24 +15,6 @@ ms-button.transaction-edit-action {
     font-weight: 700;
 }
 
-.transaction-details-row td {
-    padding-top: 0;
-}
-
-.transaction-details {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.75rem;
-    padding: 0.75rem;
-    border: 1px solid var(--color-ms-white-alpha-06);
-    border-radius: 0.5rem;
-    background: var(--color-ms-white-alpha-025);
-}
-
-.transaction-details__description {
-    grid-column: 1 / -1;
-}
-
 @media (max-width: 900px) {
     :host,
     :host tr,
@@ -85,12 +67,12 @@ ms-button.transaction-edit-action {
     }
 
     .transactions-table__actions--with-edit {
-        grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
+        grid-template-columns: minmax(0, 1fr) 2.75rem;
     }
 
     .transactions-table__actions--split {
-        grid-template-columns: 2.75rem 2.75rem;
-        justify-content: space-between;
+        grid-template-columns: minmax(0, 1fr);
+        justify-content: end;
     }
 
     .transactions-table__actions::before {
@@ -129,20 +111,4 @@ ms-button.transaction-edit-action {
         border: 0;
     }
 
-    .transaction-details-row {
-        margin-top: -0.45rem;
-    }
-
-    .transaction-details-row td {
-        display: block;
-    }
-
-    .transaction-details-row td::before {
-        content: none;
-    }
-
-    .transaction-details {
-        grid-template-columns: minmax(0, 1fr);
-        padding: 0.65rem;
-    }
 }

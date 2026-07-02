@@ -87,9 +87,7 @@
             <tbody
                 ms-transaction-journal-rows
                 [transactions]="pagedTransactions()"
-                [expandedTransactionId]="expandedTransactionId()"
                 [saving]="saving()"
-                (toggleDetails)="toggleTransactionDetails($event)"
                 (editTransaction)="editTransaction.emit($event)"
                 (deleteTransaction)="deleteTransaction.emit($event)"
             ></tbody>

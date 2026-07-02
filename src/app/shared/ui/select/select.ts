@@ -129,11 +129,15 @@ export class SelectComponent {
     }
 
     private focusSearchInput(): void {
-        if (!this.searchable()) {
+        if (!this.searchable() || this.isCoarsePointerDevice()) {
             return;
         }
 
         setTimeout(() => this.searchInput()?.nativeElement.focus());
+    }
+
+    private isCoarsePointerDevice(): boolean {
+        return globalThis.matchMedia?.('(pointer: coarse)').matches ?? false;
     }
 
     private normalizeSearchValue(value: string): string {

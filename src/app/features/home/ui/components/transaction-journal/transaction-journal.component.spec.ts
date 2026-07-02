@@ -52,7 +52,13 @@ describe('TransactionJournalComponent', () => {
 
     it('renders transactions as a date-sorted table and applies category colors', () => {
         fixture.componentRef.setInput('transactions', [
-            transaction({ id: 'old', title: 'Old', date: '01.06.2026', dateValue: '2026-06-01' }),
+            transaction({
+                id: 'old',
+                title: 'Old',
+                category: 'Old',
+                date: '01.06.2026',
+                dateValue: '2026-06-01',
+            }),
             transaction({
                 id: 'new',
                 title: 'Newest',
@@ -66,6 +72,7 @@ describe('TransactionJournalComponent', () => {
             transaction({
                 id: 'middle',
                 title: 'Middle',
+                category: 'Middle',
                 date: '03.06.2026',
                 dateValue: '2026-06-03',
             }),
@@ -78,7 +85,7 @@ describe('TransactionJournalComponent', () => {
         const firstCategory = rows[0].querySelector<HTMLElement>('.transaction-category');
 
         expect(rows).toHaveLength(3);
-        expect(rows[0].textContent ?? '').toContain('Newest');
+        expect(rows[0].textContent ?? '').toContain('Salary');
         expect(rows[1].textContent ?? '').toContain('Middle');
         expect(rows[2].textContent ?? '').toContain('Old');
         expect(firstCategory?.style.getPropertyValue('--category-color')).toBe('#23c78b');
@@ -119,6 +126,7 @@ describe('TransactionJournalComponent', () => {
                 transaction({
                     id: `operation-${index + 1}`,
                     title: `Operation ${index + 1}`,
+                    category: `Operation ${index + 1}`,
                     date: `0${index + 1}.06.2026`,
                     dateValue: `2026-06-0${index + 1}`,
                 }),

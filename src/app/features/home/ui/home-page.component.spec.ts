@@ -36,6 +36,10 @@ function transaction(
     category: CategoryResponse,
     amount: number,
 ): TransactionResponse {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+
     return {
         id,
         account: {
@@ -52,7 +56,7 @@ function transaction(
             type: category.type,
         },
         amount,
-        date: '2026-06-05T12:00:00',
+        date: `${year}-${month}-05T12:00:00`,
         description: category.name,
     };
 }
@@ -1806,6 +1810,45 @@ describe('HomePageComponent', () => {
         expect(
             fixture.componentInstance.categoryMonthTable().debtRows?.map((row) => row.id),
         ).toEqual(['owed-by-me', 'owed-to-me']);
+    });
+
+    it('keeps debt categories available when adding a transaction', () => {
+        const mainAccount = account({ id: 'main-account', name: 'Main account' });
+        const debtTakenCategory: CategoryResponse = {
+            id: 'debt-taken',
+            name: 'Взято в долг (+)',
+            type: 'Credit',
+            color: '#23c78b',
+            isSystem: true,
+        };
+        const debtReturnedCategory: CategoryResponse = {
+            id: 'debt-returned',
+            name: 'Возвращено по долгу (-)',
+            type: 'Debit',
+            color: '#ff6f91',
+            isSystem: true,
+        };
+
+        homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
+        homeApi.getCategories.mockReturnValue(
+            of(page<CategoryResponse>([debtTakenCategory, debtReturnedCategory])),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.startAddingTransaction();
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.incomeCategoryOptions()).toEqual([
+            expect.objectContaining({ value: 'debt-taken', label: 'Взято в долг (+)' }),
+        ]);
+        expect(fixture.componentInstance.expenseCategoryOptions()).toEqual([
+            expect.objectContaining({
+                value: 'debt-returned',
+                label: 'Возвращено по долгу (-)',
+            }),
+        ]);
     });
 
     it('formats analytics for a selected account in that account currency', () => {
@@ -4292,7 +4335,7 @@ describe('HomePageComponent', () => {
             accountId: 'main-account',
             categoryId: 'expense-category',
             amount: 25,
-            date: '2026-06-05T12:00',
+            date: component.filteredTransactions()[0].dateValue.slice(0, 16),
             description: 'Food',
         });
 
@@ -4603,7 +4646,7 @@ describe('HomePageComponent', () => {
             accountId: 'main-account',
             categoryId: 'expense-category',
             amount: 25,
-            date: '2026-06-05T12:00',
+            date: fixture.componentInstance.filteredTransactions()[0].dateValue.slice(0, 16),
             description: 'Food',
         });
     });

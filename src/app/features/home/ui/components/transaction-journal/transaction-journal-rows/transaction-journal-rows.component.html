@@ -11,7 +11,10 @@
                     </span>
                 </span>
                 <div>
-                    <strong>{{ item.title }}</strong>
+                    <strong>{{ item.category }}</strong>
+                    @if (item.description) {
+                        <span class="transaction-name__description">{{ item.description }}</span>
+                    }
                 </div>
             </div>
         </td>
@@ -36,20 +39,6 @@
             [class.transactions-table__actions--with-edit]="isTransactionEditable(item)"
             [class.transactions-table__actions--split]="!isTransactionEditable(item)"
         >
-            <ms-button
-                appearance="icon"
-                variant="neutral"
-                size="sm"
-                data-testid="toggle-transaction-details"
-                (onClick)="toggleDetails.emit(item.id)"
-                [attr.aria-expanded]="isTransactionExpanded(item.id)"
-                aria-label="Показать подробности транзакции"
-            >
-                <span class="material-symbols-outlined">
-                    {{ isTransactionExpanded(item.id) ? 'expand_less' : 'expand_more' }}
-                </span>
-            </ms-button>
-
             @if (isTransactionEditable(item)) {
                 <ms-button
                     appearance="ghost"
@@ -81,32 +70,4 @@
             }
         </td>
     </tr>
-
-    @if (isTransactionExpanded(item.id)) {
-        <tr class="transaction-details-row">
-            <td colspan="6">
-                <div class="transaction-details">
-                    <div class="transaction-details__description">
-                        <div class="transaction-details__note">
-                            <span
-                                class="material-symbols-outlined transaction-details__icon"
-                                aria-hidden="true"
-                            >
-                                notes
-                            </span>
-                            <div class="transaction-details__content">
-                                <span class="transaction-details__label">Описание</span>
-                                <span
-                                    class="transaction-details__value"
-                                    [class.transaction-details__value--empty]="!item.description"
-                                >
-                                    {{ item.description || 'Описание не указано' }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </td>
-        </tr>
-    }
 }

@@ -10,22 +10,15 @@ import { TransactionItem } from '../../../home-page.models';
     styleUrls: [
         './transaction-journal-rows.component.css',
         './transaction-journal-rows.part-2.css',
-        './transaction-journal-rows.part-3.css',
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TransactionJournalRowsComponent {
     transactions = input.required<ReadonlyArray<TransactionItem>>();
-    expandedTransactionId = input<string | null>(null);
     saving = input(false);
 
-    toggleDetails = output<string>();
     editTransaction = output<TransactionItem>();
     deleteTransaction = output<string>();
-
-    isTransactionExpanded(transactionId: string): boolean {
-        return this.expandedTransactionId() === transactionId;
-    }
 
     isTransactionEditable(transaction: TransactionItem): boolean {
         return !isTransferCategory(transaction.categoryType);

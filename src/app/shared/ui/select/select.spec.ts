@@ -72,6 +72,49 @@ describe('SelectComponent', () => {
         expect(host.querySelector('.ms-select__empty')?.textContent?.trim()).toBe('No matches');
     });
 
+    it('does not autofocus the search field on touch devices', () => {
+        vi.useFakeTimers();
+        const originalMatchMedia = window.matchMedia;
+
+        try {
+            Object.defineProperty(window, 'matchMedia', {
+                configurable: true,
+                writable: true,
+                value: vi.fn((query: string) => ({
+                    matches: query.includes('pointer: coarse'),
+                    media: query,
+                    onchange: null,
+                    addListener: vi.fn(),
+                    removeListener: vi.fn(),
+                    addEventListener: vi.fn(),
+                    removeEventListener: vi.fn(),
+                    dispatchEvent: vi.fn(),
+                })),
+            });
+
+            fixture.componentRef.setInput('searchable', true);
+            fixture.detectChanges();
+
+            const host = fixture.nativeElement as HTMLElement;
+
+            host.querySelector<HTMLButtonElement>('.ms-select__trigger')?.click();
+            fixture.detectChanges();
+            vi.runOnlyPendingTimers();
+
+            const searchInput = host.querySelector<HTMLInputElement>('.ms-select__search-input');
+
+            expect(searchInput).not.toBeNull();
+            expect(document.activeElement).not.toBe(searchInput);
+        } finally {
+            Object.defineProperty(window, 'matchMedia', {
+                configurable: true,
+                writable: true,
+                value: originalMatchMedia,
+            });
+            vi.useRealTimers();
+        }
+    });
+
     it('resets searchable text when the dropdown closes', () => {
         fixture.componentRef.setInput('searchable', true);
         fixture.detectChanges();

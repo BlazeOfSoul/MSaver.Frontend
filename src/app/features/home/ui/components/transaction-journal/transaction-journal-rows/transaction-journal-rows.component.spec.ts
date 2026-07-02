@@ -33,9 +33,7 @@ function transaction(overrides: Partial<TransactionItem>): TransactionItem {
             <tbody
                 ms-transaction-journal-rows
                 [transactions]="transactions()"
-                [expandedTransactionId]="expandedTransactionId()"
                 [saving]="saving()"
-                (toggleDetails)="toggleDetails($event)"
                 (editTransaction)="editTransaction($event)"
                 (deleteTransaction)="deleteTransaction($event)"
             ></tbody>
@@ -44,9 +42,7 @@ function transaction(overrides: Partial<TransactionItem>): TransactionItem {
 })
 class HostComponent {
     readonly transactions = signal<ReadonlyArray<TransactionItem>>([]);
-    readonly expandedTransactionId = signal<string | null>(null);
     readonly saving = signal(false);
-    readonly toggleDetails = vi.fn();
     readonly editTransaction = vi.fn();
     readonly deleteTransaction = vi.fn();
 }
@@ -88,6 +84,27 @@ describe('TransactionJournalRowsComponent', () => {
         expect(amount?.getAttribute('data-tone')).toBe('income');
     });
 
+    it('renders the category as the row title and shows the description inline', () => {
+        hostComponent.transactions.set([
+            transaction({
+                title: 'Food',
+                category: 'Food',
+                description: 'Coffee with team',
+            }),
+        ]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const operation = host.querySelector<HTMLElement>('.transaction-name');
+        const title = operation?.querySelector('strong');
+        const inlineDescription = operation?.querySelector('.transaction-name__description');
+
+        expect(title?.textContent?.trim()).toBe('Food');
+        expect(inlineDescription?.textContent?.trim()).toBe('Coffee with team');
+        expect(host.querySelector('.transaction-details-row')).toBeNull();
+    });
+
     it('renders debt category badges and helper text', () => {
         hostComponent.transactions.set([
             transaction({
@@ -124,15 +141,12 @@ describe('TransactionJournalRowsComponent', () => {
 
         host.querySelector<HTMLButtonElement>('[data-testid="edit-transaction"]')?.click();
         host.querySelector<HTMLButtonElement>('[data-testid="delete-transaction"]')?.click();
-        host.querySelector<HTMLButtonElement>(
-            '[data-testid="toggle-transaction-details"]',
-        )?.click();
 
         expect(hostComponent.editTransaction).toHaveBeenCalledWith(editable);
         expect(hostComponent.deleteTransaction).toHaveBeenCalledWith('editable');
-        expect(hostComponent.toggleDetails).toHaveBeenCalledWith('editable');
         expect(host.querySelectorAll('[data-testid="edit-transaction"]')).toHaveLength(1);
         expect(host.querySelectorAll('[data-testid="delete-transaction"]')).toHaveLength(1);
+        expect(host.querySelector('[data-testid="toggle-transaction-details"]')).toBeNull();
     });
 
     it('keeps expense rows editable when the category type is missing', () => {
@@ -149,37 +163,5 @@ describe('TransactionJournalRowsComponent', () => {
 
         expect(host.querySelector('[data-testid="edit-transaction"]')).not.toBeNull();
         expect(host.querySelector('[data-testid="delete-transaction"]')).not.toBeNull();
-    });
-
-    it('renders the expanded transaction details row', () => {
-        hostComponent.transactions.set([
-            transaction({ id: 'expanded', description: 'Coffee with team' }),
-        ]);
-        hostComponent.expandedTransactionId.set('expanded');
-
-        fixture.detectChanges();
-
-        const host = fixture.nativeElement as HTMLElement;
-
-        expect(host.querySelector('.transaction-details-row')).not.toBeNull();
-        expect(host.querySelector('.transaction-details__note')).not.toBeNull();
-        expect(host.querySelector('.transaction-details__icon')?.textContent?.trim()).toBe('notes');
-        expect(host.querySelector('.transaction-details__value')?.textContent).toContain(
-            'Coffee with team',
-        );
-        expect(host.textContent ?? '').toContain('Coffee with team');
-    });
-
-    it('renders missing expanded descriptions as muted note text', () => {
-        hostComponent.transactions.set([transaction({ id: 'expanded', description: '' })]);
-        hostComponent.expandedTransactionId.set('expanded');
-
-        fixture.detectChanges();
-
-        const host = fixture.nativeElement as HTMLElement;
-        const value = host.querySelector<HTMLElement>('.transaction-details__value');
-
-        expect(value?.classList.contains('transaction-details__value--empty')).toBe(true);
-        expect(value?.textContent).toContain('Описание не указано');
     });
 });
