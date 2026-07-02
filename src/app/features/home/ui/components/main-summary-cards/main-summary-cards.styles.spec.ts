@@ -19,6 +19,13 @@ describe('Main summary cards styles', () => {
         expect(valueRule).toContain('overflow-wrap: normal');
     });
 
+    it('keeps stacked debt helper lines on one line on desktop', () => {
+        const helperLineRule = extractRule(styles, '.summary-card__helper--stack > span');
+
+        expect(helperLineRule).toContain('white-space: nowrap');
+        expect(helperLineRule).toContain('overflow-wrap: normal');
+    });
+
     function extractRule(stylesheet: string, selector: string): string {
         const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const match = stylesheet.match(new RegExp(`${escapedSelector}\\s*\\{(?<body>[^}]*)\\}`));

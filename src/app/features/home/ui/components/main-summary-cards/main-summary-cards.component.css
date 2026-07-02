@@ -66,6 +66,11 @@
     gap: 0.18rem;
 }
 
+.summary-card__helper--stack > span {
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
+
 .summary-card[data-tone='primary'] .summary-card__icon,
 .summary-card[data-tone='primary'] .summary-card__value {
     color: var(--color-ms-primary);

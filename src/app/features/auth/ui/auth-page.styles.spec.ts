@@ -28,12 +28,28 @@ describe('Auth page responsive styles', () => {
         expect(responsiveStyles).toContain('.security-note');
     });
 
-    function extractRule(styles: string, selector: string): string {
+    it('keeps the compact mobile auth form centered instead of pinning it to the top', () => {
+        const bodyRule = extractRule(responsiveStyles, '.auth-body', 'last');
+        const innerRule = extractRule(responsiveStyles, '.auth-panel__inner', 'last');
+
+        expect(bodyRule).toContain('justify-content: center');
+        expect(bodyRule).not.toContain('justify-content: flex-start');
+        expect(innerRule).toContain('justify-content: center');
+    });
+
+    function extractRule(
+        styles: string,
+        selector: string,
+        match: 'first' | 'last' = 'first',
+    ): string {
         const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const match = styles.match(new RegExp(`${escapedSelector}\\s*\\{(?<body>[^}]*)\\}`));
+        const matches = Array.from(
+            styles.matchAll(new RegExp(`${escapedSelector}\\s*\\{(?<body>[^}]*)\\}`, 'g')),
+        );
+        const ruleMatch = match === 'last' ? matches.at(-1) : matches[0];
 
-        expect(match?.groups?.['body']).toBeDefined();
+        expect(ruleMatch?.groups?.['body']).toBeDefined();
 
-        return match!.groups!['body'];
+        return ruleMatch!.groups!['body'];
     }
 });
