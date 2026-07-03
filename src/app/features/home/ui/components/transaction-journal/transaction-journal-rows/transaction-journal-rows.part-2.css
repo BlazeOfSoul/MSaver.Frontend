@@ -15,10 +15,46 @@ ms-button.transaction-edit-action {
     min-width: 6.75rem;
 }
 
+ms-button.ms-btn.transaction-edit-action {
+    --edit-action-color: var(--color-ms-warning);
+    --text-color: color-mix(in oklab, var(--edit-action-color), white 18%);
+    --border-color: color-mix(in oklab, var(--edit-action-color), transparent 78%);
+    --accent-color: color-mix(in oklab, var(--edit-action-color), white 14%);
+    --glow-color: color-mix(in oklab, var(--edit-action-color), transparent 78%);
+
+    color: color-mix(in oklab, var(--edit-action-color), white 18%);
+    border-color: color-mix(in oklab, var(--edit-action-color), transparent 78%);
+    background: color-mix(in oklab, var(--edit-action-color), transparent 94%);
+}
+
+.transaction-action-button .material-symbols-outlined {
+    flex: 0 0 auto;
+}
+
 .transaction-edit-action__label,
 .transaction-delete-action__label {
     font-size: 0.78rem;
     font-weight: 700;
+}
+
+@media (hover: hover) {
+    ms-button.ms-btn.transaction-edit-action:hover {
+        color: color-mix(in oklab, var(--edit-action-color), white 28%);
+        border-color: color-mix(in oklab, var(--edit-action-color), white 8%);
+        background: color-mix(in oklab, var(--edit-action-color), transparent 84%);
+        box-shadow:
+            0 0 0 3px color-mix(in oklab, var(--edit-action-color), transparent 88%),
+            0 0 18px color-mix(in oklab, var(--edit-action-color), transparent 78%),
+            inset 0 1px 0 var(--color-ms-white-alpha-12);
+    }
+}
+
+ms-button.ms-btn.transaction-edit-action:focus-visible {
+    border-color: color-mix(in oklab, var(--edit-action-color), white 8%);
+    box-shadow:
+        0 0 0 3px color-mix(in oklab, var(--edit-action-color), transparent 84%),
+        0 0 18px color-mix(in oklab, var(--edit-action-color), transparent 76%),
+        inset 0 1px 0 var(--color-ms-white-alpha-12);
 }
 
 @media (max-width: 900px) {
@@ -75,7 +111,7 @@ ms-button.transaction-edit-action {
         padding-left: 0;
     }
 
-    .transactions-table__actions--with-edit {
+    .transactions-table__actions.transactions-table__actions--with-edit {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
