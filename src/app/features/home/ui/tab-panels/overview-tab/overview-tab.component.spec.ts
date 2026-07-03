@@ -166,7 +166,7 @@ describe('OverviewTabComponent', () => {
         expect(editSpy).toHaveBeenCalledWith(editable);
     });
 
-    it('renders edit as a readable action instead of a pencil-only icon', () => {
+    it('renders edit and delete as readable row action buttons', () => {
         fixture.componentRef.setInput('transactions', [
             transaction({
                 id: 'editable',
@@ -180,14 +180,23 @@ describe('OverviewTabComponent', () => {
         const editButton = host.querySelector<HTMLButtonElement>(
             '[data-testid="edit-transaction"]',
         );
+        const deleteButton = host.querySelector<HTMLButtonElement>(
+            '[data-testid="delete-transaction"]',
+        );
 
         expect(editButton?.textContent ?? '').toContain('Изменить');
         expect(editButton?.querySelector('.material-symbols-outlined')?.textContent?.trim()).toBe(
-            'tune',
+            'edit',
+        );
+        expect(deleteButton?.textContent ?? '').toContain('Удалить');
+        expect(
+            deleteButton?.querySelector('.material-symbols-outlined')?.textContent?.trim(),
+        ).toBe(
+            'delete',
         );
     });
 
-    it('keeps mobile transaction actions in one inline row with a readable edit action', () => {
+    it('keeps mobile transaction actions in one inline row with readable buttons', () => {
         fixture.componentRef.setInput('transactions', [
             transaction({
                 id: 'editable',
@@ -200,13 +209,22 @@ describe('OverviewTabComponent', () => {
         const host = fixture.nativeElement as HTMLElement;
         const actions = host.querySelector<HTMLElement>('.transactions-table__actions');
         const editButton = host.querySelector<HTMLElement>('[data-testid="edit-transaction"]');
+        const deleteButton = host.querySelector<HTMLElement>('[data-testid="delete-transaction"]');
         const editLabel = editButton?.querySelector<HTMLElement>('.transaction-edit-action__label');
+        const deleteLabel = deleteButton?.querySelector<HTMLElement>(
+            '.transaction-delete-action__label',
+        );
 
         expect(actions?.classList.contains('transactions-table__actions--inline')).toBe(true);
         expect(actions?.classList.contains('transactions-table__actions--with-edit')).toBe(true);
+        expect(editButton?.classList.contains('transaction-action-button')).toBe(true);
         expect(editButton?.classList.contains('transaction-edit-action--readable')).toBe(true);
+        expect(deleteButton?.classList.contains('transaction-action-button')).toBe(true);
+        expect(deleteButton?.classList.contains('transaction-delete-action--readable')).toBe(true);
         expect(editLabel?.classList.contains('sr-only')).toBe(false);
         expect(editLabel?.textContent?.trim()).toBe('Изменить');
+        expect(deleteLabel?.classList.contains('sr-only')).toBe(false);
+        expect(deleteLabel?.textContent?.trim()).toBe('Удалить');
     });
 
     it('renders no row actions for transfer transaction rows', () => {

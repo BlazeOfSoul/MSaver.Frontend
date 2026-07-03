@@ -1,16 +1,22 @@
 .transactions-table__actions {
     display: flex;
-    width: 12.5rem;
+    width: 13.75rem;
     justify-content: flex-end;
     gap: 0.4rem;
     text-align: right;
+}
+
+ms-button.transaction-edit-action,
+ms-button.transaction-delete-action {
+    min-width: 6.35rem;
 }
 
 ms-button.transaction-edit-action {
     min-width: 6.75rem;
 }
 
-.transaction-edit-action__label {
+.transaction-edit-action__label,
+.transaction-delete-action__label {
     font-size: 0.78rem;
     font-weight: 700;
 }
@@ -59,22 +65,22 @@ ms-button.transaction-edit-action {
     }
 
     .transactions-table__actions {
-        display: flex;
+        display: grid;
         width: 100%;
         align-items: center;
-        justify-content: flex-start;
+        grid-template-columns: minmax(0, 1fr);
         gap: 0.45rem;
         box-sizing: border-box;
         padding-top: 0.2rem;
-        padding-left: calc(5.2rem + 0.75rem);
+        padding-left: 0;
     }
 
     .transactions-table__actions--with-edit {
-        flex-wrap: nowrap;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .transactions-table__actions--split {
-        justify-content: flex-start;
+        justify-items: stretch;
     }
 
     .transactions-table__actions::before {
@@ -85,23 +91,16 @@ ms-button.transaction-edit-action {
         min-width: 0;
     }
 
-    .transactions-table__actions ms-button:not(.transaction-edit-action) {
-        width: 2.75rem;
-        min-width: 2.75rem;
+    .transactions-table__actions .transaction-action-button {
+        width: 100%;
+        min-width: 0;
         height: 2.5rem;
         min-height: 2.5rem;
-        padding: 0;
+        padding: 0 0.65rem;
     }
 
-    ms-button.transaction-edit-action {
-        width: auto;
-        min-width: 5.25rem;
-        height: 2.5rem;
-        min-height: 2.5rem;
-        padding: 0 0.75rem;
-    }
-
-    .transaction-edit-action__label {
+    .transaction-edit-action__label,
+    .transaction-delete-action__label {
         position: static;
         width: auto;
         height: auto;

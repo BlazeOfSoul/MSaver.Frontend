@@ -12,20 +12,22 @@ describe('Transaction journal row mobile styles', () => {
         'utf8',
     );
 
-    it('aligns row action buttons under the mobile value column as one compact group', () => {
+    it('stretches readable row action buttons across the mobile card', () => {
         const actionsRule = extractLastRule(mobileStyles, '.transactions-table__actions');
         const withEditRule = extractLastRule(
             mobileStyles,
             '.transactions-table__actions--with-edit',
         );
-        const editActionRule = extractLastRule(mobileStyles, 'ms-button.transaction-edit-action');
+        const actionButtonRule = extractLastRule(
+            mobileStyles,
+            '.transactions-table__actions .transaction-action-button',
+        );
 
-        expect(actionsRule).toContain('display: flex');
-        expect(actionsRule).toContain('padding-left: calc(5.2rem + 0.75rem)');
-        expect(actionsRule).toContain('justify-content: flex-start');
-        expect(withEditRule).not.toContain('grid-template-columns');
-        expect(editActionRule).toContain('width: auto');
-        expect(editActionRule).toContain('min-width: 5.25rem');
+        expect(actionsRule).toContain('display: grid');
+        expect(actionsRule).toContain('padding-left: 0');
+        expect(withEditRule).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+        expect(actionButtonRule).toContain('width: 100%');
+        expect(actionButtonRule).toContain('min-width: 0');
     });
 
     function extractLastRule(styles: string, selector: string): string {
