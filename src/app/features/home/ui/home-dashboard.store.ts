@@ -1171,7 +1171,7 @@ export class HomeDashboardStore {
         this.ensureDraftDefaults();
 
         this.runMutation(
-            this.homeApi.resetCategoryOrder(),
+            this.homeApi.resetCategoryOrder({ categoryIds: [...nextPriorityIds] }),
             'Не удалось сбросить порядок категорий.',
             () => undefined,
             () => {

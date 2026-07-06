@@ -159,24 +159,41 @@
                                         <div class="dialog__date-picker-grid">
                                             <label class="dialog__date-part-input">
                                                 <span>Дата</span>
-                                                <input
-                                                    type="date"
-                                                    [value]="dateText()"
-                                                    (input)="
-                                                        onDatePartInputEvent($event)
-                                                    "
-                                                />
+                                                <span class="dialog__picker-input-shell">
+                                                    <span class="material-symbols-outlined" aria-hidden="true">
+                                                        calendar_month
+                                                    </span>
+                                                    <input
+                                                        type="text"
+                                                        inputmode="numeric"
+                                                        autocomplete="off"
+                                                        placeholder="ДД.ММ.ГГГГ"
+                                                        [value]="dateText()"
+                                                        (input)="
+                                                            onDatePartInputEvent($event)
+                                                        "
+                                                    />
+                                                </span>
                                             </label>
 
                                             <label class="dialog__time-part-input">
                                                 <span>Время</span>
-                                                <input
-                                                    type="time"
-                                                    [value]="timeText()"
-                                                    (input)="
-                                                        onTimePartInputEvent($event)
-                                                    "
-                                                />
+                                                <span class="dialog__picker-input-shell">
+                                                    <span class="material-symbols-outlined" aria-hidden="true">
+                                                        schedule
+                                                    </span>
+                                                    <input
+                                                        type="text"
+                                                        inputmode="numeric"
+                                                        autocomplete="off"
+                                                        maxlength="5"
+                                                        placeholder="ЧЧ:ММ"
+                                                        [value]="timeText()"
+                                                        (input)="
+                                                            onTimePartInputEvent($event)
+                                                        "
+                                                    />
+                                                </span>
                                             </label>
                                         </div>
                                     </div>

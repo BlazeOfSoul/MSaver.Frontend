@@ -219,6 +219,8 @@ describe('AddTransactionDialogComponent', () => {
         fixture.detectChanges();
 
         expect(host.querySelector('.dialog__date-picker')).not.toBeNull();
+        expect(host.querySelector('input[type="date"]')).toBeNull();
+        expect(host.querySelector('input[type="time"]')).toBeNull();
         expect(host.querySelector('.dialog__date-part-input input')).not.toBeNull();
         expect(host.querySelector('.dialog__time-part-input input')).not.toBeNull();
     });
@@ -233,7 +235,7 @@ describe('AddTransactionDialogComponent', () => {
         expect(dateTimeInput?.value).toBe('05.06.2026 00:00');
     });
 
-    it('uses native date and time fields inside the app-styled picker', () => {
+    it('uses app-styled text fields inside the date and time picker', () => {
         const draftSpy = vi.fn();
         component.draftChange.subscribe(draftSpy);
         fixture.detectChanges();
@@ -247,12 +249,14 @@ describe('AddTransactionDialogComponent', () => {
 
         expect(dateInput).not.toBeNull();
         expect(timeInput).not.toBeNull();
-        expect(dateInput?.type).toBe('date');
-        expect(timeInput?.type).toBe('time');
-        expect(dateInput?.value).toBe('2026-06-05');
+        expect(host.querySelector('input[type="date"]')).toBeNull();
+        expect(host.querySelector('input[type="time"]')).toBeNull();
+        expect(dateInput?.type).toBe('text');
+        expect(timeInput?.type).toBe('text');
+        expect(dateInput?.value).toBe('05.06.2026');
         expect(timeInput?.value).toBe('00:00');
 
-        dateInput!.value = '2026-07-08';
+        dateInput!.value = '08.07.2026';
         dateInput!.dispatchEvent(new Event('input', { bubbles: true }));
         fixture.detectChanges();
 
@@ -312,7 +316,7 @@ describe('AddTransactionDialogComponent', () => {
         expect(dateInput).not.toBeNull();
         expect(timeInput).not.toBeNull();
 
-        dateInput!.value = '2026-07-08';
+        dateInput!.value = '08.07.2026';
         dateInput!.dispatchEvent(new Event('input', { bubbles: true }));
 
         expect(draftSpy).toHaveBeenLastCalledWith({
@@ -332,7 +336,7 @@ describe('AddTransactionDialogComponent', () => {
         });
     });
 
-    it('reads date and time values from native input events', () => {
+    it('reads date and time values from text input events', () => {
         const draftSpy = vi.fn();
         const eventApi = component as unknown as {
             onDatePartInputEvent?: (event: Event) => void;
@@ -346,12 +350,12 @@ describe('AddTransactionDialogComponent', () => {
 
         const dateInput = document.createElement('input');
         const dateEvent = new Event('input', { bubbles: true });
-        dateInput.value = '2026-07-08';
+        dateInput.value = '08072026';
         Object.defineProperty(dateEvent, 'target', { value: dateInput });
 
         eventApi.onDatePartInputEvent!(dateEvent);
 
-        expect(component.dateText()).toBe('2026-07-08');
+        expect(component.dateText()).toBe('08.07.2026');
         expect(draftSpy).toHaveBeenLastCalledWith({
             ...draft,
             date: '2026-07-08T00:00',

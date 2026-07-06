@@ -40,11 +40,12 @@ describe('HomeApiService', () => {
         request.flush(null);
     });
 
-    it('resets the saved category order for the current user', () => {
-        service.resetCategoryOrder().subscribe();
+    it('resets the saved category order for the current user through the existing PUT endpoint', () => {
+        service.resetCategoryOrder({ categoryIds: ['food-id', 'rent-id'] }).subscribe();
 
         const request = httpMock.expectOne(`${environment.apiUrl}/Categories/order`);
-        expect(request.request.method).toBe('DELETE');
+        expect(request.request.method).toBe('PUT');
+        expect(request.request.body).toEqual({ categoryIds: ['food-id', 'rent-id'] });
         request.flush(null);
     });
 });

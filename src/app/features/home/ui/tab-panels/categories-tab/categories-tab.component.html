@@ -104,7 +104,7 @@
             <div class="panel__header category-order-panel__header">
                 <div>
                     <h2>Порядок категорий</h2>
-                    <p>Очередность для выбора категории в транзакциях.</p>
+                    <p>Перетащите категорию за ручку, чтобы изменить порядок в выборе транзакции.</p>
                 </div>
 
                 <ms-button
@@ -141,9 +141,15 @@
                                     <div
                                         class="category-order-row"
                                         data-testid="category-order-row"
+                                        [attr.data-category-id]="category.id"
                                         role="row"
+                                        (dragover)="dragCategoryOver($event, category)"
+                                        (drop)="dropCategoryOn($event, category)"
                                         [class.category-order-row--move-up]="movedClass(category.id) === 'category-order-row--move-up'"
                                         [class.category-order-row--move-down]="movedClass(category.id) === 'category-order-row--move-down'"
+                                        [class.category-order-row--dragging]="isDraggedCategory(category)"
+                                        [class.category-order-row--shift-up]="dragShiftDirection(category, section.items) === 'up'"
+                                        [class.category-order-row--shift-down]="dragShiftDirection(category, section.items) === 'down'"
                                     >
                                         <span class="category-order-row__index">{{ index + 1 }}</span>
                                         <span
@@ -154,28 +160,23 @@
                                         <span class="category-order-row__name">
                                             {{ category.displayName || category.name }}
                                         </span>
-                                        <span class="category-order-row__actions">
-                                            <button
-                                                type="button"
-                                                class="category-order-row__move"
-                                                data-testid="move-category-up"
-                                                [disabled]="saving() || !canMoveCategory(category, 'up')"
-                                                (click)="moveCategoryFromOrder(category.id, 'up')"
-                                                aria-label="Поднять категорию выше"
-                                            >
-                                                <span class="material-symbols-outlined">keyboard_arrow_up</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="category-order-row__move"
-                                                data-testid="move-category-down"
-                                                [disabled]="saving() || !canMoveCategory(category, 'down')"
-                                                (click)="moveCategoryFromOrder(category.id, 'down')"
-                                                aria-label="Опустить категорию ниже"
-                                            >
-                                                <span class="material-symbols-outlined">keyboard_arrow_down</span>
-                                            </button>
-                                        </span>
+                                        <button
+                                            type="button"
+                                            class="category-order-row__drag-handle"
+                                            data-testid="drag-category-handle"
+                                            [attr.draggable]="!saving()"
+                                            [disabled]="saving()"
+                                            (dragstart)="startCategoryDrag($event, category)"
+                                            (dragend)="endCategoryDrag()"
+                                            (pointerdown)="startCategoryPointerDrag($event, category)"
+                                            (pointermove)="moveCategoryPointerDrag($event)"
+                                            (pointerup)="dropCategoryPointerDrag($event)"
+                                            (pointercancel)="endCategoryDrag()"
+                                            (keydown)="reorderCategoryWithKeyboard($event, category)"
+                                            aria-label="Перетащить категорию"
+                                        >
+                                            <span class="material-symbols-outlined">drag_handle</span>
+                                        </button>
                                     </div>
                                 }
                             </div>

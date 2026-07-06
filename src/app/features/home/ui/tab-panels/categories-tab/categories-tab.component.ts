@@ -15,11 +15,11 @@ import { CategoryGroupPanelComponent } from '../../components/category-group-pan
 import { NameColorDialogComponent } from '../../components/name-color-dialog/name-color-dialog.component';
 import { TagGroupCardComponent } from '../../components/tag-group-card/tag-group-card.component';
 import { CategoryMoveDirection } from '../../home-category-order.utils';
-import { isDebtCategoryName } from '../../home-debt.utils';
 import { CategoryBreakdownItem, TagGroupItem } from '../../home-page.models';
 
 type CategoryDialogType = 'income' | 'expense';
 type CategorySubtab = 'items' | 'order';
+type DragShiftDirection = 'up' | 'down';
 type RecentlyMovedCategory = {
     id: string;
     direction: CategoryMoveDirection;
@@ -80,6 +80,8 @@ export class CategoriesTabComponent implements OnDestroy {
     readonly isCategoryDialogOpen = signal(false);
     readonly isTagDialogOpen = signal(false);
     readonly recentlyMovedCategory = signal<RecentlyMovedCategory | null>(null);
+    readonly draggedCategoryId = signal<string | null>(null);
+    readonly dragOverCategoryId = signal<string | null>(null);
     readonly categoryDialogType = signal<CategoryDialogType>('income');
     readonly categoryDialogTitle = computed(() =>
         this.categoryDialogType() === 'income'
@@ -208,14 +210,11 @@ export class CategoriesTabComponent implements OnDestroy {
         );
         const index = sameTypeCategories.findIndex((item) => item.id === category.id);
         const swapIndex = direction === 'up' ? index - 1 : index + 1;
-        const swapCategory = sameTypeCategories[swapIndex];
 
         if (
             index < 0 ||
             swapIndex < 0 ||
-            swapIndex >= sameTypeCategories.length ||
-            isDebtCategoryName(category.name) ||
-            isDebtCategoryName(swapCategory?.name)
+            swapIndex >= sameTypeCategories.length
         ) {
             return false;
         }
@@ -233,6 +232,127 @@ export class CategoriesTabComponent implements OnDestroy {
         this.moveCategory.emit({ categoryId, direction });
     }
 
+    startCategoryDrag(event: DragEvent, category: CategoryBreakdownItem): void {
+        if (this.saving()) {
+            event.preventDefault();
+            return;
+        }
+
+        this.draggedCategoryId.set(category.id);
+        this.dragOverCategoryId.set(category.id);
+        event.dataTransfer?.setData('text/plain', category.id);
+
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+        }
+    }
+
+    dragCategoryOver(event: DragEvent, category: CategoryBreakdownItem): void {
+        if (!this.canDropCategoryOn(category)) {
+            return;
+        }
+
+        event.preventDefault();
+        this.dragOverCategoryId.set(category.id);
+
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+    }
+
+    dropCategoryOn(event: DragEvent, category: CategoryBreakdownItem): void {
+        event.preventDefault();
+        this.dropDraggedCategoryOn(category);
+    }
+
+    startCategoryPointerDrag(event: PointerEvent, category: CategoryBreakdownItem): void {
+        if (this.saving()) {
+            return;
+        }
+
+        event.preventDefault();
+        this.draggedCategoryId.set(category.id);
+        this.dragOverCategoryId.set(category.id);
+        (event.currentTarget as HTMLElement | null)?.setPointerCapture?.(event.pointerId);
+    }
+
+    moveCategoryPointerDrag(event: PointerEvent): void {
+        const targetCategory = this.categoryFromPoint(event.clientX, event.clientY);
+
+        if (!targetCategory || !this.canDropCategoryOn(targetCategory)) {
+            return;
+        }
+
+        event.preventDefault();
+        this.dragOverCategoryId.set(targetCategory.id);
+    }
+
+    dropCategoryPointerDrag(event: PointerEvent): void {
+        const targetCategory = this.categoryFromPoint(event.clientX, event.clientY);
+
+        (event.currentTarget as HTMLElement | null)?.releasePointerCapture?.(event.pointerId);
+
+        if (!targetCategory) {
+            this.clearCategoryDrag();
+            return;
+        }
+
+        this.dropDraggedCategoryOn(targetCategory);
+    }
+
+    endCategoryDrag(): void {
+        this.clearCategoryDrag();
+    }
+
+    reorderCategoryWithKeyboard(event: KeyboardEvent, category: CategoryBreakdownItem): void {
+        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+            return;
+        }
+
+        const direction: CategoryMoveDirection = event.key === 'ArrowUp' ? 'up' : 'down';
+
+        if (!this.canMoveCategory(category, direction)) {
+            return;
+        }
+
+        event.preventDefault();
+        this.moveCategoryFromOrder(category.id, direction);
+    }
+
+    isDraggedCategory(category: CategoryBreakdownItem): boolean {
+        return this.draggedCategoryId() === category.id;
+    }
+
+    dragShiftDirection(
+        category: CategoryBreakdownItem,
+        items: ReadonlyArray<CategoryBreakdownItem>,
+    ): DragShiftDirection | null {
+        const draggedCategoryId = this.draggedCategoryId();
+        const dragOverCategoryId = this.dragOverCategoryId();
+
+        if (!draggedCategoryId || !dragOverCategoryId || category.id === draggedCategoryId) {
+            return null;
+        }
+
+        const fromIndex = items.findIndex((item) => item.id === draggedCategoryId);
+        const toIndex = items.findIndex((item) => item.id === dragOverCategoryId);
+        const index = items.findIndex((item) => item.id === category.id);
+
+        if (fromIndex < 0 || toIndex < 0 || index < 0 || fromIndex === toIndex) {
+            return null;
+        }
+
+        if (fromIndex < toIndex && index > fromIndex && index <= toIndex) {
+            return 'up';
+        }
+
+        if (fromIndex > toIndex && index >= toIndex && index < fromIndex) {
+            return 'down';
+        }
+
+        return null;
+    }
+
     movedClass(categoryId: string): string | null {
         const recentlyMoved = this.recentlyMovedCategory();
 
@@ -241,6 +361,71 @@ export class CategoriesTabComponent implements OnDestroy {
         }
 
         return `category-order-row--move-${recentlyMoved.direction}`;
+    }
+
+    private dropDraggedCategoryOn(category: CategoryBreakdownItem): void {
+        const draggedCategory = this.draggedCategory();
+
+        if (!draggedCategory || draggedCategory.type !== category.type) {
+            this.clearCategoryDrag();
+            return;
+        }
+
+        const sameTypeCategories = this.categoryOrderItems().filter(
+            (item) => item.type === draggedCategory.type,
+        );
+        const fromIndex = sameTypeCategories.findIndex((item) => item.id === draggedCategory.id);
+        const toIndex = sameTypeCategories.findIndex((item) => item.id === category.id);
+
+        if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+            this.clearCategoryDrag();
+            return;
+        }
+
+        const direction: CategoryMoveDirection = fromIndex > toIndex ? 'up' : 'down';
+        const moveCount = Math.abs(fromIndex - toIndex);
+
+        for (let index = 0; index < moveCount; index++) {
+            this.moveCategoryFromOrder(draggedCategory.id, direction);
+        }
+
+        this.clearCategoryDrag();
+    }
+
+    private draggedCategory(): CategoryBreakdownItem | null {
+        const draggedCategoryId = this.draggedCategoryId();
+
+        if (!draggedCategoryId) {
+            return null;
+        }
+
+        return (
+            this.categoryOrderItems().find((category) => category.id === draggedCategoryId) ?? null
+        );
+    }
+
+    private categoryFromPoint(clientX: number, clientY: number): CategoryBreakdownItem | null {
+        const row = document
+            .elementFromPoint(clientX, clientY)
+            ?.closest<HTMLElement>('[data-category-id]');
+        const categoryId = row?.dataset['categoryId'];
+
+        if (!categoryId) {
+            return null;
+        }
+
+        return this.categoryOrderItems().find((category) => category.id === categoryId) ?? null;
+    }
+
+    private canDropCategoryOn(category: CategoryBreakdownItem): boolean {
+        const draggedCategory = this.draggedCategory();
+
+        return !!draggedCategory && draggedCategory.type === category.type && !this.saving();
+    }
+
+    private clearCategoryDrag(): void {
+        this.draggedCategoryId.set(null);
+        this.dragOverCategoryId.set(null);
     }
 
     private clearMovedTimeout(): void {

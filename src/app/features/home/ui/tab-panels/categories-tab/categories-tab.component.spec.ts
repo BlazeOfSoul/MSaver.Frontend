@@ -207,7 +207,7 @@ describe('CategoriesTabComponent', () => {
         expect(debtChip?.querySelector('.category-chip__action')).toBeNull();
     });
 
-    it('renders a category reorder table and passes move actions through to the page', () => {
+    it('renders a draggable category reorder table and passes drop moves through to the page', () => {
         const moveSpy = vi.fn();
         component.moveCategory.subscribe(moveSpy);
         fixture.componentRef.setInput('incomeCategories', [
@@ -216,6 +216,7 @@ describe('CategoriesTabComponent', () => {
         fixture.componentRef.setInput('expenseCategories', [
             category({ id: 'food-id', name: 'Food', type: 'expense' }),
             category({ id: 'rent-id', name: 'Rent', type: 'expense' }),
+            category({ id: 'taxi-id', name: 'Taxi', type: 'expense' }),
         ]);
         fixture.detectChanges();
 
@@ -227,31 +228,104 @@ describe('CategoriesTabComponent', () => {
         const sections = Array.from(
             host.querySelectorAll<HTMLElement>('[data-testid="category-order-section"]'),
         );
-        const rows = Array.from(host.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]'));
-        const moveButton = Array.from(
-            host.querySelectorAll<HTMLButtonElement>('[data-testid="move-category-down"]'),
-        ).find((button) => !button.disabled);
+        const expenseSection = sections.find((section) => section.dataset['categoryType'] === 'expense');
+        const rows = Array.from(
+            expenseSection?.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]') ?? [],
+        );
+        const handles = Array.from(
+            expenseSection?.querySelectorAll<HTMLElement>('[data-testid="drag-category-handle"]') ?? [],
+        );
 
         expect(sections.map((section) => section.dataset['categoryType'])).toEqual([
             'income',
             'expense',
         ]);
         expect(host.querySelector('.category-order-table')).not.toBeNull();
+        expect(host.querySelector('[data-testid="move-category-up"]')).toBeNull();
+        expect(host.querySelector('[data-testid="move-category-down"]')).toBeNull();
+        expect(handles).toHaveLength(3);
         expect(rows.map((row) => row.textContent?.trim())).toEqual([
-            expect.stringContaining('Salary'),
             expect.stringContaining('Food'),
             expect.stringContaining('Rent'),
+            expect.stringContaining('Taxi'),
         ]);
 
-        moveButton?.click();
+        const dragStart = new Event('dragstart', { bubbles: true, cancelable: true });
+        Object.defineProperty(dragStart, 'dataTransfer', {
+            value: { setData: vi.fn(), effectAllowed: '' },
+        });
+
+        handles[2].dispatchEvent(dragStart);
+        rows[0].dispatchEvent(new Event('dragover', { bubbles: true, cancelable: true }));
+        rows[0].dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
         fixture.detectChanges();
 
-        expect(moveSpy).toHaveBeenCalledWith({ categoryId: 'food-id', direction: 'down' });
-        expect(
-            rows
-                .find((row) => row.textContent?.includes('Food'))
-                ?.classList.contains('category-order-row--move-down'),
-        ).toBe(true);
+        expect(moveSpy).toHaveBeenNthCalledWith(1, { categoryId: 'taxi-id', direction: 'up' });
+        expect(moveSpy).toHaveBeenNthCalledWith(2, { categoryId: 'taxi-id', direction: 'up' });
+    });
+
+    it('supports pointer drag from the end of the category list to the top', () => {
+        const moveSpy = vi.fn();
+        const foodCategory = category({ id: 'food-id', name: 'Food', type: 'expense' });
+        const rentCategory = category({ id: 'rent-id', name: 'Rent', type: 'expense' });
+        const taxiCategory = category({ id: 'taxi-id', name: 'Taxi', type: 'expense' });
+        component.moveCategory.subscribe(moveSpy);
+        fixture.componentRef.setInput('expenseCategories', [
+            foodCategory,
+            rentCategory,
+            taxiCategory,
+        ]);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>('[data-testid="category-subtab-order"]')?.click();
+        fixture.detectChanges();
+
+        const rows = Array.from(host.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]'));
+        const handles = Array.from(
+            host.querySelectorAll<HTMLElement>('[data-testid="drag-category-handle"]'),
+        );
+        const originalElementFromPoint = document.elementFromPoint;
+        const elementFromPointSpy = vi.fn().mockReturnValue(rows[0]);
+
+        Object.defineProperty(document, 'elementFromPoint', {
+            configurable: true,
+            value: elementFromPointSpy,
+        });
+
+        component.startCategoryPointerDrag(
+            {
+                currentTarget: handles[2],
+                pointerId: 1,
+                preventDefault: vi.fn(),
+            } as unknown as PointerEvent,
+            taxiCategory,
+        );
+        component.moveCategoryPointerDrag({
+            clientX: 10,
+            clientY: 10,
+            preventDefault: vi.fn(),
+        } as unknown as PointerEvent);
+        component.dropCategoryPointerDrag({
+            clientX: 10,
+            clientY: 10,
+            currentTarget: handles[2],
+            pointerId: 1,
+        } as unknown as PointerEvent);
+
+        expect(elementFromPointSpy).toHaveBeenCalled();
+        expect(moveSpy).toHaveBeenNthCalledWith(1, { categoryId: 'taxi-id', direction: 'up' });
+        expect(moveSpy).toHaveBeenNthCalledWith(2, { categoryId: 'taxi-id', direction: 'up' });
+
+        if (originalElementFromPoint) {
+            Object.defineProperty(document, 'elementFromPoint', {
+                configurable: true,
+                value: originalElementFromPoint,
+            });
+        } else {
+            Reflect.deleteProperty(document, 'elementFromPoint');
+        }
     });
 
     it('uses full category order items when category cards are filtered', () => {
@@ -272,15 +346,15 @@ describe('CategoriesTabComponent', () => {
 
         const rows = Array.from(host.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]'));
         const visibleRow = rows.find((row) => row.textContent?.includes('Visible'));
-        const visibleMoveUp = visibleRow?.querySelector<HTMLButtonElement>(
-            '[data-testid="move-category-up"]',
+        const visibleHandle = visibleRow?.querySelector<HTMLElement>(
+            '[data-testid="drag-category-handle"]',
         );
 
         expect(rows.map((row) => row.textContent?.trim())).toEqual([
             expect.stringContaining('Hidden'),
             expect.stringContaining('Visible'),
         ]);
-        expect(visibleMoveUp?.disabled).toBe(false);
+        expect(visibleHandle).not.toBeNull();
     });
 
     it('keeps category order in a separate subtab and emits reset actions', () => {

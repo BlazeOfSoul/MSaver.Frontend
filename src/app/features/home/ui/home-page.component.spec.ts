@@ -5507,7 +5507,9 @@ describe('HomePageComponent', () => {
 
         fixture.componentInstance.resetCategoryOrder();
 
-        expect(homeApi.resetCategoryOrder).toHaveBeenCalledOnce();
+        expect(homeApi.resetCategoryOrder).toHaveBeenCalledWith({
+            categoryIds: ['food-id', 'rent-id', 'taxi-id'],
+        });
         expect(
             fixture.componentInstance.expenseCategories().map((category) => category.name),
         ).toEqual(['Food', 'Rent', 'Taxi']);

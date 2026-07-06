@@ -68,7 +68,7 @@ describe('home page mappers', () => {
         expect(mapped[0].isSystem).toBe(true);
     });
 
-    it('keeps debt categories visible and first in category lists', () => {
+    it('keeps debt categories visible without pinning them above regular categories', () => {
         const categories: CategoryResponse[] = [
             {
                 id: 'food',
@@ -87,8 +87,8 @@ describe('home page mappers', () => {
 
         const mapped = mapCategories(categories, [], 'expense', 'BYN');
 
-        expect(mapped.map((category) => category.id)).toEqual(['debt-given', 'food']);
-        expect(mapped[0].isSystem).toBe(true);
+        expect(mapped.map((category) => category.id)).toEqual(['food', 'debt-given']);
+        expect(mapped[1].isSystem).toBe(true);
     });
 
     it('can exclude debt categories from analytics category lists', () => {
