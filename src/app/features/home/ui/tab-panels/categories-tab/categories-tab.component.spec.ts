@@ -207,9 +207,9 @@ describe('CategoriesTabComponent', () => {
         expect(debtChip?.querySelector('.category-chip__action')).toBeNull();
     });
 
-    it('renders a draggable category reorder table and passes drop moves through to the page', () => {
-        const moveSpy = vi.fn();
-        component.moveCategory.subscribe(moveSpy);
+    it('renders a draggable category reorder table and passes the final dropped order through to the page', () => {
+        const reorderSpy = vi.fn();
+        component.reorderCategories.subscribe(reorderSpy);
         fixture.componentRef.setInput('incomeCategories', [
             category({ id: 'salary-id', name: 'Salary', type: 'income' }),
         ]);
@@ -260,16 +260,21 @@ describe('CategoriesTabComponent', () => {
         rows[0].dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
         fixture.detectChanges();
 
-        expect(moveSpy).toHaveBeenNthCalledWith(1, { categoryId: 'taxi-id', direction: 'up' });
-        expect(moveSpy).toHaveBeenNthCalledWith(2, { categoryId: 'taxi-id', direction: 'up' });
+        expect(reorderSpy).toHaveBeenCalledOnce();
+        expect(reorderSpy).toHaveBeenCalledWith([
+            'salary-id',
+            'taxi-id',
+            'food-id',
+            'rent-id',
+        ]);
     });
 
     it('supports pointer drag from the end of the category list to the top', () => {
-        const moveSpy = vi.fn();
+        const reorderSpy = vi.fn();
         const foodCategory = category({ id: 'food-id', name: 'Food', type: 'expense' });
         const rentCategory = category({ id: 'rent-id', name: 'Rent', type: 'expense' });
         const taxiCategory = category({ id: 'taxi-id', name: 'Taxi', type: 'expense' });
-        component.moveCategory.subscribe(moveSpy);
+        component.reorderCategories.subscribe(reorderSpy);
         fixture.componentRef.setInput('expenseCategories', [
             foodCategory,
             rentCategory,
@@ -297,6 +302,7 @@ describe('CategoriesTabComponent', () => {
         component.startCategoryPointerDrag(
             {
                 currentTarget: handles[2],
+                pointerType: 'touch',
                 pointerId: 1,
                 preventDefault: vi.fn(),
             } as unknown as PointerEvent,
@@ -305,18 +311,20 @@ describe('CategoriesTabComponent', () => {
         component.moveCategoryPointerDrag({
             clientX: 10,
             clientY: 10,
+            pointerType: 'touch',
             preventDefault: vi.fn(),
         } as unknown as PointerEvent);
         component.dropCategoryPointerDrag({
             clientX: 10,
             clientY: 10,
             currentTarget: handles[2],
+            pointerType: 'touch',
             pointerId: 1,
         } as unknown as PointerEvent);
 
         expect(elementFromPointSpy).toHaveBeenCalled();
-        expect(moveSpy).toHaveBeenNthCalledWith(1, { categoryId: 'taxi-id', direction: 'up' });
-        expect(moveSpy).toHaveBeenNthCalledWith(2, { categoryId: 'taxi-id', direction: 'up' });
+        expect(reorderSpy).toHaveBeenCalledOnce();
+        expect(reorderSpy).toHaveBeenCalledWith(['taxi-id', 'food-id', 'rent-id']);
 
         if (originalElementFromPoint) {
             Object.defineProperty(document, 'elementFromPoint', {
@@ -326,6 +334,26 @@ describe('CategoriesTabComponent', () => {
         } else {
             Reflect.deleteProperty(document, 'elementFromPoint');
         }
+    });
+
+    it('does not cancel mouse pointerdown so native desktop drag can start', () => {
+        const preventDefault = vi.fn();
+        const setPointerCapture = vi.fn();
+        const taxiCategory = category({ id: 'taxi-id', name: 'Taxi', type: 'expense' });
+
+        component.startCategoryPointerDrag(
+            {
+                currentTarget: { setPointerCapture },
+                pointerId: 1,
+                pointerType: 'mouse',
+                preventDefault,
+            } as unknown as PointerEvent,
+            taxiCategory,
+        );
+
+        expect(preventDefault).not.toHaveBeenCalled();
+        expect(setPointerCapture).not.toHaveBeenCalled();
+        expect(component.draggedCategoryId()).toBeNull();
     });
 
     it('uses full category order items when category cards are filtered', () => {

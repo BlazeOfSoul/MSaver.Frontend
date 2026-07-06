@@ -109,24 +109,6 @@
     white-space: nowrap;
 }
 
-.category-chip__move {
-    display: inline-grid;
-    place-items: center;
-    width: 1.6rem;
-    height: 1.6rem;
-    border: 1px solid var(--color-ms-white-alpha-14);
-    border-radius: 999px;
-    color: currentColor;
-    background: var(--color-ms-white-alpha-04);
-    cursor: pointer;
-}
-
-.category-chip__move:disabled {
-    opacity: 0.38;
-    cursor: not-allowed;
-}
-
-.category-chip__move .material-symbols-outlined,
 .category-chip__action .material-symbols-outlined {
     font-size: 1rem;
 }

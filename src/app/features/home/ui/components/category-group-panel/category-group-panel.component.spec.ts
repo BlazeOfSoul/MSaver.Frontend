@@ -78,40 +78,35 @@ describe('CategoryGroupPanelComponent', () => {
         expect(deleteSpy).toHaveBeenCalledWith('salary-id');
     });
 
-    it('emits priority move actions for non-system categories only', () => {
-        const moveSpy = vi.fn();
-        component.moveCategory.subscribe(moveSpy);
+    it('does not render priority move actions in category chips', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
         const moveButtons = host.querySelectorAll<HTMLButtonElement>('.category-chip__move');
 
-        expect(moveButtons).toHaveLength(2);
-        expect(moveButtons[0].disabled).toBe(true);
-        expect(moveButtons[1].disabled).toBe(false);
-
-        moveButtons[1].click();
-
-        expect(moveSpy).toHaveBeenCalledWith({ categoryId: 'salary-id', direction: 'down' });
+        expect(moveButtons).toHaveLength(0);
     });
 
-    it('uses the provided move availability callback for chip controls', () => {
+    it('hides delete actions for debt categories even when they are not marked as system', () => {
         fixture.componentRef.setInput('categories', [
             category({ id: 'salary-id', name: 'Salary', isSystem: false }),
+            category({
+                id: 'debt-given-id',
+                name: 'Дано в долг (-)',
+                isSystem: false,
+                type: 'expense',
+            }),
         ]);
-        fixture.componentRef.setInput('canMoveCategory', (
-            _category: CategoryBreakdownItem,
-            direction: 'up' | 'down',
-        ) => direction === 'up');
 
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
-        const moveButtons = host.querySelectorAll<HTMLButtonElement>('.category-chip__move');
+        const chips = Array.from(host.querySelectorAll<HTMLElement>('.category-chip'));
+        const salaryChip = chips.find((chip) => chip.textContent?.includes('Salary'));
+        const debtChip = chips.find((chip) => chip.textContent?.includes('Дано в долг'));
 
-        expect(moveButtons).toHaveLength(2);
-        expect(moveButtons[0].disabled).toBe(false);
-        expect(moveButtons[1].disabled).toBe(true);
+        expect(salaryChip?.querySelector('.category-chip__action')).not.toBeNull();
+        expect(debtChip?.querySelector('.category-chip__action')).toBeNull();
     });
 
     it('renders the empty state when there are no categories', () => {

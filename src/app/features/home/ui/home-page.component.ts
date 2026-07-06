@@ -319,6 +319,10 @@ export class HomePageComponent {
         this.dashboard.moveCategory(event.categoryId, event.direction);
     }
 
+    reorderCategories(categoryIds: ReadonlyArray<string>): void {
+        this.dashboard.reorderCategories(categoryIds);
+    }
+
     resetCategoryOrder(): void {
         this.dashboard.resetCategoryOrder();
     }

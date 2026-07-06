@@ -1159,6 +1159,38 @@ export class HomeDashboardStore {
         );
     }
 
+    reorderCategories(categoryIds: ReadonlyArray<string>): void {
+        if (this.isSaving()) {
+            return;
+        }
+
+        const previousPriorityIds = this.categoryPriorityIds();
+        const nextPriorityIds = normalizePriorityIds(this.categoryResponses(), categoryIds);
+
+        if (nextPriorityIds.every((id, index) => id === previousPriorityIds[index])) {
+            return;
+        }
+
+        this.categoryPriorityIds.set(nextPriorityIds);
+
+        if (this.categorySortMode() !== 'priority') {
+            this.categorySortMode.set('priority');
+            writeStoredCategorySortMode('priority');
+        }
+
+        this.ensureDraftDefaults();
+
+        this.runMutation(
+            this.homeApi.updateCategoryOrder({ categoryIds: [...nextPriorityIds] }),
+            'Не удалось сохранить порядок категорий.',
+            () => undefined,
+            () => {
+                this.categoryPriorityIds.set(previousPriorityIds);
+                this.ensureDraftDefaults();
+            },
+        );
+    }
+
     resetCategoryOrder(): void {
         if (this.isSaving()) {
             return;

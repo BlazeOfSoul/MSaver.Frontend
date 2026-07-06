@@ -5465,6 +5465,49 @@ describe('HomePageComponent', () => {
         expect(window.localStorage.getItem('msaver:category-priority-order')).toBeNull();
     });
 
+    it('saves dropped category order through the backend in one request', () => {
+        window.localStorage.setItem(CATEGORY_SORT_MODE_STORAGE_KEY, 'priority');
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategoryOrder.mockReturnValue(
+            of({ categoryIds: ['food-id', 'rent-id', 'taxi-id'] }),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                    },
+                    {
+                        id: 'rent-id',
+                        name: 'Rent',
+                        type: 'Debit',
+                        color: '#67a6c1',
+                    },
+                    {
+                        id: 'taxi-id',
+                        name: 'Taxi',
+                        type: 'Debit',
+                        color: '#e8b45d',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setActiveTab('categories');
+        fixture.componentInstance.reorderCategories(['taxi-id', 'food-id', 'rent-id']);
+
+        expect(homeApi.updateCategoryOrder).toHaveBeenCalledOnce();
+        expect(homeApi.updateCategoryOrder).toHaveBeenCalledWith({
+            categoryIds: ['taxi-id', 'food-id', 'rent-id'],
+        });
+    });
+
     it('resets category order through the backend and restores the default priority', () => {
         window.localStorage.setItem(CATEGORY_SORT_MODE_STORAGE_KEY, 'priority');
         homeApi.getAccounts.mockReturnValue(of(page([account()])));

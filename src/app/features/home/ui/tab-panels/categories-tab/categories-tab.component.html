@@ -40,11 +40,9 @@
             railAriaLabel="Категории доходов"
             emptyText="Категорий доходов пока нет."
             [categories]="incomeCategories()"
-            [canMoveCategory]="canMoveCategoryByOrder"
             [saving]="saving()"
             (add)="openCategoryDialog('income')"
             (deleteCategory)="deleteCategory.emit($event)"
-            (moveCategory)="moveCategory.emit($event)"
         ></ms-category-group-panel>
 
         <ms-category-group-panel
@@ -55,11 +53,9 @@
             railAriaLabel="Категории расходов"
             emptyText="Категорий расходов пока нет."
             [categories]="expenseCategories()"
-            [canMoveCategory]="canMoveCategoryByOrder"
             [saving]="saving()"
             (add)="openCategoryDialog('expense')"
             (deleteCategory)="deleteCategory.emit($event)"
-            (moveCategory)="moveCategory.emit($event)"
         ></ms-category-group-panel>
 
         <article class="panel panel--wide">

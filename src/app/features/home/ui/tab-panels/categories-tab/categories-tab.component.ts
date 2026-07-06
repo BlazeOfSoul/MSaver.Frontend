@@ -74,6 +74,7 @@ export class CategoriesTabComponent implements OnDestroy {
     assignCategoryToTag = output<{ tagId: string; categoryId: string }>();
     removeCategoryFromTag = output<{ tagId: string; categoryId: string }>();
     moveCategory = output<{ categoryId: string; direction: CategoryMoveDirection }>();
+    reorderCategories = output<ReadonlyArray<string>>();
     resetCategoryOrder = output<void>();
 
     readonly activeSubtab = signal<CategorySubtab>('items');
@@ -119,11 +120,6 @@ export class CategoriesTabComponent implements OnDestroy {
             items: this.expenseCategoryOrderItems() ?? this.expenseCategories(),
         },
     ]);
-    readonly canMoveCategoryByOrder = (
-        category: CategoryBreakdownItem,
-        direction: CategoryMoveDirection,
-    ) => this.canMoveCategory(category, direction);
-
     private movedTimeoutId: number | null = null;
 
     ngOnDestroy(): void {
@@ -223,13 +219,17 @@ export class CategoriesTabComponent implements OnDestroy {
     }
 
     moveCategoryFromOrder(categoryId: string, direction: CategoryMoveDirection): void {
+        this.markCategoryMoved(categoryId, direction);
+        this.moveCategory.emit({ categoryId, direction });
+    }
+
+    private markCategoryMoved(categoryId: string, direction: CategoryMoveDirection): void {
         this.recentlyMovedCategory.set({ id: categoryId, direction });
         this.clearMovedTimeout();
         this.movedTimeoutId = window.setTimeout(() => {
             this.movedTimeoutId = null;
             this.recentlyMovedCategory.set(null);
         }, 220);
-        this.moveCategory.emit({ categoryId, direction });
     }
 
     startCategoryDrag(event: DragEvent, category: CategoryBreakdownItem): void {
@@ -267,6 +267,10 @@ export class CategoriesTabComponent implements OnDestroy {
 
     startCategoryPointerDrag(event: PointerEvent, category: CategoryBreakdownItem): void {
         if (this.saving()) {
+            return;
+        }
+
+        if (event.pointerType === 'mouse') {
             return;
         }
 
@@ -383,13 +387,41 @@ export class CategoriesTabComponent implements OnDestroy {
         }
 
         const direction: CategoryMoveDirection = fromIndex > toIndex ? 'up' : 'down';
-        const moveCount = Math.abs(fromIndex - toIndex);
+        const nextCategoryIds = this.reorderedCategoryIds(
+            draggedCategory,
+            sameTypeCategories,
+            fromIndex,
+            toIndex,
+        );
 
-        for (let index = 0; index < moveCount; index++) {
-            this.moveCategoryFromOrder(draggedCategory.id, direction);
-        }
+        this.markCategoryMoved(draggedCategory.id, direction);
+        this.reorderCategories.emit(nextCategoryIds);
 
         this.clearCategoryDrag();
+    }
+
+    private reorderedCategoryIds(
+        draggedCategory: CategoryBreakdownItem,
+        sameTypeCategories: ReadonlyArray<CategoryBreakdownItem>,
+        fromIndex: number,
+        toIndex: number,
+    ): string[] {
+        const nextSameTypeCategories = [...sameTypeCategories];
+        const [movedCategory] = nextSameTypeCategories.splice(fromIndex, 1);
+        nextSameTypeCategories.splice(toIndex, 0, movedCategory);
+
+        let typeIndex = 0;
+
+        return this.categoryOrderItems().map((category) => {
+            if (category.type !== draggedCategory.type) {
+                return category.id;
+            }
+
+            const nextCategoryId = nextSameTypeCategories[typeIndex]?.id ?? category.id;
+            typeIndex += 1;
+
+            return nextCategoryId;
+        });
     }
 
     private draggedCategory(): CategoryBreakdownItem | null {
