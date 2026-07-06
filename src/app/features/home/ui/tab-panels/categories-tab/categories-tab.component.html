@@ -130,22 +130,26 @@
                         @if (section.items.length) {
                             <div
                                 class="category-order-table"
+                                cdkDropList
+                                cdkDropListLockAxis="y"
+                                cdkDropListOrientation="vertical"
+                                [cdkDropListData]="section.items"
+                                [cdkDropListDisabled]="saving()"
+                                (cdkDropListDropped)="dropCategoryOrder($event, section.items)"
                                 role="table"
                                 [attr.aria-label]="'Порядок категорий: ' + section.title"
                             >
                                 @for (category of section.items; track category.id; let index = $index) {
                                     <div
                                         class="category-order-row"
+                                        cdkDrag
+                                        [cdkDragData]="category"
+                                        [cdkDragDisabled]="saving()"
                                         data-testid="category-order-row"
                                         [attr.data-category-id]="category.id"
                                         role="row"
-                                        (dragover)="dragCategoryOver($event, category)"
-                                        (drop)="dropCategoryOn($event, category)"
                                         [class.category-order-row--move-up]="movedClass(category.id) === 'category-order-row--move-up'"
                                         [class.category-order-row--move-down]="movedClass(category.id) === 'category-order-row--move-down'"
-                                        [class.category-order-row--dragging]="isDraggedCategory(category)"
-                                        [class.category-order-row--shift-up]="dragShiftDirection(category, section.items) === 'up'"
-                                        [class.category-order-row--shift-down]="dragShiftDirection(category, section.items) === 'down'"
                                     >
                                         <span class="category-order-row__index">{{ index + 1 }}</span>
                                         <span
@@ -159,15 +163,9 @@
                                         <button
                                             type="button"
                                             class="category-order-row__drag-handle"
+                                            cdkDragHandle
                                             data-testid="drag-category-handle"
-                                            [attr.draggable]="!saving()"
                                             [disabled]="saving()"
-                                            (dragstart)="startCategoryDrag($event, category)"
-                                            (dragend)="endCategoryDrag()"
-                                            (pointerdown)="startCategoryPointerDrag($event, category)"
-                                            (pointermove)="moveCategoryPointerDrag($event)"
-                                            (pointerup)="dropCategoryPointerDrag($event)"
-                                            (pointercancel)="endCategoryDrag()"
                                             (keydown)="reorderCategoryWithKeyboard($event, category)"
                                             aria-label="Перетащить категорию"
                                         >

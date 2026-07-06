@@ -1,4 +1,10 @@
 import {
+    CdkDrag,
+    CdkDragHandle,
+    CdkDropList,
+    moveItemInArray,
+} from '@angular/cdk/drag-drop';
+import {
     ChangeDetectionStrategy,
     Component,
     OnDestroy,
@@ -19,10 +25,16 @@ import { CategoryBreakdownItem, TagGroupItem } from '../../home-page.models';
 
 type CategoryDialogType = 'income' | 'expense';
 type CategorySubtab = 'items' | 'order';
-type DragShiftDirection = 'up' | 'down';
 type RecentlyMovedCategory = {
     id: string;
     direction: CategoryMoveDirection;
+};
+type CategoryDropEvent = {
+    previousIndex: number;
+    currentIndex: number;
+    item: {
+        data: CategoryBreakdownItem;
+    };
 };
 
 @Component({
@@ -30,6 +42,9 @@ type RecentlyMovedCategory = {
     standalone: true,
     imports: [
         ReactiveFormsModule,
+        CdkDrag,
+        CdkDragHandle,
+        CdkDropList,
         Button,
         InputComponent,
         CategoryGroupPanelComponent,
@@ -81,8 +96,6 @@ export class CategoriesTabComponent implements OnDestroy {
     readonly isCategoryDialogOpen = signal(false);
     readonly isTagDialogOpen = signal(false);
     readonly recentlyMovedCategory = signal<RecentlyMovedCategory | null>(null);
-    readonly draggedCategoryId = signal<string | null>(null);
-    readonly dragOverCategoryId = signal<string | null>(null);
     readonly categoryDialogType = signal<CategoryDialogType>('income');
     readonly categoryDialogTitle = computed(() =>
         this.categoryDialogType() === 'income'
@@ -232,80 +245,41 @@ export class CategoriesTabComponent implements OnDestroy {
         }, 220);
     }
 
-    startCategoryDrag(event: DragEvent, category: CategoryBreakdownItem): void {
-        if (this.saving()) {
-            event.preventDefault();
-            return;
-        }
-
-        this.draggedCategoryId.set(category.id);
-        this.dragOverCategoryId.set(category.id);
-        event.dataTransfer?.setData('text/plain', category.id);
-
-        if (event.dataTransfer) {
-            event.dataTransfer.effectAllowed = 'move';
-        }
-    }
-
-    dragCategoryOver(event: DragEvent, category: CategoryBreakdownItem): void {
-        if (!this.canDropCategoryOn(category)) {
-            return;
-        }
-
-        event.preventDefault();
-        this.dragOverCategoryId.set(category.id);
-
-        if (event.dataTransfer) {
-            event.dataTransfer.dropEffect = 'move';
-        }
-    }
-
-    dropCategoryOn(event: DragEvent, category: CategoryBreakdownItem): void {
-        event.preventDefault();
-        this.dropDraggedCategoryOn(category);
-    }
-
-    startCategoryPointerDrag(event: PointerEvent, category: CategoryBreakdownItem): void {
+    dropCategoryOrder(
+        event: CategoryDropEvent,
+        items: ReadonlyArray<CategoryBreakdownItem>,
+    ): void {
         if (this.saving()) {
             return;
         }
 
-        if (event.pointerType === 'mouse') {
+        if (event.previousIndex === event.currentIndex) {
             return;
         }
 
-        event.preventDefault();
-        this.draggedCategoryId.set(category.id);
-        this.dragOverCategoryId.set(category.id);
-        (event.currentTarget as HTMLElement | null)?.setPointerCapture?.(event.pointerId);
-    }
+        const draggedCategory = event.item.data;
 
-    moveCategoryPointerDrag(event: PointerEvent): void {
-        const targetCategory = this.categoryFromPoint(event.clientX, event.clientY);
-
-        if (!targetCategory || !this.canDropCategoryOn(targetCategory)) {
+        if (
+            !draggedCategory ||
+            event.previousIndex < 0 ||
+            event.currentIndex < 0 ||
+            event.previousIndex >= items.length ||
+            event.currentIndex >= items.length
+        ) {
             return;
         }
 
-        event.preventDefault();
-        this.dragOverCategoryId.set(targetCategory.id);
-    }
+        const direction: CategoryMoveDirection =
+            event.previousIndex > event.currentIndex ? 'up' : 'down';
+        const nextCategoryIds = this.reorderedCategoryIds(
+            draggedCategory,
+            items,
+            event.previousIndex,
+            event.currentIndex,
+        );
 
-    dropCategoryPointerDrag(event: PointerEvent): void {
-        const targetCategory = this.categoryFromPoint(event.clientX, event.clientY);
-
-        (event.currentTarget as HTMLElement | null)?.releasePointerCapture?.(event.pointerId);
-
-        if (!targetCategory) {
-            this.clearCategoryDrag();
-            return;
-        }
-
-        this.dropDraggedCategoryOn(targetCategory);
-    }
-
-    endCategoryDrag(): void {
-        this.clearCategoryDrag();
+        this.markCategoryMoved(draggedCategory.id, direction);
+        this.reorderCategories.emit(nextCategoryIds);
     }
 
     reorderCategoryWithKeyboard(event: KeyboardEvent, category: CategoryBreakdownItem): void {
@@ -323,40 +297,6 @@ export class CategoriesTabComponent implements OnDestroy {
         this.moveCategoryFromOrder(category.id, direction);
     }
 
-    isDraggedCategory(category: CategoryBreakdownItem): boolean {
-        return this.draggedCategoryId() === category.id;
-    }
-
-    dragShiftDirection(
-        category: CategoryBreakdownItem,
-        items: ReadonlyArray<CategoryBreakdownItem>,
-    ): DragShiftDirection | null {
-        const draggedCategoryId = this.draggedCategoryId();
-        const dragOverCategoryId = this.dragOverCategoryId();
-
-        if (!draggedCategoryId || !dragOverCategoryId || category.id === draggedCategoryId) {
-            return null;
-        }
-
-        const fromIndex = items.findIndex((item) => item.id === draggedCategoryId);
-        const toIndex = items.findIndex((item) => item.id === dragOverCategoryId);
-        const index = items.findIndex((item) => item.id === category.id);
-
-        if (fromIndex < 0 || toIndex < 0 || index < 0 || fromIndex === toIndex) {
-            return null;
-        }
-
-        if (fromIndex < toIndex && index > fromIndex && index <= toIndex) {
-            return 'up';
-        }
-
-        if (fromIndex > toIndex && index >= toIndex && index < fromIndex) {
-            return 'down';
-        }
-
-        return null;
-    }
-
     movedClass(categoryId: string): string | null {
         const recentlyMoved = this.recentlyMovedCategory();
 
@@ -367,39 +307,6 @@ export class CategoriesTabComponent implements OnDestroy {
         return `category-order-row--move-${recentlyMoved.direction}`;
     }
 
-    private dropDraggedCategoryOn(category: CategoryBreakdownItem): void {
-        const draggedCategory = this.draggedCategory();
-
-        if (!draggedCategory || draggedCategory.type !== category.type) {
-            this.clearCategoryDrag();
-            return;
-        }
-
-        const sameTypeCategories = this.categoryOrderItems().filter(
-            (item) => item.type === draggedCategory.type,
-        );
-        const fromIndex = sameTypeCategories.findIndex((item) => item.id === draggedCategory.id);
-        const toIndex = sameTypeCategories.findIndex((item) => item.id === category.id);
-
-        if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
-            this.clearCategoryDrag();
-            return;
-        }
-
-        const direction: CategoryMoveDirection = fromIndex > toIndex ? 'up' : 'down';
-        const nextCategoryIds = this.reorderedCategoryIds(
-            draggedCategory,
-            sameTypeCategories,
-            fromIndex,
-            toIndex,
-        );
-
-        this.markCategoryMoved(draggedCategory.id, direction);
-        this.reorderCategories.emit(nextCategoryIds);
-
-        this.clearCategoryDrag();
-    }
-
     private reorderedCategoryIds(
         draggedCategory: CategoryBreakdownItem,
         sameTypeCategories: ReadonlyArray<CategoryBreakdownItem>,
@@ -407,8 +314,7 @@ export class CategoriesTabComponent implements OnDestroy {
         toIndex: number,
     ): string[] {
         const nextSameTypeCategories = [...sameTypeCategories];
-        const [movedCategory] = nextSameTypeCategories.splice(fromIndex, 1);
-        nextSameTypeCategories.splice(toIndex, 0, movedCategory);
+        moveItemInArray(nextSameTypeCategories, fromIndex, toIndex);
 
         let typeIndex = 0;
 
@@ -422,42 +328,6 @@ export class CategoriesTabComponent implements OnDestroy {
 
             return nextCategoryId;
         });
-    }
-
-    private draggedCategory(): CategoryBreakdownItem | null {
-        const draggedCategoryId = this.draggedCategoryId();
-
-        if (!draggedCategoryId) {
-            return null;
-        }
-
-        return (
-            this.categoryOrderItems().find((category) => category.id === draggedCategoryId) ?? null
-        );
-    }
-
-    private categoryFromPoint(clientX: number, clientY: number): CategoryBreakdownItem | null {
-        const row = document
-            .elementFromPoint(clientX, clientY)
-            ?.closest<HTMLElement>('[data-category-id]');
-        const categoryId = row?.dataset['categoryId'];
-
-        if (!categoryId) {
-            return null;
-        }
-
-        return this.categoryOrderItems().find((category) => category.id === categoryId) ?? null;
-    }
-
-    private canDropCategoryOn(category: CategoryBreakdownItem): boolean {
-        const draggedCategory = this.draggedCategory();
-
-        return !!draggedCategory && draggedCategory.type === category.type && !this.saving();
-    }
-
-    private clearCategoryDrag(): void {
-        this.draggedCategoryId.set(null);
-        this.dragOverCategoryId.set(null);
     }
 
     private clearMovedTimeout(): void {

@@ -250,14 +250,18 @@ describe('CategoriesTabComponent', () => {
             expect.stringContaining('Taxi'),
         ]);
 
-        const dragStart = new Event('dragstart', { bubbles: true, cancelable: true });
-        Object.defineProperty(dragStart, 'dataTransfer', {
-            value: { setData: vi.fn(), effectAllowed: '' },
-        });
-
-        handles[2].dispatchEvent(dragStart);
-        rows[0].dispatchEvent(new Event('dragover', { bubbles: true, cancelable: true }));
-        rows[0].dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
+        component.dropCategoryOrder(
+            {
+                previousIndex: 2,
+                currentIndex: 0,
+                item: { data: category({ id: 'taxi-id', name: 'Taxi', type: 'expense' }) },
+            },
+            [
+                category({ id: 'food-id', name: 'Food', type: 'expense' }),
+                category({ id: 'rent-id', name: 'Rent', type: 'expense' }),
+                category({ id: 'taxi-id', name: 'Taxi', type: 'expense' }),
+            ],
+        );
         fixture.detectChanges();
 
         expect(reorderSpy).toHaveBeenCalledOnce();
@@ -269,91 +273,24 @@ describe('CategoriesTabComponent', () => {
         ]);
     });
 
-    it('supports pointer drag from the end of the category list to the top', () => {
+    it('ignores dropped category order when the item stays in place', () => {
         const reorderSpy = vi.fn();
-        const foodCategory = category({ id: 'food-id', name: 'Food', type: 'expense' });
-        const rentCategory = category({ id: 'rent-id', name: 'Rent', type: 'expense' });
-        const taxiCategory = category({ id: 'taxi-id', name: 'Taxi', type: 'expense' });
         component.reorderCategories.subscribe(reorderSpy);
-        fixture.componentRef.setInput('expenseCategories', [
-            foodCategory,
-            rentCategory,
-            taxiCategory,
-        ]);
         fixture.detectChanges();
 
-        const host = fixture.nativeElement as HTMLElement;
-
-        host.querySelector<HTMLButtonElement>('[data-testid="category-subtab-order"]')?.click();
-        fixture.detectChanges();
-
-        const rows = Array.from(host.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]'));
-        const handles = Array.from(
-            host.querySelectorAll<HTMLElement>('[data-testid="drag-category-handle"]'),
-        );
-        const originalElementFromPoint = document.elementFromPoint;
-        const elementFromPointSpy = vi.fn().mockReturnValue(rows[0]);
-
-        Object.defineProperty(document, 'elementFromPoint', {
-            configurable: true,
-            value: elementFromPointSpy,
-        });
-
-        component.startCategoryPointerDrag(
+        component.dropCategoryOrder(
             {
-                currentTarget: handles[2],
-                pointerType: 'touch',
-                pointerId: 1,
-                preventDefault: vi.fn(),
-            } as unknown as PointerEvent,
-            taxiCategory,
-        );
-        component.moveCategoryPointerDrag({
-            clientX: 10,
-            clientY: 10,
-            pointerType: 'touch',
-            preventDefault: vi.fn(),
-        } as unknown as PointerEvent);
-        component.dropCategoryPointerDrag({
-            clientX: 10,
-            clientY: 10,
-            currentTarget: handles[2],
-            pointerType: 'touch',
-            pointerId: 1,
-        } as unknown as PointerEvent);
-
-        expect(elementFromPointSpy).toHaveBeenCalled();
-        expect(reorderSpy).toHaveBeenCalledOnce();
-        expect(reorderSpy).toHaveBeenCalledWith(['taxi-id', 'food-id', 'rent-id']);
-
-        if (originalElementFromPoint) {
-            Object.defineProperty(document, 'elementFromPoint', {
-                configurable: true,
-                value: originalElementFromPoint,
-            });
-        } else {
-            Reflect.deleteProperty(document, 'elementFromPoint');
-        }
-    });
-
-    it('does not cancel mouse pointerdown so native desktop drag can start', () => {
-        const preventDefault = vi.fn();
-        const setPointerCapture = vi.fn();
-        const taxiCategory = category({ id: 'taxi-id', name: 'Taxi', type: 'expense' });
-
-        component.startCategoryPointerDrag(
-            {
-                currentTarget: { setPointerCapture },
-                pointerId: 1,
-                pointerType: 'mouse',
-                preventDefault,
-            } as unknown as PointerEvent,
-            taxiCategory,
+                previousIndex: 1,
+                currentIndex: 1,
+                item: { data: category({ id: 'rent-id', name: 'Rent', type: 'expense' }) },
+            },
+            [
+                category({ id: 'food-id', name: 'Food', type: 'expense' }),
+                category({ id: 'rent-id', name: 'Rent', type: 'expense' }),
+            ],
         );
 
-        expect(preventDefault).not.toHaveBeenCalled();
-        expect(setPointerCapture).not.toHaveBeenCalled();
-        expect(component.draggedCategoryId()).toBeNull();
+        expect(reorderSpy).not.toHaveBeenCalled();
     });
 
     it('uses full category order items when category cards are filtered', () => {

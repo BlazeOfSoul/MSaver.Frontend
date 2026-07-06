@@ -8,7 +8,7 @@
     }
 }
 
-.category-order-row--dragging {
+.category-order-row.cdk-drag-dragging {
     opacity: 0.56;
     border-color: color-mix(in oklab, var(--color-ms-primary), transparent 45%);
     background: color-mix(in oklab, var(--color-ms-primary), transparent 88%);

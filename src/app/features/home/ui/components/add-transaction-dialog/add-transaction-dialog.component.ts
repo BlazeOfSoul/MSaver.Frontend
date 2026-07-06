@@ -149,21 +149,28 @@ export class AddTransactionDialogComponent {
         this.datePickerOpen.update((isOpen) => !isOpen);
     }
 
-    onDatePartInput(value: string | number): void {
+    onDatePartInput(value: string | number): string {
         const nextText = this.normalizeDateInputText(`${value ?? ''}`);
         const nextDate = this.parseDateInputText(nextText);
 
         this.dateText.set(nextText);
 
         if (!nextDate) {
-            return;
+            return nextText;
         }
 
         this.emitDateTime(nextDate, this.resolveCurrentTimePart());
+
+        return nextText;
     }
 
     onDatePartInputEvent(event: Event): void {
-        this.onDatePartInput(this.inputEventValue(event));
+        const target = event.target instanceof HTMLInputElement ? event.target : null;
+        const nextText = this.onDatePartInput(target?.value ?? '');
+
+        if (target && target.value !== nextText) {
+            target.value = nextText;
+        }
     }
 
     onTimePartInput(value: string | number): void {

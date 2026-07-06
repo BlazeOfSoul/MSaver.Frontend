@@ -77,6 +77,7 @@
     background: transparent;
     outline: 0;
     font: inherit;
+    font-variant-numeric: tabular-nums;
     font-weight: 800;
     letter-spacing: 0;
 }
@@ -96,18 +97,18 @@
 
 @media (min-width: 720px) {
     .dialog__date-picker-grid {
-        grid-template-columns: minmax(0, 1fr) 8rem;
+        grid-template-columns: minmax(10.5rem, 1fr) minmax(6.75rem, 0.65fr);
     }
 }
 
 @media (max-width: 480px) {
     .dialog__date-picker {
-        width: 100%;
-        max-width: 100%;
+        width: min(24rem, calc(100vw - 2rem));
+        max-width: calc(100vw - 2rem);
     }
 
     .dialog__date-picker-grid {
-        grid-template-columns: minmax(0, 1.3fr) minmax(5.75rem, 0.7fr);
+        grid-template-columns: minmax(10.25rem, 1fr) minmax(5.75rem, 0.65fr);
         gap: 0.45rem;
     }
 
@@ -130,6 +131,12 @@
     }
 
     .dialog__date-part-input input {
-        font-size: 0.9rem;
+        font-size: 0.88rem;
+    }
+}
+
+@media (max-width: 350px) {
+    .dialog__date-picker-grid {
+        grid-template-columns: 1fr;
     }
 }

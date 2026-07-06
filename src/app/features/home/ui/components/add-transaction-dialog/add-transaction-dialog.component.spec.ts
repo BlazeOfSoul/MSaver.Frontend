@@ -253,6 +253,7 @@ describe('AddTransactionDialogComponent', () => {
         expect(host.querySelector('input[type="time"]')).toBeNull();
         expect(dateInput?.type).toBe('text');
         expect(timeInput?.type).toBe('text');
+        expect(dateInput?.maxLength).toBe(10);
         expect(dateInput?.value).toBe('05.06.2026');
         expect(timeInput?.value).toBe('00:00');
 
@@ -286,6 +287,24 @@ describe('AddTransactionDialogComponent', () => {
         expect(component.dateText()).toBe('');
         expect(component.timeText()).toBe('');
         expect(draftSpy).not.toHaveBeenCalled();
+    });
+
+    it('limits overlong date input to a four digit year immediately', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        host.querySelector<HTMLButtonElement>('.dialog__date-trigger')?.click();
+        fixture.detectChanges();
+
+        const dateInput = host.querySelector<HTMLInputElement>('.dialog__date-part-input input');
+
+        expect(dateInput).not.toBeNull();
+
+        dateInput!.value = '060720266666';
+        dateInput!.dispatchEvent(new Event('input', { bubbles: true }));
+
+        expect(dateInput!.value).toBe('06.07.2026');
+        expect(component.dateText()).toBe('06.07.2026');
     });
 
     it('renders the opened date picker as an overlay so form actions do not shift', () => {
