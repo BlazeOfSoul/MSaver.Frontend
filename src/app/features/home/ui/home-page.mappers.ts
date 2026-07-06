@@ -93,11 +93,17 @@ export function mapCategories(
     currencyCode = 'BYN',
     readAmount: (transaction: TransactionResponse) => number = (transaction) =>
         Math.abs(transaction.amount),
+    options: { includeDebtCategories?: boolean } = {},
 ): CategoryBreakdownItem[] {
     const categoryType = type === 'income' ? 'Credit' : 'Debit';
-    const visibleCategories = categories.filter(
-        (category) => category.type === categoryType && !isDebtCategoryName(category.name),
-    );
+    const includeDebtCategories = options.includeDebtCategories ?? true;
+    const visibleCategories = categories
+        .filter(
+            (category) =>
+                category.type === categoryType &&
+                (includeDebtCategories || !isDebtCategoryName(category.name)),
+        )
+        .sort((left, right) => compareDebtCategoryPriority(left.name, right.name));
     const totals = categoryTotals(transactions, readAmount);
     const max = Math.max(1, ...visibleCategories.map((category) => totals.get(category.id) ?? 0));
 
@@ -218,4 +224,18 @@ function resolveTransactionTone(
 
 function resolveExpenseTone(progress: number): 'warning' | 'danger' {
     return progress >= 75 ? 'danger' : 'warning';
+}
+
+function compareDebtCategoryPriority(
+    leftName: string | null | undefined,
+    rightName: string | null | undefined,
+): number {
+    const leftIsDebt = isDebtCategoryName(leftName);
+    const rightIsDebt = isDebtCategoryName(rightName);
+
+    if (leftIsDebt === rightIsDebt) {
+        return 0;
+    }
+
+    return leftIsDebt ? -1 : 1;
 }

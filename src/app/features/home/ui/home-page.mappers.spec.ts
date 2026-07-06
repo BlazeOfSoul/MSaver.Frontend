@@ -68,6 +68,53 @@ describe('home page mappers', () => {
         expect(mapped[0].isSystem).toBe(true);
     });
 
+    it('keeps debt categories visible and first in category lists', () => {
+        const categories: CategoryResponse[] = [
+            {
+                id: 'food',
+                name: 'Food',
+                type: 'Debit',
+                color: '#ff6f91',
+            },
+            {
+                id: 'debt-given',
+                name: 'Дано в долг (-)',
+                type: 'Debit',
+                color: '#e8b45d',
+                isSystem: true,
+            },
+        ];
+
+        const mapped = mapCategories(categories, [], 'expense', 'BYN');
+
+        expect(mapped.map((category) => category.id)).toEqual(['debt-given', 'food']);
+        expect(mapped[0].isSystem).toBe(true);
+    });
+
+    it('can exclude debt categories from analytics category lists', () => {
+        const categories: CategoryResponse[] = [
+            {
+                id: 'food',
+                name: 'Food',
+                type: 'Debit',
+                color: '#ff6f91',
+            },
+            {
+                id: 'debt-given',
+                name: 'Дано в долг (-)',
+                type: 'Debit',
+                color: '#e8b45d',
+                isSystem: true,
+            },
+        ];
+
+        const mapped = mapCategories(categories, [], 'expense', 'BYN', undefined, {
+            includeDebtCategories: false,
+        });
+
+        expect(mapped.map((category) => category.id)).toEqual(['food']);
+    });
+
     it('falls back from unsafe account colors returned by the backend', () => {
         const mapped = mapAccount(createAccount({ color: 'url(https://example.test/tracker)' }), 1);
 

@@ -23,6 +23,21 @@
     color: var(--color-ms-light);
 }
 
+.panel__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.panel__header > div {
+    min-width: 0;
+}
+
+.panel__header ms-button {
+    flex: 0 0 auto;
+}
+
 .panel__header p,
 .account-card__currency,
 .account-card__change {

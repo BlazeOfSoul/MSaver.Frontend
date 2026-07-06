@@ -39,15 +39,24 @@
 }
 
 .account-card__top {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.75rem;
 }
 
 .account-card__top strong {
     min-width: 0;
-    flex: 1;
     overflow-wrap: anywhere;
+}
+
+.account-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    min-width: 0;
 }
 
 .account-card__icon {

@@ -105,6 +105,10 @@ export class HomeApiService {
         return this.http.put<void>(`${this.baseUrl}/Categories/order`, payload);
     }
 
+    resetCategoryOrder(): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/Categories/order`);
+    }
+
     deleteCategory(categoryId: string): Observable<string> {
         return this.http.delete<string>(`${this.baseUrl}/Categories/${categoryId}`);
     }

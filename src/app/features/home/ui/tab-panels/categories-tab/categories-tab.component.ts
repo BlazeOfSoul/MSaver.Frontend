@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    OnDestroy,
+    computed,
+    input,
+    output,
+    signal,
+} from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Button } from '../../../../../shared/ui/button/button';
 import { InputComponent } from '../../../../../shared/ui/input/input';
@@ -7,9 +15,15 @@ import { CategoryGroupPanelComponent } from '../../components/category-group-pan
 import { NameColorDialogComponent } from '../../components/name-color-dialog/name-color-dialog.component';
 import { TagGroupCardComponent } from '../../components/tag-group-card/tag-group-card.component';
 import { CategoryMoveDirection } from '../../home-category-order.utils';
+import { isDebtCategoryName } from '../../home-debt.utils';
 import { CategoryBreakdownItem, TagGroupItem } from '../../home-page.models';
 
 type CategoryDialogType = 'income' | 'expense';
+type CategorySubtab = 'items' | 'order';
+type RecentlyMovedCategory = {
+    id: string;
+    direction: CategoryMoveDirection;
+};
 
 @Component({
     selector: 'ms-categories-tab',
@@ -30,7 +44,7 @@ type CategoryDialogType = 'income' | 'expense';
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CategoriesTabComponent {
+export class CategoriesTabComponent implements OnDestroy {
     incomeCategories = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     expenseCategories = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     incomeCategoryOrderItems = input<ReadonlyArray<CategoryBreakdownItem> | null>(null);
@@ -60,9 +74,12 @@ export class CategoriesTabComponent {
     assignCategoryToTag = output<{ tagId: string; categoryId: string }>();
     removeCategoryFromTag = output<{ tagId: string; categoryId: string }>();
     moveCategory = output<{ categoryId: string; direction: CategoryMoveDirection }>();
+    resetCategoryOrder = output<void>();
 
+    readonly activeSubtab = signal<CategorySubtab>('items');
     readonly isCategoryDialogOpen = signal(false);
     readonly isTagDialogOpen = signal(false);
+    readonly recentlyMovedCategory = signal<RecentlyMovedCategory | null>(null);
     readonly categoryDialogType = signal<CategoryDialogType>('income');
     readonly categoryDialogTitle = computed(() =>
         this.categoryDialogType() === 'income'
@@ -86,10 +103,34 @@ export class CategoriesTabComponent {
         ...(this.incomeCategoryOrderItems() ?? this.incomeCategories()),
         ...(this.expenseCategoryOrderItems() ?? this.expenseCategories()),
     ]);
+    readonly categoryOrderSections = computed(() => [
+        {
+            id: 'income' as const,
+            title: 'Доходы',
+            emptyText: 'Категорий доходов пока нет.',
+            items: this.incomeCategoryOrderItems() ?? this.incomeCategories(),
+        },
+        {
+            id: 'expense' as const,
+            title: 'Расходы',
+            emptyText: 'Категорий расходов пока нет.',
+            items: this.expenseCategoryOrderItems() ?? this.expenseCategories(),
+        },
+    ]);
     readonly canMoveCategoryByOrder = (
         category: CategoryBreakdownItem,
         direction: CategoryMoveDirection,
     ) => this.canMoveCategory(category, direction);
+
+    private movedTimeoutId: number | null = null;
+
+    ngOnDestroy(): void {
+        this.clearMovedTimeout();
+    }
+
+    setActiveSubtab(tab: CategorySubtab): void {
+        this.activeSubtab.set(tab);
+    }
 
     openCategoryDialog(type: CategoryDialogType): void {
         this.categoryDialogType.set(type);
@@ -166,11 +207,48 @@ export class CategoriesTabComponent {
             (item) => item.type === category.type,
         );
         const index = sameTypeCategories.findIndex((item) => item.id === category.id);
+        const swapIndex = direction === 'up' ? index - 1 : index + 1;
+        const swapCategory = sameTypeCategories[swapIndex];
 
-        if (index < 0) {
+        if (
+            index < 0 ||
+            swapIndex < 0 ||
+            swapIndex >= sameTypeCategories.length ||
+            isDebtCategoryName(category.name) ||
+            isDebtCategoryName(swapCategory?.name)
+        ) {
             return false;
         }
 
-        return direction === 'up' ? index > 0 : index < sameTypeCategories.length - 1;
+        return true;
+    }
+
+    moveCategoryFromOrder(categoryId: string, direction: CategoryMoveDirection): void {
+        this.recentlyMovedCategory.set({ id: categoryId, direction });
+        this.clearMovedTimeout();
+        this.movedTimeoutId = window.setTimeout(() => {
+            this.movedTimeoutId = null;
+            this.recentlyMovedCategory.set(null);
+        }, 220);
+        this.moveCategory.emit({ categoryId, direction });
+    }
+
+    movedClass(categoryId: string): string | null {
+        const recentlyMoved = this.recentlyMovedCategory();
+
+        if (!recentlyMoved || recentlyMoved.id !== categoryId) {
+            return null;
+        }
+
+        return `category-order-row--move-${recentlyMoved.direction}`;
+    }
+
+    private clearMovedTimeout(): void {
+        if (this.movedTimeoutId === null) {
+            return;
+        }
+
+        window.clearTimeout(this.movedTimeoutId);
+        this.movedTimeoutId = null;
     }
 }

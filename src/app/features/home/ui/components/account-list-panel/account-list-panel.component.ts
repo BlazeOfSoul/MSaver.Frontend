@@ -50,7 +50,7 @@ export class AccountListPanelComponent {
     newAccountInitialBalanceChange = output<number>();
     createAccount = output<void>();
     deleteAccount = output<string>();
-    renamePrimaryAccount = output<{ accountId: string; name: string; color: string }>();
+    renameAccount = output<{ accountId: string; name: string; color: string }>();
     accountChange = output<string>();
 
     readonly isAccountDialogOpen = signal(false);
@@ -92,10 +92,6 @@ export class AccountListPanelComponent {
     }
 
     openRenameDialog(account: AccountBalanceItem): void {
-        if (!account.isPrimary) {
-            return;
-        }
-
         this.renameAccountId.set(account.id);
         this.renameAccountName.set(account.name);
         this.renameAccountColor.set(account.color);
@@ -118,7 +114,7 @@ export class AccountListPanelComponent {
             return;
         }
 
-        this.renamePrimaryAccount.emit({
+        this.renameAccount.emit({
             accountId,
             name,
             color: this.renameAccountColor(),

@@ -39,4 +39,12 @@ describe('HomeApiService', () => {
         expect(request.request.body).toEqual({ categoryIds: ['rent-id', 'food-id'] });
         request.flush(null);
     });
+
+    it('resets the saved category order for the current user', () => {
+        service.resetCategoryOrder().subscribe();
+
+        const request = httpMock.expectOne(`${environment.apiUrl}/Categories/order`);
+        expect(request.request.method).toBe('DELETE');
+        request.flush(null);
+    });
 });

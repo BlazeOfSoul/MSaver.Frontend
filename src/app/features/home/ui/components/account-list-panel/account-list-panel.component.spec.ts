@@ -83,6 +83,18 @@ describe('AccountListPanelComponent', () => {
         expect(host.textContent ?? '').not.toContain('Пока нет счетов');
     });
 
+    it('keeps the create account action in the panel header', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const header = host.querySelector<HTMLElement>('.panel__header');
+        const createButton = header?.querySelector<HTMLElement>(
+            ':scope > ms-button[data-testid="open-account-dialog"]',
+        );
+
+        expect(createButton).not.toBeNull();
+    });
+
     it('keeps account name errors inside the account name field stack', () => {
         fixture.componentRef.setInput('newAccountNameError', 'Name already exists');
         fixture.detectChanges();
@@ -139,23 +151,23 @@ describe('AccountListPanelComponent', () => {
         expect(currencySpy).not.toHaveBeenCalled();
     });
 
-    it('allows only the primary account to be renamed from the account list', () => {
+    it('allows every account to be renamed from the account list', () => {
         const renameSpy = vi.fn();
         const primary = account({ id: 'primary-account', name: 'Main', isPrimary: true });
         const secondary = account({ id: 'secondary-account', name: 'Cash', isPrimary: false });
         fixture.componentRef.setInput('accounts', [primary, secondary]);
         fixture.componentRef.setInput('allAccounts', [primary, secondary]);
-        fixture.componentInstance.renamePrimaryAccount.subscribe(renameSpy);
+        fixture.componentInstance.renameAccount.subscribe(renameSpy);
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
         const editButtons = host.querySelectorAll<HTMLButtonElement>(
-            '[data-testid="rename-primary-account"]',
+            '[data-testid="rename-account"]',
         );
 
-        expect(editButtons).toHaveLength(1);
+        expect(editButtons).toHaveLength(2);
 
-        editButtons[0].click();
+        editButtons[1].click();
         fixture.detectChanges();
 
         const input = host.querySelector<HTMLInputElement>('.account-rename-dialog input');
@@ -163,12 +175,12 @@ describe('AccountListPanelComponent', () => {
         input!.dispatchEvent(new Event('input', { bubbles: true }));
         fixture.detectChanges();
 
-        host.querySelector<HTMLButtonElement>('[data-testid="submit-primary-rename"]')?.click();
+        host.querySelector<HTMLButtonElement>('[data-testid="submit-account-rename"]')?.click();
 
         expect(renameSpy).toHaveBeenCalledWith({
-            accountId: 'primary-account',
+            accountId: 'secondary-account',
             name: 'Family wallet',
-            color: primary.color,
+            color: secondary.color,
         });
     });
 });

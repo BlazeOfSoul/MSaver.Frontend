@@ -14,6 +14,34 @@
     gap: 0.85rem;
 }
 
+.category-order-panel__header {
+    align-items: center;
+}
+
+.category-order-sections {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.category-order-section {
+    display: grid;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.category-order-section__header {
+    display: flex;
+    align-items: center;
+    min-height: 1.5rem;
+}
+
+.category-order-section__header h3 {
+    margin: 0;
+    color: var(--color-ms-light);
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
 .category-order-table {
     display: grid;
     gap: 0.45rem;
@@ -21,7 +49,7 @@
 
 .category-order-row {
     display: grid;
-    grid-template-columns: 2rem 1.25rem minmax(0, 1fr) minmax(4.5rem, auto) 4.8rem;
+    grid-template-columns: 2rem 1.25rem minmax(0, 1fr) 4.8rem;
     align-items: center;
     gap: 0.65rem;
     min-height: 2.75rem;
@@ -29,6 +57,45 @@
     border: 1px solid var(--color-ms-border);
     border-radius: 0.45rem;
     background: var(--color-ms-white-alpha-03);
+    transform: translateY(0);
+    transition:
+        transform 180ms ease,
+        background-color 180ms ease,
+        border-color 180ms ease,
+        box-shadow 180ms ease;
+    will-change: transform;
+}
+
+.category-order-row--move-up {
+    animation: category-order-settle-up 190ms ease-out;
+    border-color: color-mix(in oklab, var(--color-ms-success), transparent 58%);
+    background: color-mix(in oklab, var(--color-ms-success), transparent 88%);
+}
+
+.category-order-row--move-down {
+    animation: category-order-settle-down 190ms ease-out;
+    border-color: color-mix(in oklab, var(--color-ms-info), transparent 58%);
+    background: color-mix(in oklab, var(--color-ms-info), transparent 88%);
+}
+
+@keyframes category-order-settle-up {
+    from {
+        transform: translateY(0.75rem);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes category-order-settle-down {
+    from {
+        transform: translateY(-0.75rem);
+    }
+
+    to {
+        transform: translateY(0);
+    }
 }
 
 .category-order-row__index {
@@ -51,16 +118,6 @@
     color: var(--color-ms-light);
     font-weight: 700;
     overflow-wrap: anywhere;
-}
-
-.category-order-row__type {
-    justify-self: start;
-    padding: 0.2rem 0.5rem;
-    border-radius: 999px;
-    color: var(--color-ms-light-dark);
-    font-size: 0.75rem;
-    font-weight: 700;
-    background: var(--color-ms-white-alpha-05);
 }
 
 .category-order-row__actions {

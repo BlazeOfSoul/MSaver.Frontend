@@ -1,15 +1,18 @@
 .analytics-view-tabs {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.45rem;
-    overflow-x: auto;
+    width: 100%;
+    overflow: visible;
     padding: 0.2rem;
     border-radius: 0.5rem;
     background: var(--color-ms-white-alpha-045);
-    scrollbar-width: thin;
+    scrollbar-width: none;
 }
 
 .analytics-view-tabs ms-button {
-    flex: 0 0 auto;
+    min-width: 0;
+    width: 100%;
 }
 
 @media (min-width: 720px) {
@@ -33,11 +36,8 @@
     }
 
     .analytics-view-tabs {
-        display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.35rem;
-        overflow: visible;
-        scrollbar-width: none;
     }
 
     .analytics-view-tabs ms-button {

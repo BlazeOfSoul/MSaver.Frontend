@@ -1,4 +1,5 @@
 import { CategoryResponse } from '../data-access/home-api.models';
+import { isDebtCategoryName } from './home-debt.utils';
 
 export type CategorySortMode = 'priority' | 'alphabetical';
 export type CategoryMoveDirection = 'up' | 'down';
@@ -34,12 +35,26 @@ export function sortCategoriesForDisplay(
     mode: CategorySortMode,
 ): CategoryResponse[] {
     if (mode === 'alphabetical') {
-        return [...categories].sort((left, right) => left.name.localeCompare(right.name, 'ru'));
+        return [...categories].sort((left, right) => {
+            const debtOrder = compareDebtCategoryPriority(left, right);
+
+            if (debtOrder !== 0) {
+                return debtOrder;
+            }
+
+            return left.name.localeCompare(right.name, 'ru');
+        });
     }
 
     const priorityIndex = new Map(priorityIds.map((id, index) => [id, index]));
 
     return [...categories].sort((left, right) => {
+        const debtOrder = compareDebtCategoryPriority(left, right);
+
+        if (debtOrder !== 0) {
+            return debtOrder;
+        }
+
         const leftIndex = priorityIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER;
         const rightIndex = priorityIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER;
 
@@ -70,8 +85,15 @@ export function moveCategoryPriority(
     );
     const typeIndex = typeCategories.findIndex((item) => item.id === categoryId);
     const swapIndex = direction === 'up' ? typeIndex - 1 : typeIndex + 1;
+    const swapCategory = typeCategories[swapIndex];
 
-    if (typeIndex < 0 || swapIndex < 0 || swapIndex >= typeCategories.length) {
+    if (
+        typeIndex < 0 ||
+        swapIndex < 0 ||
+        swapIndex >= typeCategories.length ||
+        isDebtCategoryName(category.name) ||
+        isDebtCategoryName(swapCategory?.name)
+    ) {
         return normalizePriorityIds(categories, priorityIds);
     }
 
@@ -103,6 +125,17 @@ export function normalizePriorityIds(
         .filter((id) => !knownIdSet.has(id));
 
     return [...knownIds, ...missingIds];
+}
+
+function compareDebtCategoryPriority(left: CategoryResponse, right: CategoryResponse): number {
+    const leftIsDebt = isDebtCategoryName(left.name);
+    const rightIsDebt = isDebtCategoryName(right.name);
+
+    if (leftIsDebt === rightIsDebt) {
+        return 0;
+    }
+
+    return leftIsDebt ? -1 : 1;
 }
 
 function getCategoryStorage(): Storage | null {

@@ -26,6 +26,49 @@
     padding: 0.8rem;
 }
 
+.category-subtabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.25rem;
+    background: var(--color-ms-white-alpha-045);
+}
+
+.category-subtab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.7rem;
+    min-width: 0;
+    border: 1px solid transparent;
+    border-radius: 0.45rem;
+    color: var(--color-ms-light-dark);
+    font: inherit;
+    font-weight: 800;
+    letter-spacing: 0;
+    background: transparent;
+    cursor: pointer;
+    transition:
+        border-color 160ms ease,
+        background-color 160ms ease,
+        color 160ms ease,
+        box-shadow 160ms ease;
+}
+
+.category-subtab--active {
+    border-color: var(--color-ms-white-alpha-18);
+    color: var(--color-ms-light);
+    background: var(--color-ms-white-alpha-08);
+    box-shadow:
+        0 10px 24px var(--color-ms-black-alpha-18),
+        inset 0 1px 0 var(--color-ms-white-alpha-08);
+}
+
+.category-subtab .material-symbols-outlined {
+    font-size: 1.1rem;
+}
+
 .panel__header {
     display: flex;
     align-items: flex-start;

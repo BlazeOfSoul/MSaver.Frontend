@@ -275,8 +275,8 @@ export class HomePageComponent {
         this.dashboard.deleteAccount(accountId);
     }
 
-    renamePrimaryAccount(event: { accountId: string; name: string; color: string }): void {
-        this.dashboard.renamePrimaryAccount(event);
+    renameAccount(event: { accountId: string; name: string; color: string }): void {
+        this.dashboard.renameAccount(event);
     }
 
     setNewIncomeCategory(value: string): void {
@@ -317,6 +317,10 @@ export class HomePageComponent {
 
     moveCategory(event: { categoryId: string; direction: CategoryMoveDirection }): void {
         this.dashboard.moveCategory(event.categoryId, event.direction);
+    }
+
+    resetCategoryOrder(): void {
+        this.dashboard.resetCategoryOrder();
     }
 
     addTagGroup(): void {

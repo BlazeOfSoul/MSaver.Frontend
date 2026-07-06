@@ -1,5 +1,5 @@
 <section class="settings-layout">
-    <article class="panel settings-hero">
+    <article class="panel settings-panel settings-hero">
         <div>
             <h2>Валюта приложения</h2>
             <p>
@@ -14,6 +14,15 @@
             [disabled]="saving()"
             (valueChange)="updateApplicationCurrency($event)"
         ></ms-select>
+    </article>
+
+    <article class="panel settings-panel settings-hero">
+        <div>
+            <h2>Порядок категорий</h2>
+            <p>
+                Как сортировать категории в списках и выборе транзакций.
+            </p>
+        </div>
 
         <ms-select
             label="Порядок категорий"

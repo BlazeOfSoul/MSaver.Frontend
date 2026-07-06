@@ -98,6 +98,7 @@ describe('HomePageComponent', () => {
         getCategories: ReturnType<typeof vi.fn>;
         getCategoryOrder: ReturnType<typeof vi.fn>;
         updateCategoryOrder: ReturnType<typeof vi.fn>;
+        resetCategoryOrder: ReturnType<typeof vi.fn>;
         getTags: ReturnType<typeof vi.fn>;
         getTagById: ReturnType<typeof vi.fn>;
         getTransactions: ReturnType<typeof vi.fn>;
@@ -157,6 +158,7 @@ describe('HomePageComponent', () => {
             getCategories: vi.fn(() => of(page<CategoryResponse>([]))),
             getCategoryOrder: vi.fn(() => of({ categoryIds: [] })),
             updateCategoryOrder: vi.fn(() => of(undefined)),
+            resetCategoryOrder: vi.fn(() => of(undefined)),
             getTags: vi.fn(() => of(page<TagResponse>([]))),
             getTagById: vi.fn(() =>
                 of<TagDetailsResponse>({
@@ -2435,7 +2437,7 @@ describe('HomePageComponent', () => {
         });
     });
 
-    it('renames only the primary account through the account update endpoint', () => {
+    it('renames any account through the account update endpoint', () => {
         const primaryAccount = account({
             id: 'primary-account',
             name: 'Основной счёт',
@@ -2453,18 +2455,20 @@ describe('HomePageComponent', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
-        fixture.componentInstance.renamePrimaryAccount({
+        fixture.componentInstance.renameAccount({
             accountId: 'primary-account',
             name: 'Семейный счёт',
             color: '#23c78b',
         });
-        fixture.componentInstance.renamePrimaryAccount({
+        fixture.componentInstance.renameAccount({
             accountId: 'secondary-account',
             name: 'Нельзя',
             color: '#ffd166',
         });
 
-        expect(homeApi.updateAccount).toHaveBeenCalledOnce();
+        expect(homeApi.updateAccount).toHaveBeenCalledTimes(2);
+        expect(homeApi.updateAccount.mock.calls[1]?.[0]).toBe('secondary-account');
+        expect(homeApi.updateAccount.mock.calls[1]?.[1]).toMatchObject({ color: '#ffd166' });
         expect(homeApi.updateAccount).toHaveBeenCalledWith('primary-account', {
             name: 'Семейный счёт',
             color: '#23c78b',
@@ -2810,6 +2814,42 @@ describe('HomePageComponent', () => {
 
         expect(host.textContent ?? '').toContain('Сводный баланс');
         expect(host.textContent ?? '').toContain('25,00 Br');
+    });
+
+    it('shows the renamed primary account name in the balance summary card', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    account({
+                        id: 'primary-account',
+                        name: 'Семейный счёт',
+                        currentBalance: 213.11,
+                        isPrimary: true,
+                    }),
+                ]),
+            ),
+        );
+        homeApi.getMonthBalance.mockReturnValue(
+            of<MonthBalanceResponse>({
+                accountId: 'primary-account',
+                accountName: 'Семейный счёт',
+                currencyCode: 'BYN',
+                openingBalance: 0,
+                monthChange: 213.11,
+                closingBalance: 213.11,
+                year: 2026,
+                month: 7,
+            }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const balanceCard = fixture.componentInstance
+            .summaryCards()
+            .find((card) => card.id === 'balance');
+
+        expect(balanceCard?.helper).toBe('Семейный счёт');
     });
 
     it('shows the selected month primary account balance when the account current balance is stale', () => {
@@ -5423,6 +5463,54 @@ describe('HomePageComponent', () => {
             categoryIds: ['rent-id', 'food-id', 'taxi-id'],
         });
         expect(window.localStorage.getItem('msaver:category-priority-order')).toBeNull();
+    });
+
+    it('resets category order through the backend and restores the default priority', () => {
+        window.localStorage.setItem(CATEGORY_SORT_MODE_STORAGE_KEY, 'priority');
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategoryOrder.mockReturnValue(
+            of({ categoryIds: ['taxi-id', 'food-id', 'rent-id'] }),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                    },
+                    {
+                        id: 'rent-id',
+                        name: 'Rent',
+                        type: 'Debit',
+                        color: '#67a6c1',
+                    },
+                    {
+                        id: 'taxi-id',
+                        name: 'Taxi',
+                        type: 'Debit',
+                        color: '#e8b45d',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setActiveTab('categories');
+
+        expect(
+            fixture.componentInstance.expenseCategories().map((category) => category.name),
+        ).toEqual(['Taxi', 'Food', 'Rent']);
+
+        fixture.componentInstance.resetCategoryOrder();
+
+        expect(homeApi.resetCategoryOrder).toHaveBeenCalledOnce();
+        expect(
+            fixture.componentInstance.expenseCategories().map((category) => category.name),
+        ).toEqual(['Food', 'Rent', 'Taxi']);
     });
 
     it('ignores unsupported category color values', () => {

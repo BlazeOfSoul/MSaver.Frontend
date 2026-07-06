@@ -407,6 +407,7 @@ export class HomeDashboardStore {
             'income',
             this.analyticsCurrencyCode(),
             (transaction) => Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
+            { includeDebtCategories: false },
         ),
     );
     readonly analyticsExpenseCategories = computed<CategoryBreakdownItem[]>(() =>
@@ -418,6 +419,7 @@ export class HomeDashboardStore {
             'expense',
             this.analyticsCurrencyCode(),
             (transaction) => Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
+            { includeDebtCategories: false },
         ),
     );
     readonly filteredIncomeCategories = computed(() =>
@@ -703,7 +705,7 @@ export class HomeDashboardStore {
                 id: 'balance',
                 label: 'Баланс',
                 value: balanceValue,
-                helper: 'Основной счёт',
+                helper: primaryAccount?.name ?? PRIMARY_ACCOUNT_NAME,
                 tone: hasSelectedMonthBalances && primaryBalanceValue < 0 ? 'negative' : 'primary',
                 icon: 'account_balance_wallet',
             },
@@ -1157,6 +1159,28 @@ export class HomeDashboardStore {
         );
     }
 
+    resetCategoryOrder(): void {
+        if (this.isSaving()) {
+            return;
+        }
+
+        const previousPriorityIds = this.categoryPriorityIds();
+        const nextPriorityIds = normalizePriorityIds(this.categoryResponses(), []);
+
+        this.categoryPriorityIds.set(nextPriorityIds);
+        this.ensureDraftDefaults();
+
+        this.runMutation(
+            this.homeApi.resetCategoryOrder(),
+            'Не удалось сбросить порядок категорий.',
+            () => undefined,
+            () => {
+                this.categoryPriorityIds.set(previousPriorityIds);
+                this.ensureDraftDefaults();
+            },
+        );
+    }
+
     createPrimaryAccount(): void {
         if (this.isSaving()) {
             return;
@@ -1215,11 +1239,11 @@ export class HomeDashboardStore {
         );
     }
 
-    renamePrimaryAccount(event: { accountId: string; name: string; color?: string | null }): void {
+    renameAccount(event: { accountId: string; name: string; color?: string | null }): void {
         const name = event.name.trim();
         const account = this.accountResponses().find((item) => item.id === event.accountId);
 
-        if (!name || !account || !isPrimaryAccountResponse(account) || this.isSaving()) {
+        if (!name || !account || this.isSaving()) {
             return;
         }
 
@@ -1228,7 +1252,7 @@ export class HomeDashboardStore {
                 name,
                 color: event.color ?? account.color,
             }),
-            'Не удалось переименовать основной счёт.',
+            'Не удалось переименовать счёт.',
             () => {
                 this.accountNameError.set('');
                 this.refreshAccountData({ reloadYearTransactions: false });
@@ -1236,7 +1260,7 @@ export class HomeDashboardStore {
             (error) => {
                 this.accountNameError.set(
                     getApiFieldError(error, 'name') ||
-                        toFriendlyApiError(error, 'Не удалось переименовать основной счёт.'),
+                        toFriendlyApiError(error, 'Не удалось переименовать счёт.'),
                 );
             },
         );

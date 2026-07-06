@@ -55,32 +55,37 @@
                         </span>
                         <strong>{{ account.name }}</strong>
 
-                        @if (!account.isPrimary) {
-                            <ms-button
-                                appearance="icon"
-                                variant="danger"
-                                size="sm"
-                                data-testid="delete-account"
-                                [disabled]="saving()"
-                                (onClick)="deleteAccount.emit(account.id)"
-                                aria-label="Удалить счёт"
-                            >
-                                <span class="material-symbols-outlined">delete</span>
-                            </ms-button>
-                        } @else {
-                            <span class="account-card__badge">Основной</span>
+                        <div class="account-card__actions">
+                            @if (account.isPrimary) {
+                                <span class="account-card__badge">Основной</span>
+                            }
+
                             <ms-button
                                 appearance="icon"
                                 variant="neutral"
                                 size="sm"
-                                data-testid="rename-primary-account"
+                                data-testid="rename-account"
                                 [disabled]="saving()"
                                 (onClick)="openRenameDialog(account)"
-                                aria-label="Переименовать основной счёт"
+                                aria-label="Переименовать счёт"
                             >
                                 <span class="material-symbols-outlined">edit</span>
                             </ms-button>
-                        }
+
+                            @if (!account.isPrimary) {
+                                <ms-button
+                                    appearance="icon"
+                                    variant="danger"
+                                    size="sm"
+                                    data-testid="delete-account"
+                                    [disabled]="saving()"
+                                    (onClick)="deleteAccount.emit(account.id)"
+                                    aria-label="Удалить счёт"
+                                >
+                                    <span class="material-symbols-outlined">delete</span>
+                                </ms-button>
+                            }
+                        </div>
                     </div>
 
                     <span class="account-card__currency">{{ account.currencyLabel }}</span>
@@ -202,8 +207,8 @@
         >
             <header class="account-dialog__header">
                 <div>
-                    <h2 id="account-rename-title">Переименовать основной счёт</h2>
-                    <p>Можно изменить только название. Баланс, валюта и роль счёта сохранятся.</p>
+                    <h2 id="account-rename-title">Переименовать счёт</h2>
+                    <p>Можно изменить только название. Баланс, валюта и роль счёта сохраняются.</p>
                 </div>
 
                 <ms-button
@@ -221,7 +226,7 @@
                 <ms-input
                     [ngModel]="renameAccountName()"
                     (ngModelChange)="setRenameAccountName($event)"
-                    placeholder="Название основного счёта"
+                    placeholder="Название счёта"
                 ></ms-input>
             </div>
 
@@ -238,7 +243,7 @@
                 <ms-button
                     variant="primary"
                     [fullWidth]="true"
-                    data-testid="submit-primary-rename"
+                    data-testid="submit-account-rename"
                     [loading]="saving()"
                     [disabled]="!renameAccountName().trim()"
                     (onClick)="submitRenameDialog()"

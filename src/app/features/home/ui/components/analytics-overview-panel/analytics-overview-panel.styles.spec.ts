@@ -45,4 +45,13 @@ describe('Analytics overview panel responsive styles', () => {
             'grid-template-columns: repeat(4, minmax(0, 1fr))',
         );
     });
+
+    it('splits the analytics view tabs into three equal columns by default', () => {
+        const tabsRule = styles.match(/\.analytics-view-tabs\s*\{(?<body>[^}]*)\}/);
+
+        expect(tabsRule?.groups?.['body']).toContain('display: grid');
+        expect(tabsRule?.groups?.['body']).toContain(
+            'grid-template-columns: repeat(3, minmax(0, 1fr))',
+        );
+    });
 });

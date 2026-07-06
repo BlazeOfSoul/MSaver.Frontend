@@ -220,11 +220,22 @@ describe('CategoriesTabComponent', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>('[data-testid="category-subtab-order"]')?.click();
+        fixture.detectChanges();
+
+        const sections = Array.from(
+            host.querySelectorAll<HTMLElement>('[data-testid="category-order-section"]'),
+        );
         const rows = Array.from(host.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]'));
         const moveButton = Array.from(
             host.querySelectorAll<HTMLButtonElement>('[data-testid="move-category-down"]'),
         ).find((button) => !button.disabled);
 
+        expect(sections.map((section) => section.dataset['categoryType'])).toEqual([
+            'income',
+            'expense',
+        ]);
         expect(host.querySelector('.category-order-table')).not.toBeNull();
         expect(rows.map((row) => row.textContent?.trim())).toEqual([
             expect.stringContaining('Salary'),
@@ -233,7 +244,14 @@ describe('CategoriesTabComponent', () => {
         ]);
 
         moveButton?.click();
+        fixture.detectChanges();
+
         expect(moveSpy).toHaveBeenCalledWith({ categoryId: 'food-id', direction: 'down' });
+        expect(
+            rows
+                .find((row) => row.textContent?.includes('Food'))
+                ?.classList.contains('category-order-row--move-down'),
+        ).toBe(true);
     });
 
     it('uses full category order items when category cards are filtered', () => {
@@ -248,20 +266,46 @@ describe('CategoriesTabComponent', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLButtonElement>('[data-testid="category-subtab-order"]')?.click();
+        fixture.detectChanges();
+
         const rows = Array.from(host.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]'));
         const visibleRow = rows.find((row) => row.textContent?.includes('Visible'));
         const visibleMoveUp = visibleRow?.querySelector<HTMLButtonElement>(
             '[data-testid="move-category-up"]',
         );
-        const visibleChipMoveUp = host.querySelector<HTMLButtonElement>('.category-chip__move');
 
         expect(rows.map((row) => row.textContent?.trim())).toEqual([
             expect.stringContaining('Hidden'),
             expect.stringContaining('Visible'),
         ]);
-        expect(host.querySelectorAll('.category-chip')).toHaveLength(1);
         expect(visibleMoveUp?.disabled).toBe(false);
-        expect(visibleChipMoveUp?.disabled).toBe(false);
+    });
+
+    it('keeps category order in a separate subtab and emits reset actions', () => {
+        const resetSpy = vi.fn();
+        component.resetCategoryOrder.subscribe(resetSpy);
+        fixture.componentRef.setInput('incomeCategories', [
+            category({ id: 'salary-id', name: 'Salary', type: 'income' }),
+        ]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.querySelector('.category-order-table')).toBeNull();
+        expect(host.querySelector('ms-category-group-panel')).not.toBeNull();
+
+        host.querySelector<HTMLButtonElement>('[data-testid="category-subtab-order"]')?.click();
+        fixture.detectChanges();
+
+        expect(host.querySelector('.category-order-table')).not.toBeNull();
+        expect(host.querySelector('ms-category-group-panel')).toBeNull();
+
+        host.querySelector<HTMLButtonElement>('[data-testid="reset-category-order"]')?.click();
+
+        expect(resetSpy).toHaveBeenCalledOnce();
     });
 
     it('creates tags from a modal dialog with a selected color', () => {

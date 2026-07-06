@@ -38,7 +38,7 @@ export class AccountsTabComponent {
     newAccountInitialBalanceChange = output<number>();
     createAccount = output<void>();
     deleteAccount = output<string>();
-    renamePrimaryAccount = output<{ accountId: string; name: string; color: string }>();
+    renameAccount = output<{ accountId: string; name: string; color: string }>();
     submitTransfer = output<void>();
     accountChange = output<string>();
 }

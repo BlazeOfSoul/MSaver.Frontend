@@ -1,134 +1,192 @@
 <section class="categories-layout">
-    <div class="categories-search panel panel--wide">
-        <ms-input
-            [formControl]="searchControl()"
-            prefixIcon="search"
-            placeholder="Поиск по категориям и тегам"
-        ></ms-input>
-    </div>
+    <nav class="category-subtabs panel panel--wide" aria-label="Разделы категорий">
+        <button
+            type="button"
+            class="category-subtab"
+            data-testid="category-subtab-items"
+            [class.category-subtab--active]="activeSubtab() === 'items'"
+            (click)="setActiveSubtab('items')"
+        >
+            <span class="material-symbols-outlined" aria-hidden="true">category</span>
+            <span>Категории</span>
+        </button>
 
-    @if (categoryOrderItems().length) {
-        <article class="panel panel--wide category-order-panel">
+        <button
+            type="button"
+            class="category-subtab"
+            data-testid="category-subtab-order"
+            [class.category-subtab--active]="activeSubtab() === 'order'"
+            (click)="setActiveSubtab('order')"
+        >
+            <span class="material-symbols-outlined" aria-hidden="true">swap_vert</span>
+            <span>Порядок</span>
+        </button>
+    </nav>
+
+    @if (activeSubtab() === 'items') {
+        <div class="categories-search panel panel--wide">
+            <ms-input
+                [formControl]="searchControl()"
+                prefixIcon="search"
+                placeholder="Поиск по категориям и тегам"
+            ></ms-input>
+        </div>
+
+        <ms-category-group-panel
+            title="Доходы"
+            description="Категории поступлений для быстрых операций и отчётов."
+            addButtonTestId="open-income-category-dialog"
+            addButtonAriaLabel="Добавить категорию доходов"
+            railAriaLabel="Категории доходов"
+            emptyText="Категорий доходов пока нет."
+            [categories]="incomeCategories()"
+            [canMoveCategory]="canMoveCategoryByOrder"
+            [saving]="saving()"
+            (add)="openCategoryDialog('income')"
+            (deleteCategory)="deleteCategory.emit($event)"
+            (moveCategory)="moveCategory.emit($event)"
+        ></ms-category-group-panel>
+
+        <ms-category-group-panel
+            title="Расходы"
+            description="Статьи затрат для операций, бюджета и аналитики."
+            addButtonTestId="open-expense-category-dialog"
+            addButtonAriaLabel="Добавить категорию расходов"
+            railAriaLabel="Категории расходов"
+            emptyText="Категорий расходов пока нет."
+            [categories]="expenseCategories()"
+            [canMoveCategory]="canMoveCategoryByOrder"
+            [saving]="saving()"
+            (add)="openCategoryDialog('expense')"
+            (deleteCategory)="deleteCategory.emit($event)"
+            (moveCategory)="moveCategory.emit($event)"
+        ></ms-category-group-panel>
+
+        <article class="panel panel--wide">
             <div class="panel__header">
+                <div>
+                    <h2>Теги аналитики</h2>
+                    <p>Группы категорий для понятных срезов расходов и доходов.</p>
+                </div>
+
+                <ms-button
+                    appearance="icon"
+                    variant="primary"
+                    size="lg"
+                    data-testid="open-tag-dialog"
+                    [disabled]="saving()"
+                    (onClick)="openTagDialog()"
+                    aria-label="Добавить тег"
+                >
+                    <span class="material-symbols-outlined">add</span>
+                </ms-button>
+            </div>
+
+            @if (tagGroups().length) {
+                <div class="tag-group-list">
+                    @for (group of tagGroups(); track group.id) {
+                        <ms-tag-group-card
+                            [group]="group"
+                            [availableCategoryOptions]="categoryOptionsForTag(group)"
+                            [saving]="saving()"
+                            (deleteTag)="deleteTag.emit($event)"
+                            (assignCategoryToTag)="assignCategoryToTag.emit($event)"
+                            (removeCategoryFromTag)="removeCategoryFromTag.emit($event)"
+                        ></ms-tag-group-card>
+                    }
+                </div>
+            } @else {
+                <div class="categories-empty">Тегов пока нет.</div>
+            }
+        </article>
+    } @else {
+        <article class="panel panel--wide category-order-panel">
+            <div class="panel__header category-order-panel__header">
                 <div>
                     <h2>Порядок категорий</h2>
                     <p>Очередность для выбора категории в транзакциях.</p>
                 </div>
+
+                <ms-button
+                    appearance="icon"
+                    variant="neutral"
+                    size="lg"
+                    data-testid="reset-category-order"
+                    [disabled]="saving() || !categoryOrderItems().length"
+                    (onClick)="resetCategoryOrder.emit()"
+                    aria-label="Сбросить порядок категорий"
+                >
+                    <span class="material-symbols-outlined">restart_alt</span>
+                </ms-button>
             </div>
 
-            <div class="category-order-table" role="table" aria-label="Порядок категорий">
-                @for (category of categoryOrderItems(); track category.id; let index = $index) {
-                    <div
-                        class="category-order-row"
-                        data-testid="category-order-row"
-                        role="row"
+            <div class="category-order-sections">
+                @for (section of categoryOrderSections(); track section.id) {
+                    <section
+                        class="category-order-section"
+                        data-testid="category-order-section"
+                        [attr.data-category-type]="section.id"
                     >
-                        <span class="category-order-row__index">{{ index + 1 }}</span>
-                        <span
-                            class="category-order-row__color"
-                            [style.--category-color]="category.color"
-                            aria-hidden="true"
-                        ></span>
-                        <span class="category-order-row__name">
-                            {{ category.displayName || category.name }}
-                        </span>
-                        <span class="category-order-row__type">
-                            {{ category.type === 'income' ? 'Доход' : 'Расход' }}
-                        </span>
-                        <span class="category-order-row__actions">
-                            <button
-                                type="button"
-                                class="category-order-row__move"
-                                data-testid="move-category-up"
-                                [disabled]="saving() || !canMoveCategory(category, 'up')"
-                                (click)="moveCategory.emit({ categoryId: category.id, direction: 'up' })"
-                                aria-label="Поднять категорию выше"
+                        <div class="category-order-section__header">
+                            <h3>{{ section.title }}</h3>
+                        </div>
+
+                        @if (section.items.length) {
+                            <div
+                                class="category-order-table"
+                                role="table"
+                                [attr.aria-label]="'Порядок категорий: ' + section.title"
                             >
-                                <span class="material-symbols-outlined">keyboard_arrow_up</span>
-                            </button>
-                            <button
-                                type="button"
-                                class="category-order-row__move"
-                                data-testid="move-category-down"
-                                [disabled]="saving() || !canMoveCategory(category, 'down')"
-                                (click)="moveCategory.emit({ categoryId: category.id, direction: 'down' })"
-                                aria-label="Опустить категорию ниже"
-                            >
-                                <span class="material-symbols-outlined">keyboard_arrow_down</span>
-                            </button>
-                        </span>
-                    </div>
+                                @for (category of section.items; track category.id; let index = $index) {
+                                    <div
+                                        class="category-order-row"
+                                        data-testid="category-order-row"
+                                        role="row"
+                                        [class.category-order-row--move-up]="movedClass(category.id) === 'category-order-row--move-up'"
+                                        [class.category-order-row--move-down]="movedClass(category.id) === 'category-order-row--move-down'"
+                                    >
+                                        <span class="category-order-row__index">{{ index + 1 }}</span>
+                                        <span
+                                            class="category-order-row__color"
+                                            [style.--category-color]="category.color"
+                                            aria-hidden="true"
+                                        ></span>
+                                        <span class="category-order-row__name">
+                                            {{ category.displayName || category.name }}
+                                        </span>
+                                        <span class="category-order-row__actions">
+                                            <button
+                                                type="button"
+                                                class="category-order-row__move"
+                                                data-testid="move-category-up"
+                                                [disabled]="saving() || !canMoveCategory(category, 'up')"
+                                                (click)="moveCategoryFromOrder(category.id, 'up')"
+                                                aria-label="Поднять категорию выше"
+                                            >
+                                                <span class="material-symbols-outlined">keyboard_arrow_up</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="category-order-row__move"
+                                                data-testid="move-category-down"
+                                                [disabled]="saving() || !canMoveCategory(category, 'down')"
+                                                (click)="moveCategoryFromOrder(category.id, 'down')"
+                                                aria-label="Опустить категорию ниже"
+                                            >
+                                                <span class="material-symbols-outlined">keyboard_arrow_down</span>
+                                            </button>
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        } @else {
+                            <div class="categories-empty">{{ section.emptyText }}</div>
+                        }
+                    </section>
                 }
             </div>
         </article>
     }
-
-    <ms-category-group-panel
-        title="Доходы"
-        description="Категории поступлений для быстрых операций и отчётов."
-        addButtonTestId="open-income-category-dialog"
-        addButtonAriaLabel="Добавить категорию доходов"
-        railAriaLabel="Категории доходов"
-        emptyText="Категорий доходов пока нет."
-        [categories]="incomeCategories()"
-        [canMoveCategory]="canMoveCategoryByOrder"
-        [saving]="saving()"
-        (add)="openCategoryDialog('income')"
-        (deleteCategory)="deleteCategory.emit($event)"
-        (moveCategory)="moveCategory.emit($event)"
-    ></ms-category-group-panel>
-
-    <ms-category-group-panel
-        title="Расходы"
-        description="Статьи затрат для операций, бюджета и аналитики."
-        addButtonTestId="open-expense-category-dialog"
-        addButtonAriaLabel="Добавить категорию расходов"
-        railAriaLabel="Категории расходов"
-        emptyText="Категорий расходов пока нет."
-        [categories]="expenseCategories()"
-        [canMoveCategory]="canMoveCategoryByOrder"
-        [saving]="saving()"
-        (add)="openCategoryDialog('expense')"
-        (deleteCategory)="deleteCategory.emit($event)"
-        (moveCategory)="moveCategory.emit($event)"
-    ></ms-category-group-panel>
-    <article class="panel panel--wide">
-        <div class="panel__header">
-            <div>
-                <h2>Теги аналитики</h2>
-                <p>Группы категорий для понятных срезов расходов и доходов.</p>
-            </div>
-
-            <ms-button
-                appearance="icon"
-                variant="primary"
-                size="lg"
-                data-testid="open-tag-dialog"
-                [disabled]="saving()"
-                (onClick)="openTagDialog()"
-                aria-label="Добавить тег"
-            >
-                <span class="material-symbols-outlined">add</span>
-            </ms-button>
-        </div>
-
-        @if (tagGroups().length) {
-            <div class="tag-group-list">
-                @for (group of tagGroups(); track group.id) {
-                    <ms-tag-group-card
-                        [group]="group"
-                        [availableCategoryOptions]="categoryOptionsForTag(group)"
-                        [saving]="saving()"
-                        (deleteTag)="deleteTag.emit($event)"
-                        (assignCategoryToTag)="assignCategoryToTag.emit($event)"
-                        (removeCategoryFromTag)="removeCategoryFromTag.emit($event)"
-                    ></ms-tag-group-card>
-                }
-            </div>
-        } @else {
-            <div class="categories-empty">Тегов пока нет.</div>
-        }
-    </article>
 </section>
 
 @if (isCategoryDialogOpen()) {

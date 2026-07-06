@@ -49,6 +49,25 @@ describe('home category order utils', () => {
         ]);
     });
 
+    it('keeps debt categories first even when priority or alphabetic order would put them lower', () => {
+        const categories = [
+            category('food', 'Food'),
+            category('debt-given', 'Дано в долг (-)'),
+            category('rent', 'Rent'),
+        ];
+
+        expect(sortCategoriesForDisplay(categories, ['food', 'rent', 'debt-given'], 'priority')).toEqual([
+            categories[1],
+            categories[0],
+            categories[2],
+        ]);
+        expect(sortCategoriesForDisplay(categories, [], 'alphabetical')).toEqual([
+            categories[1],
+            categories[0],
+            categories[2],
+        ]);
+    });
+
     it('moves category priority only within the same category type', () => {
         const categories = [
             category('salary', 'Salary', 'Credit'),
@@ -63,6 +82,25 @@ describe('home category order utils', () => {
         ]);
         expect(moveCategoryPriority(categories, ['salary', 'food', 'rent'], 'salary', 'down')).toEqual([
             'salary',
+            'food',
+            'rent',
+        ]);
+    });
+
+    it('does not move regular categories above debt categories', () => {
+        const categories = [
+            category('debt-given', 'Дано в долг (-)', 'Debit'),
+            category('food', 'Food', 'Debit'),
+            category('rent', 'Rent', 'Debit'),
+        ];
+
+        expect(moveCategoryPriority(categories, ['debt-given', 'food', 'rent'], 'food', 'up')).toEqual([
+            'debt-given',
+            'food',
+            'rent',
+        ]);
+        expect(moveCategoryPriority(categories, ['debt-given', 'food', 'rent'], 'debt-given', 'down')).toEqual([
+            'debt-given',
             'food',
             'rent',
         ]);

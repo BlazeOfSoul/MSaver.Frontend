@@ -34,6 +34,18 @@ describe('SettingsTabComponent', () => {
         expect(text).not.toContain('Основной');
     });
 
+    it('separates currency and category order settings into different blocks', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const panels = Array.from(host.querySelectorAll<HTMLElement>('.settings-panel'));
+
+        expect(panels).toHaveLength(2);
+        expect(panels[0].textContent).toContain('Валюта приложения');
+        expect(panels[0].textContent).not.toContain('Порядок категорий');
+        expect(panels[1].textContent).toContain('Порядок категорий');
+    });
+
     it('emits category ordering changes from the settings dropdown', () => {
         const modeSpy = vi.fn();
         fixture.componentInstance.categorySortModeChange.subscribe(modeSpy);
