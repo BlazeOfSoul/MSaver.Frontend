@@ -18,6 +18,10 @@
     min-width: 0;
 }
 
+.tag-chart-section {
+    grid-column: 1 / -1;
+}
+
 .analytics-section__header {
     display: flex;
     align-items: center;

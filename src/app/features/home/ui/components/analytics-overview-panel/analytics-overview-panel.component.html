@@ -32,7 +32,8 @@
                 [active]="activeView() === view.id"
                 (onClick)="viewChange.emit(view.id)"
             >
-                {{ view.label }}
+                <span class="material-symbols-outlined" aria-hidden="true">{{ view.icon }}</span>
+                <span>{{ view.label }}</span>
             </ms-button>
         }
     </nav>

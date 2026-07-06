@@ -742,6 +742,12 @@ ms-input .ms-input-icon img {
     object-fit: contain;
 }
 
+ms-input .ms-input-icon--symbol {
+    color: var(--color-ms-light-dark);
+    font-size: 1.18rem;
+    line-height: 1;
+}
+
 ms-input .ms-input-shell:focus-within .ms-input-icon {
     opacity: 0.95;
     transform: scale(1.03);
@@ -784,6 +790,12 @@ ms-input .ms-input-action img {
     width: 18px;
     height: 18px;
     object-fit: contain;
+}
+
+ms-input .ms-input-action .material-symbols-outlined {
+    color: var(--color-ms-light-dark);
+    font-size: 1.05rem;
+    line-height: 1;
 }
 
 ms-input input {

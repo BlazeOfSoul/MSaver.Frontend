@@ -4,6 +4,18 @@
             <h2>Счета и балансы</h2>
             <p>Карты, наличные и резервы с балансом в своей валюте.</p>
         </div>
+
+        <ms-button
+            appearance="icon"
+            variant="primary"
+            size="lg"
+            data-testid="open-account-dialog"
+            [disabled]="saving()"
+            (onClick)="openAccountDialog()"
+            aria-label="Добавить счёт"
+        >
+            <span class="material-symbols-outlined">add</span>
+        </ms-button>
     </div>
 
     <div class="accounts-summary" aria-label="Сводный баланс">
@@ -26,8 +38,11 @@
             (valueChange)="accountChange.emit($event)"
         ></ms-select>
 
-        <ms-input [formControl]="searchControl()" placeholder="Поиск по названию или валюте">
-        </ms-input>
+        <ms-input
+            [formControl]="searchControl()"
+            prefixIcon="search"
+            placeholder="Поиск по названию или валюте"
+        ></ms-input>
     </div>
 
     @if (accounts().length) {
@@ -54,6 +69,17 @@
                             </ms-button>
                         } @else {
                             <span class="account-card__badge">Основной</span>
+                            <ms-button
+                                appearance="icon"
+                                variant="neutral"
+                                size="sm"
+                                data-testid="rename-primary-account"
+                                [disabled]="saving()"
+                                (onClick)="openRenameDialog(account)"
+                                aria-label="Переименовать основной счёт"
+                            >
+                                <span class="material-symbols-outlined">edit</span>
+                            </ms-button>
                         }
                     </div>
 
@@ -83,38 +109,143 @@
             }
         </div>
     }
+</article>
 
-    <div class="account-create">
-        <div class="account-create__fields">
-            <div class="account-create__field-stack">
+@if (isAccountDialogOpen()) {
+    <ms-dialog-shell backdropClass="category-dialog-backdrop" (closed)="closeAccountDialog()">
+        <section
+            class="account-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="account-dialog-title"
+            (click)="$event.stopPropagation()"
+        >
+            <header class="account-dialog__header">
+                <div>
+                    <h2 id="account-dialog-title">Новый счёт</h2>
+                    <p>Задайте название, валюту и стартовый баланс.</p>
+                </div>
+
+                <ms-button
+                    appearance="icon"
+                    variant="neutral"
+                    size="md"
+                    (onClick)="closeAccountDialog()"
+                    aria-label="Закрыть диалог"
+                >
+                    <span class="material-symbols-outlined">close</span>
+                </ms-button>
+            </header>
+
+            <div class="account-dialog__fields">
+                <div class="account-dialog__field-stack">
+                    <ms-input
+                        [ngModel]="accountDialogName()"
+                        (ngModelChange)="setAccountDialogName($event)"
+                        placeholder="Название счёта..."
+                        [invalid]="!!newAccountNameError()"
+                    ></ms-input>
+
+                    @if (newAccountNameError()) {
+                        <p class="field-error">{{ newAccountNameError() }}</p>
+                    }
+                </div>
+
+                <ms-select
+                    label="Валюта"
+                    [options]="currencyOptions()"
+                    [value]="newAccountCurrency()"
+                    (valueChange)="newAccountCurrencyChange.emit($event)"
+                ></ms-select>
+
                 <ms-input
-                    [ngModel]="newAccountName()"
-                    (ngModelChange)="newAccountNameChange.emit($event)"
-                    placeholder="Название счёта..."
-                    [invalid]="!!newAccountNameError()"
+                    [ngModel]="initialBalanceText()"
+                    (ngModelChange)="onInitialBalanceInput($event)"
+                    inputMode="decimal"
+                    placeholder="0.00"
                 ></ms-input>
-
-                @if (newAccountNameError()) {
-                    <p class="field-error">{{ newAccountNameError() }}</p>
-                }
             </div>
 
-            <ms-select
-                [options]="currencyOptions()"
-                [value]="newAccountCurrency()"
-                (valueChange)="newAccountCurrencyChange.emit($event)"
-            ></ms-select>
-        </div>
+            <footer class="account-dialog__footer">
+                <ms-button
+                    variant="neutral"
+                    appearance="outline"
+                    [fullWidth]="true"
+                    (onClick)="closeAccountDialog()"
+                >
+                    Отмена
+                </ms-button>
 
-        <ms-button
-            appearance="icon"
-            variant="primary"
-            size="lg"
-            [disabled]="saving()"
-            (onClick)="createAccount.emit()"
-            aria-label="Добавить счёт"
+                <ms-button
+                    variant="primary"
+                    [fullWidth]="true"
+                    data-testid="submit-account-dialog"
+                    [loading]="saving()"
+                    [disabled]="!accountDialogName().trim()"
+                    (onClick)="submitAccountDialog()"
+                >
+                    Создать счёт
+                </ms-button>
+            </footer>
+        </section>
+    </ms-dialog-shell>
+}
+
+@if (isRenameDialogOpen()) {
+    <ms-dialog-shell backdropClass="category-dialog-backdrop" (closed)="closeRenameDialog()">
+        <section
+            class="account-dialog account-rename-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="account-rename-title"
+            (click)="$event.stopPropagation()"
         >
-            <span class="material-symbols-outlined">add</span>
-        </ms-button>
-    </div>
-</article>
+            <header class="account-dialog__header">
+                <div>
+                    <h2 id="account-rename-title">Переименовать основной счёт</h2>
+                    <p>Можно изменить только название. Баланс, валюта и роль счёта сохранятся.</p>
+                </div>
+
+                <ms-button
+                    appearance="icon"
+                    variant="neutral"
+                    size="md"
+                    (onClick)="closeRenameDialog()"
+                    aria-label="Закрыть диалог"
+                >
+                    <span class="material-symbols-outlined">close</span>
+                </ms-button>
+            </header>
+
+            <div class="account-dialog__fields">
+                <ms-input
+                    [ngModel]="renameAccountName()"
+                    (ngModelChange)="setRenameAccountName($event)"
+                    placeholder="Название основного счёта"
+                ></ms-input>
+            </div>
+
+            <footer class="account-dialog__footer">
+                <ms-button
+                    variant="neutral"
+                    appearance="outline"
+                    [fullWidth]="true"
+                    (onClick)="closeRenameDialog()"
+                >
+                    Отмена
+                </ms-button>
+
+                <ms-button
+                    variant="primary"
+                    [fullWidth]="true"
+                    data-testid="submit-primary-rename"
+                    [loading]="saving()"
+                    [disabled]="!renameAccountName().trim()"
+                    (onClick)="submitRenameDialog()"
+                >
+                    Сохранить
+                </ms-button>
+            </footer>
+        </section>
+    </ms-dialog-shell>
+}

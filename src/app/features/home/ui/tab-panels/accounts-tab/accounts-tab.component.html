@@ -10,12 +10,15 @@
         [summaryBalanceValue]="summaryBalanceValue()"
         [newAccountName]="newAccountName()"
         [newAccountCurrency]="newAccountCurrency()"
+        [newAccountInitialBalance]="newAccountInitialBalance()"
         [newAccountNameError]="newAccountNameError()"
         [saving]="saving()"
         (newAccountNameChange)="newAccountNameChange.emit($event)"
         (newAccountCurrencyChange)="newAccountCurrencyChange.emit($event)"
+        (newAccountInitialBalanceChange)="newAccountInitialBalanceChange.emit($event)"
         (createAccount)="createAccount.emit()"
         (deleteAccount)="deleteAccount.emit($event)"
+        (renamePrimaryAccount)="renamePrimaryAccount.emit($event)"
         (accountChange)="accountChange.emit($event)"
     ></ms-account-list-panel>
 

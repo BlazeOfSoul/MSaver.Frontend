@@ -54,6 +54,7 @@ describe('AccountsTabComponent', () => {
         fixture.componentRef.setInput('summaryBalanceValue', 100);
         fixture.componentRef.setInput('newAccountName', '');
         fixture.componentRef.setInput('newAccountCurrency', 'BYN');
+        fixture.componentRef.setInput('newAccountInitialBalance', 0);
         fixture.componentRef.setInput('newAccountNameError', '');
     });
 

@@ -141,3 +141,14 @@
     gap: 0.85rem;
     padding-top: 0.1rem;
 }
+
+.first-account-setup__field {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.first-account-setup__field > span {
+    color: var(--color-ms-light-dark);
+    font-size: 0.82rem;
+    font-weight: 700;
+}

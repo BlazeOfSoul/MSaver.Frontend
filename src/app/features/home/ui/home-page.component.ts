@@ -24,6 +24,7 @@ import { AnalyticsTabComponent } from './tab-panels/analytics-tab/analytics-tab.
 import { CategoriesTabComponent } from './tab-panels/categories-tab/categories-tab.component';
 import { OverviewTabComponent } from './tab-panels/overview-tab/overview-tab.component';
 import { SettingsTabComponent } from './tab-panels/settings-tab/settings-tab.component';
+import { CategoryMoveDirection, CategorySortMode } from './home-category-order.utils';
 import { HomeTabId, TransactionDraft, TransactionItem, TransferDraft } from './home-page.models';
 import { CURRENCY_OPTIONS, HOME_TABS } from './home-page.constants';
 import { HomeDashboardStore } from './home-dashboard.store';
@@ -80,6 +81,8 @@ export class HomePageComponent {
     readonly isEditingTransaction = this.dashboard.isEditingTransaction;
     readonly newAccountName = this.dashboard.newAccountName;
     readonly newAccountCurrency = this.dashboard.newAccountCurrency;
+    readonly newAccountInitialBalance = this.dashboard.newAccountInitialBalance;
+    readonly categorySortMode = this.dashboard.categorySortMode;
     readonly newIncomeCategory = this.dashboard.newIncomeCategory;
     readonly newExpenseCategory = this.dashboard.newExpenseCategory;
     readonly newIncomeCategoryColor = this.dashboard.newIncomeCategoryColor;
@@ -248,8 +251,16 @@ export class HomePageComponent {
         this.dashboard.setNewAccountCurrency(value);
     }
 
+    setNewAccountInitialBalance(value: number): void {
+        this.dashboard.setNewAccountInitialBalance(value);
+    }
+
     updateApplicationCurrency(value: string): void {
         this.dashboard.setApplicationCurrencyCode(value);
+    }
+
+    setCategorySortMode(value: CategorySortMode): void {
+        this.dashboard.setCategorySortMode(value);
     }
 
     createNewAccount(): void {
@@ -262,6 +273,10 @@ export class HomePageComponent {
 
     deleteAccount(accountId: string): void {
         this.dashboard.deleteAccount(accountId);
+    }
+
+    renamePrimaryAccount(event: { accountId: string; name: string; color: string }): void {
+        this.dashboard.renamePrimaryAccount(event);
     }
 
     setNewIncomeCategory(value: string): void {
@@ -298,6 +313,10 @@ export class HomePageComponent {
 
     deleteCategory(categoryId: string): void {
         this.dashboard.deleteCategory(categoryId);
+    }
+
+    moveCategory(event: { categoryId: string; direction: CategoryMoveDirection }): void {
+        this.dashboard.moveCategory(event.categoryId, event.direction);
     }
 
     addTagGroup(): void {

@@ -160,11 +160,8 @@
                                             <label class="dialog__date-part-input">
                                                 <span>Дата</span>
                                                 <input
-                                                    type="text"
+                                                    type="date"
                                                     [value]="dateText()"
-                                                    inputmode="numeric"
-                                                    maxlength="10"
-                                                    placeholder="дд.мм.гггг"
                                                     (input)="
                                                         onDatePartInputEvent($event)
                                                     "
@@ -174,11 +171,8 @@
                                             <label class="dialog__time-part-input">
                                                 <span>Время</span>
                                                 <input
-                                                    type="text"
+                                                    type="time"
                                                     [value]="timeText()"
-                                                    inputmode="numeric"
-                                                    maxlength="5"
-                                                    placeholder="чч:мм"
                                                     (input)="
                                                         onTimePartInputEvent($event)
                                                     "

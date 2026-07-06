@@ -85,6 +85,15 @@ import {
     calculateDebtTotalsUntilMonth,
 } from './home-debt.utils';
 import {
+    CategoryMoveDirection,
+    CategorySortMode,
+    moveCategoryPriority,
+    normalizePriorityIds,
+    readStoredCategorySortMode,
+    sortCategoriesForDisplay,
+    writeStoredCategorySortMode,
+} from './home-category-order.utils';
+import {
     categoryTotals,
     isExpenseOperationTransaction,
     isExpenseCategory,
@@ -204,9 +213,12 @@ export class HomeDashboardStore {
         TRANSACTION_PAGE_SIZE_OPTIONS.map((size) => ({
             value: size.toString(),
             label: size.toString(),
-        }));
+    }));
     readonly newAccountName = signal('');
     readonly newAccountCurrency = signal('BYN');
+    readonly newAccountInitialBalance = signal(0);
+    readonly categorySortMode = signal<CategorySortMode>(readStoredCategorySortMode());
+    readonly categoryPriorityIds = signal<ReadonlyArray<string>>([]);
     readonly newIncomeCategory = signal('');
     readonly newExpenseCategory = signal('');
     readonly newIncomeCategoryColor = signal(CATEGORY_COLORS[0]);
@@ -307,6 +319,13 @@ export class HomeDashboardStore {
             this.accountSearchQuery(),
         ),
     );
+    readonly orderedCategoryResponses = computed(() =>
+        sortCategoriesForDisplay(
+            this.categoryResponses(),
+            this.categoryPriorityIds(),
+            this.categorySortMode(),
+        ),
+    );
     readonly transactions = computed<TransactionItem[]>(() => {
         if (this.transactionPageMonthKey() !== monthKey(this.selectedMonth())) {
             return [];
@@ -359,7 +378,7 @@ export class HomeDashboardStore {
     });
     readonly incomeCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
-            this.categoryResponses(),
+            this.orderedCategoryResponses(),
             this.selectedMonthTransactions().filter((transaction) =>
                 isIncomeOperationTransaction(transaction),
             ),
@@ -370,7 +389,7 @@ export class HomeDashboardStore {
     );
     readonly expenseCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
-            this.categoryResponses(),
+            this.orderedCategoryResponses(),
             this.selectedMonthTransactions().filter((transaction) =>
                 isExpenseOperationTransaction(transaction),
             ),
@@ -381,7 +400,7 @@ export class HomeDashboardStore {
     );
     readonly analyticsIncomeCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
-            this.categoryResponses(),
+            this.orderedCategoryResponses(),
             this.analyticsMonthTransactions().filter((transaction) =>
                 isIncomeOperationTransaction(transaction),
             ),
@@ -392,7 +411,7 @@ export class HomeDashboardStore {
     );
     readonly analyticsExpenseCategories = computed<CategoryBreakdownItem[]>(() =>
         mapCategories(
-            this.categoryResponses(),
+            this.orderedCategoryResponses(),
             this.analyticsMonthTransactions().filter((transaction) =>
                 isExpenseOperationTransaction(transaction),
             ),
@@ -416,7 +435,7 @@ export class HomeDashboardStore {
         ),
     );
     readonly allCategoryOptions = computed<MsSelectOption[]>(() =>
-        this.categoryResponses()
+        this.orderedCategoryResponses()
             .filter((category) => category.type === 'Credit' || category.type === 'Debit')
             .map((category) => ({
                 value: category.id,
@@ -1089,6 +1108,55 @@ export class HomeDashboardStore {
         this.newAccountCurrency.set(nextCode);
     }
 
+    setNewAccountInitialBalance(value: number): void {
+        this.newAccountInitialBalance.set(this.normalizeInitialBalance(value));
+    }
+
+    setCategorySortMode(mode: CategorySortMode): void {
+        const nextMode = mode === 'alphabetical' ? 'alphabetical' : 'priority';
+
+        this.categorySortMode.set(nextMode);
+        writeStoredCategorySortMode(nextMode);
+        this.ensureDraftDefaults();
+    }
+
+    moveCategory(categoryId: string, direction: CategoryMoveDirection): void {
+        if (this.isSaving()) {
+            return;
+        }
+
+        const previousPriorityIds = this.categoryPriorityIds();
+        const nextPriorityIds = moveCategoryPriority(
+            this.categoryResponses(),
+            previousPriorityIds,
+            categoryId,
+            direction,
+        );
+
+        if (nextPriorityIds.every((id, index) => id === previousPriorityIds[index])) {
+            return;
+        }
+
+        this.categoryPriorityIds.set(nextPriorityIds);
+
+        if (this.categorySortMode() !== 'priority') {
+            this.categorySortMode.set('priority');
+            writeStoredCategorySortMode('priority');
+        }
+
+        this.ensureDraftDefaults();
+
+        this.runMutation(
+            this.homeApi.updateCategoryOrder({ categoryIds: [...nextPriorityIds] }),
+            'Не удалось сохранить порядок категорий.',
+            () => undefined,
+            () => {
+                this.categoryPriorityIds.set(previousPriorityIds);
+                this.ensureDraftDefaults();
+            },
+        );
+    }
+
     createPrimaryAccount(): void {
         if (this.isSaving()) {
             return;
@@ -1101,11 +1169,12 @@ export class HomeDashboardStore {
                 name: PRIMARY_ACCOUNT_NAME,
                 currencyCode,
                 color: ACCOUNT_COLORS[0],
-                initialBalance: 0,
+                initialBalance: this.newAccountInitialBalance(),
             }),
             'Не получилось создать основной счёт. Проверьте валюту и попробуйте ещё раз.',
             () => {
                 this.newAccountName.set('');
+                this.newAccountInitialBalance.set(0);
                 this.accountNameError.set('');
                 this.dashboardLoadRequestId++;
                 this.refreshAccountData({
@@ -1128,11 +1197,12 @@ export class HomeDashboardStore {
                 name,
                 currencyCode: this.newAccountCurrency(),
                 color: ACCOUNT_COLORS[this.accounts().length % ACCOUNT_COLORS.length],
-                initialBalance: 0,
+                initialBalance: this.newAccountInitialBalance(),
             }),
             'Не удалось создать счёт.',
             () => {
                 this.newAccountName.set('');
+                this.newAccountInitialBalance.set(0);
                 this.accountNameError.set('');
                 this.refreshAccountData({ reloadYearTransactions: false });
             },
@@ -1145,10 +1215,37 @@ export class HomeDashboardStore {
         );
     }
 
+    renamePrimaryAccount(event: { accountId: string; name: string; color?: string | null }): void {
+        const name = event.name.trim();
+        const account = this.accountResponses().find((item) => item.id === event.accountId);
+
+        if (!name || !account || !isPrimaryAccountResponse(account) || this.isSaving()) {
+            return;
+        }
+
+        this.runMutation(
+            this.homeApi.updateAccount(account.id, {
+                name,
+                color: event.color ?? account.color,
+            }),
+            'Не удалось переименовать основной счёт.',
+            () => {
+                this.accountNameError.set('');
+                this.refreshAccountData({ reloadYearTransactions: false });
+            },
+            (error) => {
+                this.accountNameError.set(
+                    getApiFieldError(error, 'name') ||
+                        toFriendlyApiError(error, 'Не удалось переименовать основной счёт.'),
+                );
+            },
+        );
+    }
+
     deleteAccount(accountId: string): void {
         const account = this.accountResponses().find((item) => item.id === accountId);
 
-        if (!account || account.isPrimary || this.isSaving()) {
+        if (!account || isPrimaryAccountResponse(account) || this.isSaving()) {
             return;
         }
 
@@ -1356,6 +1453,13 @@ export class HomeDashboardStore {
         return this.loadAllPages<CategoryResponse>((page) => this.homeApi.getCategories({ page }));
     }
 
+    private loadCategoryData() {
+        return forkJoin({
+            categories: this.loadCategories(),
+            order: this.homeApi.getCategoryOrder(),
+        });
+    }
+
     private loadTagDetails() {
         return this.loadAllPages<TagResponse>((page) => this.homeApi.getTags({ page })).pipe(
             switchMap((tags) => {
@@ -1482,6 +1586,7 @@ export class HomeDashboardStore {
     private clearPayload(): void {
         this.accountResponses.set([]);
         this.categoryResponses.set([]);
+        this.categoryPriorityIds.set([]);
         this.tagDetailsResponses.set([]);
         this.selectedAccountId.set('all');
         this.accountsSelectedAccountId.set('all');
@@ -1505,6 +1610,25 @@ export class HomeDashboardStore {
         this.transactionResponses.set(page.items);
         this.transactionPagination.set(mapTransactionPagination(page));
         this.transactionPageMonthKey.set(pageMonthKey);
+    }
+
+    private setCategoryResponses(
+        categories: ReadonlyArray<CategoryResponse>,
+        priorityIds: ReadonlyArray<string> = this.categoryPriorityIds(),
+    ): void {
+        const nextCategories = [...categories];
+        const nextPriorityIds = normalizePriorityIds(nextCategories, priorityIds);
+
+        this.categoryResponses.set(nextCategories);
+        this.categoryPriorityIds.set(nextPriorityIds);
+    }
+
+    private normalizeInitialBalance(value: number): number {
+        if (!Number.isFinite(value) || value <= 0) {
+            return 0;
+        }
+
+        return Math.round(value * 100) / 100;
     }
 
     private createCategory(nameValue: string, type: CategoryType, color: string): void {
@@ -1637,7 +1761,7 @@ export class HomeDashboardStore {
         const requestId = ++this.categoryReloadRequestId;
         this.isCategoryDataLoading = true;
 
-        this.loadCategories()
+        this.loadCategoryData()
             .pipe(
                 finalize(() => {
                     if (requestId === this.categoryReloadRequestId) {
@@ -1647,12 +1771,12 @@ export class HomeDashboardStore {
                 takeUntilDestroyed(this.destroyRef),
             )
             .subscribe({
-                next: (categories) => {
+                next: ({ categories, order }) => {
                     if (requestId !== this.categoryReloadRequestId) {
                         return;
                     }
 
-                    this.categoryResponses.set(categories);
+                    this.setCategoryResponses(categories, order.categoryIds);
                     this.hasLoadedCategories = true;
                     this.ensureDraftDefaults();
                 },
@@ -2544,7 +2668,7 @@ export class HomeDashboardStore {
     }
 
     private transactionCategoryOptions(type: 'Credit' | 'Debit'): MsSelectOption[] {
-        return this.categoryResponses()
+        return this.orderedCategoryResponses()
             .filter((category) => category.type === type)
             .map((category) => ({
                 value: category.id,

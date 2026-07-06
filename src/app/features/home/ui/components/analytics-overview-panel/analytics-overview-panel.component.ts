@@ -3,11 +3,12 @@ import { Button } from '../../../../../shared/ui/button/button';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import { AnalyticsMetricCard } from '../../home-page.models';
 
-export type AnalyticsViewId = 'monthly' | 'yearly' | 'tables' | 'tags';
+export type AnalyticsViewId = 'monthly' | 'yearly' | 'tables';
 
 export interface AnalyticsViewOption {
     id: AnalyticsViewId;
     label: string;
+    icon: string;
 }
 
 @Component({

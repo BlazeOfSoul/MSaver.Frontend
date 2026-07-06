@@ -73,10 +73,9 @@ export class AnalyticsTabComponent {
     readonly tagChartLimit = signal<AnalyticsTagChartLimit>('10');
 
     readonly analyticsViews: ReadonlyArray<AnalyticsViewOption> = [
-        { id: 'monthly', label: 'Месяц' },
-        { id: 'yearly', label: 'Год' },
-        { id: 'tables', label: 'Таблицы' },
-        { id: 'tags', label: 'Теги' },
+        { id: 'monthly', label: 'Месяц', icon: 'calendar_month' },
+        { id: 'yearly', label: 'Год', icon: 'query_stats' },
+        { id: 'tables', label: 'Таблицы', icon: 'table_chart' },
     ];
     readonly tagChartTypeOptions: ReadonlyArray<MsSelectOption> = [
         { value: 'bar', label: 'Столбцы' },

@@ -20,7 +20,7 @@
 
     @if (categories().length) {
         <div class="category-rail" [attr.aria-label]="railAriaLabel()">
-            @for (category of categories(); track category.id) {
+            @for (category of categories(); track category.id; let index = $index) {
                 <span
                     class="category-chip"
                     [class.category-chip--debt]="category.debtBadgeLabel"
@@ -39,6 +39,26 @@
                         <span class="category-chip__badge">{{ category.debtBadgeLabel }}</span>
                     }
                     @if (!category.isSystem) {
+                        <button
+                            type="button"
+                            class="category-chip__move"
+                            [disabled]="saving() || !canMoveCategory()(category, 'up', index, categories().length)"
+                            (click)="moveCategory.emit({ categoryId: category.id, direction: 'up' })"
+                            aria-label="ÐŸÐ¾Ð´Ð½ÑÑ‚ÑŒ ÐºÐ°Ñ‚ÐµÐ³Ð¾Ñ€Ð¸ÑŽ Ð²Ñ‹ÑˆÐµ"
+                        >
+                            <span class="material-symbols-outlined">keyboard_arrow_up</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            class="category-chip__move"
+                            [disabled]="saving() || !canMoveCategory()(category, 'down', index, categories().length)"
+                            (click)="moveCategory.emit({ categoryId: category.id, direction: 'down' })"
+                            aria-label="ÐžÐ¿ÑƒÑÑ‚Ð¸Ñ‚ÑŒ ÐºÐ°Ñ‚ÐµÐ³Ð¾Ñ€Ð¸ÑŽ Ð½Ð¸Ð¶Ðµ"
+                        >
+                            <span class="material-symbols-outlined">keyboard_arrow_down</span>
+                        </button>
+
                         <ms-button
                             appearance="icon"
                             variant="neutral"

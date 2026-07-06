@@ -140,7 +140,7 @@ describe('AddTransactionDialogComponent', () => {
         expect(amountCard?.querySelector('ms-input')).not.toBeNull();
     });
 
-    it('sorts visible category options alphabetically without dropping option colors', () => {
+    it('preserves the category option order provided by the dashboard store', () => {
         fixture.componentRef.setInput('expenseCategoryOptions', [
             { value: 'taxi-id', label: 'Taxi', color: '#67a6c1' },
             { value: 'food-id', label: 'Food', color: '#ff6f91' },
@@ -148,9 +148,9 @@ describe('AddTransactionDialogComponent', () => {
         ]);
 
         expect(component.categoryOptions()).toEqual([
-            { value: 'books-id', label: 'Books', color: '#e8b45d' },
-            { value: 'food-id', label: 'Food', color: '#ff6f91' },
             { value: 'taxi-id', label: 'Taxi', color: '#67a6c1' },
+            { value: 'food-id', label: 'Food', color: '#ff6f91' },
+            { value: 'books-id', label: 'Books', color: '#e8b45d' },
         ]);
     });
 
@@ -233,7 +233,7 @@ describe('AddTransactionDialogComponent', () => {
         expect(dateTimeInput?.value).toBe('05.06.2026 00:00');
     });
 
-    it('shows a dd.mm.yyyy date template and masks compact date typing', () => {
+    it('uses native date and time fields inside the app-styled picker', () => {
         const draftSpy = vi.fn();
         component.draftChange.subscribe(draftSpy);
         fixture.detectChanges();
@@ -243,20 +243,45 @@ describe('AddTransactionDialogComponent', () => {
         fixture.detectChanges();
 
         const dateInput = host.querySelector<HTMLInputElement>('.dialog__date-part-input input');
+        const timeInput = host.querySelector<HTMLInputElement>('.dialog__time-part-input input');
 
         expect(dateInput).not.toBeNull();
-        expect(dateInput?.value).toBe('05.06.2026');
-        expect(dateInput?.placeholder).toBe('дд.мм.гггг');
+        expect(timeInput).not.toBeNull();
+        expect(dateInput?.type).toBe('date');
+        expect(timeInput?.type).toBe('time');
+        expect(dateInput?.value).toBe('2026-06-05');
+        expect(timeInput?.value).toBe('00:00');
 
-        dateInput!.value = '08072026';
+        dateInput!.value = '2026-07-08';
         dateInput!.dispatchEvent(new Event('input', { bubbles: true }));
         fixture.detectChanges();
 
-        expect(dateInput?.value).toBe('08.07.2026');
         expect(draftSpy).toHaveBeenLastCalledWith({
             ...draft,
             date: '2026-07-08T00:00',
         });
+    });
+
+    it('allows clearing date and time picker fields without rewriting the draft date', () => {
+        const draftSpy = vi.fn();
+        component.draftChange.subscribe(draftSpy);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        host.querySelector<HTMLButtonElement>('.dialog__date-trigger')?.click();
+        fixture.detectChanges();
+
+        const dateInput = host.querySelector<HTMLInputElement>('.dialog__date-part-input input');
+        const timeInput = host.querySelector<HTMLInputElement>('.dialog__time-part-input input');
+
+        dateInput!.value = '';
+        dateInput!.dispatchEvent(new Event('input', { bubbles: true }));
+        timeInput!.value = '';
+        timeInput!.dispatchEvent(new Event('input', { bubbles: true }));
+
+        expect(component.dateText()).toBe('');
+        expect(component.timeText()).toBe('');
+        expect(draftSpy).not.toHaveBeenCalled();
     });
 
     it('renders the opened date picker as an overlay so form actions do not shift', () => {
@@ -287,7 +312,7 @@ describe('AddTransactionDialogComponent', () => {
         expect(dateInput).not.toBeNull();
         expect(timeInput).not.toBeNull();
 
-        dateInput!.value = '08.07.2026';
+        dateInput!.value = '2026-07-08';
         dateInput!.dispatchEvent(new Event('input', { bubbles: true }));
 
         expect(draftSpy).toHaveBeenLastCalledWith({
@@ -321,12 +346,12 @@ describe('AddTransactionDialogComponent', () => {
 
         const dateInput = document.createElement('input');
         const dateEvent = new Event('input', { bubbles: true });
-        dateInput.value = '08072026';
+        dateInput.value = '2026-07-08';
         Object.defineProperty(dateEvent, 'target', { value: dateInput });
 
         eventApi.onDatePartInputEvent!(dateEvent);
 
-        expect(component.dateText()).toBe('08.07.2026');
+        expect(component.dateText()).toBe('2026-07-08');
         expect(draftSpy).toHaveBeenLastCalledWith({
             ...draft,
             date: '2026-07-08T00:00',

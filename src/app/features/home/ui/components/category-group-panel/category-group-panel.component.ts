@@ -1,6 +1,17 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { Button } from '../../../../../shared/ui/button/button';
+import { CategoryMoveDirection } from '../../home-category-order.utils';
 import { CategoryBreakdownItem } from '../../home-page.models';
+
+type CanMoveCategory = (
+    category: CategoryBreakdownItem,
+    direction: CategoryMoveDirection,
+    index: number,
+    count: number,
+) => boolean;
+
+const defaultCanMoveCategory: CanMoveCategory = (_category, direction, index, count) =>
+    direction === 'up' ? index > 0 : index < count - 1;
 
 @Component({
     selector: 'ms-category-group-panel',
@@ -18,8 +29,10 @@ export class CategoryGroupPanelComponent {
     railAriaLabel = input.required<string>();
     emptyText = input.required<string>();
     categories = input.required<ReadonlyArray<CategoryBreakdownItem>>();
+    canMoveCategory = input<CanMoveCategory>(defaultCanMoveCategory);
     saving = input(false);
 
     add = output<void>();
     deleteCategory = output<string>();
+    moveCategory = output<{ categoryId: string; direction: CategoryMoveDirection }>();
 }

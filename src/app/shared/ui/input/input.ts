@@ -44,6 +44,9 @@ export class InputComponent implements ControlValueAccessor {
 
     icon = input<string | null>(null);
     iconAlt = input<string>('');
+    prefixIcon = input<string>('');
+    clearable = input<boolean>(true);
+    clearAriaLabel = input<string>('Очистить поле');
     actionIcon = input<string | null>(null);
     actionAriaLabel = input<string>('');
     actionDisabled = input<boolean>(false);
@@ -98,5 +101,26 @@ export class InputComponent implements ControlValueAccessor {
     onBlur(): void {
         this.onTouched();
         this.blurred.emit();
+    }
+
+    clearValue(): void {
+        if (this.isDisabled || this.readonly()) {
+            return;
+        }
+
+        this.value.set('');
+        this.onChange('');
+        this.onTouched();
+    }
+
+    protected canClear(): boolean {
+        return (
+            this.clearable() &&
+            !!this.value() &&
+            !this.actionIcon() &&
+            !this.afterInputTemplate() &&
+            !this.isDisabled &&
+            !this.readonly()
+        );
     }
 }

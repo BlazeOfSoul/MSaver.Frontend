@@ -6,6 +6,7 @@ import { MsSelectOption } from '../../../../../shared/ui/select/select';
 import { CategoryGroupPanelComponent } from '../../components/category-group-panel/category-group-panel.component';
 import { NameColorDialogComponent } from '../../components/name-color-dialog/name-color-dialog.component';
 import { TagGroupCardComponent } from '../../components/tag-group-card/tag-group-card.component';
+import { CategoryMoveDirection } from '../../home-category-order.utils';
 import { CategoryBreakdownItem, TagGroupItem } from '../../home-page.models';
 
 type CategoryDialogType = 'income' | 'expense';
@@ -32,6 +33,8 @@ type CategoryDialogType = 'income' | 'expense';
 export class CategoriesTabComponent {
     incomeCategories = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     expenseCategories = input.required<ReadonlyArray<CategoryBreakdownItem>>();
+    incomeCategoryOrderItems = input<ReadonlyArray<CategoryBreakdownItem> | null>(null);
+    expenseCategoryOrderItems = input<ReadonlyArray<CategoryBreakdownItem> | null>(null);
     tagGroups = input.required<ReadonlyArray<TagGroupItem>>();
     newIncomeCategory = input.required<string>();
     newExpenseCategory = input.required<string>();
@@ -56,6 +59,7 @@ export class CategoriesTabComponent {
     deleteTag = output<string>();
     assignCategoryToTag = output<{ tagId: string; categoryId: string }>();
     removeCategoryFromTag = output<{ tagId: string; categoryId: string }>();
+    moveCategory = output<{ categoryId: string; direction: CategoryMoveDirection }>();
 
     readonly isCategoryDialogOpen = signal(false);
     readonly isTagDialogOpen = signal(false);
@@ -78,6 +82,14 @@ export class CategoriesTabComponent {
 
     readonly tagDialogName = computed(() => this.newTagGroup());
     readonly tagDialogColor = computed(() => this.newTagGroupColor());
+    readonly categoryOrderItems = computed(() => [
+        ...(this.incomeCategoryOrderItems() ?? this.incomeCategories()),
+        ...(this.expenseCategoryOrderItems() ?? this.expenseCategories()),
+    ]);
+    readonly canMoveCategoryByOrder = (
+        category: CategoryBreakdownItem,
+        direction: CategoryMoveDirection,
+    ) => this.canMoveCategory(category, direction);
 
     openCategoryDialog(type: CategoryDialogType): void {
         this.categoryDialogType.set(type);
@@ -149,4 +161,16 @@ export class CategoriesTabComponent {
         return this.categoryOptions().filter((option) => !assignedIds.has(option.value));
     }
 
+    canMoveCategory(category: CategoryBreakdownItem, direction: CategoryMoveDirection): boolean {
+        const sameTypeCategories = this.categoryOrderItems().filter(
+            (item) => item.type === category.type,
+        );
+        const index = sameTypeCategories.findIndex((item) => item.id === category.id);
+
+        if (index < 0) {
+            return false;
+        }
+
+        return direction === 'up' ? index > 0 : index < sameTypeCategories.length - 1;
+    }
 }

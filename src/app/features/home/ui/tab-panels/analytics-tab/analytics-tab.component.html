@@ -47,6 +47,37 @@
                     [labels]="topExpenseLabels()"
                     [datasets]="topExpenseDatasets()"
                 ></ms-chart-card>
+
+                <div class="tag-chart-section">
+                    <div class="analytics-section__header">
+                        <span>Теги</span>
+                    </div>
+
+                    <div class="tag-chart-controls">
+                        <ms-select
+                            label="Вид"
+                            [options]="tagChartTypeOptions"
+                            [value]="tagChartType()"
+                            (valueChange)="setTagChartType($event)"
+                        ></ms-select>
+
+                        <ms-select
+                            label="Лимит"
+                            [options]="tagChartLimitOptions"
+                            [value]="tagChartLimit()"
+                            (valueChange)="setTagChartLimit($event)"
+                        ></ms-select>
+                    </div>
+
+                    <ms-chart-card
+                        title="Расходы по тегам"
+                        subtitle="Теги, которые собирают основные траты выбранного месяца."
+                        [type]="tagChartType()"
+                        [labels]="tagExpenseLabels()"
+                        [datasets]="tagExpenseDatasets()"
+                        [height]="280"
+                    ></ms-chart-card>
+                </div>
             </section>
         }
 
@@ -139,40 +170,6 @@
                     [showWhenEmpty]="true"
                     emptyText="Долгов за выбранный год пока нет."
                 ></ms-analytics-month-table>
-            </section>
-        }
-
-        @case ('tags') {
-            <section class="tag-chart-section analytics-section analytics-section--wide">
-                <div class="analytics-section__header">
-                    <span>Теги</span>
-                </div>
-
-                <div class="tag-chart-controls">
-                    <ms-select
-                        label="Вид"
-                        [options]="tagChartTypeOptions"
-                        [value]="tagChartType()"
-                        (valueChange)="setTagChartType($event)"
-                    ></ms-select>
-
-                    <ms-select
-                        label="Лимит"
-                        [options]="tagChartLimitOptions"
-                        [value]="tagChartLimit()"
-                        (valueChange)="setTagChartLimit($event)"
-                    ></ms-select>
-                </div>
-
-                <ms-chart-card
-                    title="Расходы по тегам"
-                    subtitle="Теги, которые собирают основные траты."
-                    [type]="tagChartType()"
-                    [labels]="tagExpenseLabels()"
-                    [datasets]="tagExpenseDatasets()"
-                    [height]="280"
-                ></ms-chart-card>
-
             </section>
         }
     }

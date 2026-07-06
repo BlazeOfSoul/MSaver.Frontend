@@ -2,9 +2,66 @@
     <div class="categories-search panel panel--wide">
         <ms-input
             [formControl]="searchControl()"
+            prefixIcon="search"
             placeholder="Поиск по категориям и тегам"
         ></ms-input>
     </div>
+
+    @if (categoryOrderItems().length) {
+        <article class="panel panel--wide category-order-panel">
+            <div class="panel__header">
+                <div>
+                    <h2>Порядок категорий</h2>
+                    <p>Очередность для выбора категории в транзакциях.</p>
+                </div>
+            </div>
+
+            <div class="category-order-table" role="table" aria-label="Порядок категорий">
+                @for (category of categoryOrderItems(); track category.id; let index = $index) {
+                    <div
+                        class="category-order-row"
+                        data-testid="category-order-row"
+                        role="row"
+                    >
+                        <span class="category-order-row__index">{{ index + 1 }}</span>
+                        <span
+                            class="category-order-row__color"
+                            [style.--category-color]="category.color"
+                            aria-hidden="true"
+                        ></span>
+                        <span class="category-order-row__name">
+                            {{ category.displayName || category.name }}
+                        </span>
+                        <span class="category-order-row__type">
+                            {{ category.type === 'income' ? 'Доход' : 'Расход' }}
+                        </span>
+                        <span class="category-order-row__actions">
+                            <button
+                                type="button"
+                                class="category-order-row__move"
+                                data-testid="move-category-up"
+                                [disabled]="saving() || !canMoveCategory(category, 'up')"
+                                (click)="moveCategory.emit({ categoryId: category.id, direction: 'up' })"
+                                aria-label="Поднять категорию выше"
+                            >
+                                <span class="material-symbols-outlined">keyboard_arrow_up</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="category-order-row__move"
+                                data-testid="move-category-down"
+                                [disabled]="saving() || !canMoveCategory(category, 'down')"
+                                (click)="moveCategory.emit({ categoryId: category.id, direction: 'down' })"
+                                aria-label="Опустить категорию ниже"
+                            >
+                                <span class="material-symbols-outlined">keyboard_arrow_down</span>
+                            </button>
+                        </span>
+                    </div>
+                }
+            </div>
+        </article>
+    }
 
     <ms-category-group-panel
         title="Доходы"
@@ -14,9 +71,11 @@
         railAriaLabel="Категории доходов"
         emptyText="Категорий доходов пока нет."
         [categories]="incomeCategories()"
+        [canMoveCategory]="canMoveCategoryByOrder"
         [saving]="saving()"
         (add)="openCategoryDialog('income')"
         (deleteCategory)="deleteCategory.emit($event)"
+        (moveCategory)="moveCategory.emit($event)"
     ></ms-category-group-panel>
 
     <ms-category-group-panel
@@ -27,9 +86,11 @@
         railAriaLabel="Категории расходов"
         emptyText="Категорий расходов пока нет."
         [categories]="expenseCategories()"
+        [canMoveCategory]="canMoveCategoryByOrder"
         [saving]="saving()"
         (add)="openCategoryDialog('expense')"
         (deleteCategory)="deleteCategory.emit($event)"
+        (moveCategory)="moveCategory.emit($event)"
     ></ms-category-group-panel>
     <article class="panel panel--wide">
         <div class="panel__header">

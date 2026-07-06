@@ -74,16 +74,14 @@ export class AddTransactionDialogComponent {
                 ? this.incomeCategoryOptions()
                 : this.expenseCategoryOptions();
 
-        return [...options].sort((first, second) =>
-            first.label.localeCompare(second.label, undefined, { sensitivity: 'base' }),
-        );
+        return options;
     });
     readonly dateParts = computed(() => {
         const parts = this.parseDraftDateTime(this.draft().date);
 
         return {
             ...parts,
-            dateInput: this.formatDateLabel(parts.date),
+            dateInput: parts.date,
             dateLabel: this.formatDateLabel(parts.date),
         };
     });
@@ -152,8 +150,8 @@ export class AddTransactionDialogComponent {
     }
 
     onDatePartInput(value: string | number): void {
-        const nextText = this.maskDateInputText(`${value ?? ''}`);
-        const nextDate = this.parseDateInputText(nextText);
+        const nextText = `${value ?? ''}`;
+        const nextDate = this.normalizeIsoDatePart(nextText);
 
         this.dateText.set(nextText);
 
@@ -169,8 +167,9 @@ export class AddTransactionDialogComponent {
     }
 
     onTimePartInput(value: string | number): void {
-        const nextText = this.maskTimeInputText(`${value ?? ''}`);
-        const nextTime = this.normalizeTimePart(nextText);
+        const rawText = `${value ?? ''}`;
+        const nextTime = this.normalizeTimePart(rawText);
+        const nextText = nextTime ?? rawText;
 
         this.timeText.set(nextText);
 
@@ -190,7 +189,7 @@ export class AddTransactionDialogComponent {
         date.setDate(date.getDate() + days);
         const nextDate = this.toDatePart(date);
 
-        this.dateText.set(this.formatDateLabel(nextDate));
+        this.dateText.set(nextDate);
         this.emitDateTime(nextDate, this.resolveCurrentTimePart());
     }
 
@@ -247,19 +246,16 @@ export class AddTransactionDialogComponent {
     }
 
     private parseDateInputText(value: string): string | null {
-        if (!/^\d{2}\.\d{2}\.\d{4}$/.test(value)) {
-            return null;
-        }
-
-        const [day, month, year] = value.split('.').map(Number);
-        const isoDate = `${year}-${`${month}`.padStart(2, '0')}-${`${day}`.padStart(2, '0')}`;
-        const normalized = this.normalizeIsoDatePart(isoDate);
-
-        return normalized;
+        return this.normalizeIsoDatePart(value);
     }
 
     private normalizeTimePart(value: string): string | null {
         const trimmed = value.trim();
+        const compactMatch = /^([01]\d|2[0-3])([0-5]\d)$/.exec(trimmed);
+
+        if (compactMatch) {
+            return `${compactMatch[1]}:${compactMatch[2]}`;
+        }
 
         return /^([01]\d|2[0-3]):[0-5]\d$/.test(trimmed) ? trimmed : null;
     }
@@ -268,21 +264,6 @@ export class AddTransactionDialogComponent {
         const [year, month, day] = value.split('-');
 
         return `${day}.${month}.${year}`;
-    }
-
-    private maskDateInputText(value: string): string {
-        const digits = value.replace(/\D/g, '').slice(0, 8);
-        const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean);
-
-        return parts.join('.');
-    }
-
-    private maskTimeInputText(value: string): string {
-        const digits = value.replace(/\D/g, '').slice(0, 4);
-        const hours = digits.slice(0, 2);
-        const minutes = digits.slice(2, 4);
-
-        return minutes ? `${hours}:${minutes}` : hours;
     }
 
     private resolveCurrentDatePart(): string {

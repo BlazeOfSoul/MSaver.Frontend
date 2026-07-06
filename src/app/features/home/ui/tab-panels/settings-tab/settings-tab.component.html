@@ -14,5 +14,13 @@
             [disabled]="saving()"
             (valueChange)="updateApplicationCurrency($event)"
         ></ms-select>
+
+        <ms-select
+            label="Порядок категорий"
+            [options]="categorySortOptions"
+            [value]="categorySortMode()"
+            [disabled]="saving()"
+            (valueChange)="updateCategorySortMode($event)"
+        ></ms-select>
     </article>
 </section>

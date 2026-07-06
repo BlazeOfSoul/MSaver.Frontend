@@ -3,7 +3,6 @@
     width: 13.75rem;
     justify-content: flex-end;
     gap: 0.4rem;
-    text-align: right;
 }
 
 ms-button.transaction-edit-action,
@@ -61,7 +60,6 @@ ms-button.ms-btn.transaction-edit-action:focus-visible {
     :host,
     :host tr,
     :host td {
-        display: block;
         width: 100%;
     }
 

@@ -17,6 +17,7 @@ describe('FirstAccountSetupComponent', () => {
             { value: 'USD', label: 'USD - Доллар США' },
         ]);
         fixture.componentRef.setInput('selectedCurrency', 'BYN');
+        fixture.componentRef.setInput('initialBalance', 0);
         fixture.componentRef.setInput('saving', false);
     });
 
@@ -31,6 +32,7 @@ describe('FirstAccountSetupComponent', () => {
         expect(host.querySelector('.first-account-setup__summary')).not.toBeNull();
         expect(host.textContent ?? '').toContain('Создайте основной счёт');
         expect(host.textContent ?? '').toContain('Валюта основного счёта');
+        expect(host.textContent ?? '').toContain('Начальный баланс');
         expect(host.textContent ?? '').toContain('BYN - Белорусский рубль');
     });
 
@@ -57,11 +59,13 @@ describe('FirstAccountSetupComponent', () => {
         expect(selectHost.classList.contains('ms-select-host--dropdown-top')).toBe(true);
     });
 
-    it('emits currency and create actions', () => {
+    it('emits currency, initial balance and create actions', () => {
         const currencySpy = vi.fn();
+        const initialBalanceSpy = vi.fn();
         const createSpy = vi.fn();
 
         fixture.componentInstance.currencyChange.subscribe(currencySpy);
+        fixture.componentInstance.initialBalanceChange.subscribe(initialBalanceSpy);
         fixture.componentInstance.createAccount.subscribe(createSpy);
         fixture.detectChanges();
 
@@ -70,9 +74,13 @@ describe('FirstAccountSetupComponent', () => {
         fixture.debugElement.query(By.directive(SelectComponent)).componentInstance.valueChange.emit(
             'USD',
         );
+        const balanceInput = host.querySelector<HTMLInputElement>('ms-input input');
+        balanceInput!.value = '250,75';
+        balanceInput!.dispatchEvent(new Event('input', { bubbles: true }));
         host.querySelector<HTMLElement>('ms-button')?.click();
 
         expect(currencySpy).toHaveBeenCalledWith('USD');
+        expect(initialBalanceSpy).toHaveBeenCalledWith(250.75);
         expect(createSpy).toHaveBeenCalledOnce();
     });
 });

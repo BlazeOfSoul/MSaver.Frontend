@@ -32,4 +32,17 @@ describe('Analytics overview panel responsive styles', () => {
             'grid-template-columns: repeat(4, minmax(0, 1fr))',
         );
     });
+
+    it('splits the mobile analytics view tabs into three equal columns', () => {
+        const mobileTabsRule = styles.match(
+            /@media\s*\(max-width:\s*900px\)\s*\{[\s\S]*?\.analytics-view-tabs\s*\{(?<body>[^}]*)\}/,
+        );
+
+        expect(mobileTabsRule?.groups?.['body']).toContain(
+            'grid-template-columns: repeat(3, minmax(0, 1fr))',
+        );
+        expect(mobileTabsRule?.groups?.['body']).not.toContain(
+            'grid-template-columns: repeat(4, minmax(0, 1fr))',
+        );
+    });
 });

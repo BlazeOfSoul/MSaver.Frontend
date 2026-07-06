@@ -207,6 +207,63 @@ describe('CategoriesTabComponent', () => {
         expect(debtChip?.querySelector('.category-chip__action')).toBeNull();
     });
 
+    it('renders a category reorder table and passes move actions through to the page', () => {
+        const moveSpy = vi.fn();
+        component.moveCategory.subscribe(moveSpy);
+        fixture.componentRef.setInput('incomeCategories', [
+            category({ id: 'salary-id', name: 'Salary', type: 'income' }),
+        ]);
+        fixture.componentRef.setInput('expenseCategories', [
+            category({ id: 'food-id', name: 'Food', type: 'expense' }),
+            category({ id: 'rent-id', name: 'Rent', type: 'expense' }),
+        ]);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const rows = Array.from(host.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]'));
+        const moveButton = Array.from(
+            host.querySelectorAll<HTMLButtonElement>('[data-testid="move-category-down"]'),
+        ).find((button) => !button.disabled);
+
+        expect(host.querySelector('.category-order-table')).not.toBeNull();
+        expect(rows.map((row) => row.textContent?.trim())).toEqual([
+            expect.stringContaining('Salary'),
+            expect.stringContaining('Food'),
+            expect.stringContaining('Rent'),
+        ]);
+
+        moveButton?.click();
+        expect(moveSpy).toHaveBeenCalledWith({ categoryId: 'food-id', direction: 'down' });
+    });
+
+    it('uses full category order items when category cards are filtered', () => {
+        fixture.componentRef.setInput('incomeCategories', [
+            category({ id: 'visible-id', name: 'Visible', type: 'income' }),
+        ]);
+        fixture.componentRef.setInput('incomeCategoryOrderItems', [
+            category({ id: 'hidden-id', name: 'Hidden', type: 'income' }),
+            category({ id: 'visible-id', name: 'Visible', type: 'income' }),
+        ]);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const rows = Array.from(host.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]'));
+        const visibleRow = rows.find((row) => row.textContent?.includes('Visible'));
+        const visibleMoveUp = visibleRow?.querySelector<HTMLButtonElement>(
+            '[data-testid="move-category-up"]',
+        );
+        const visibleChipMoveUp = host.querySelector<HTMLButtonElement>('.category-chip__move');
+
+        expect(rows.map((row) => row.textContent?.trim())).toEqual([
+            expect.stringContaining('Hidden'),
+            expect.stringContaining('Visible'),
+        ]);
+        expect(host.querySelectorAll('.category-chip')).toHaveLength(1);
+        expect(visibleMoveUp?.disabled).toBe(false);
+        expect(visibleChipMoveUp?.disabled).toBe(false);
+    });
+
     it('creates tags from a modal dialog with a selected color', () => {
         const addSpy = vi.fn();
         const nameSpy = vi.fn();

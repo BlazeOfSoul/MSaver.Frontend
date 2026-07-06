@@ -5,6 +5,7 @@ import { environment } from '../../../../environments/environment';
 import {
     AccountResponse,
     AssignTagCategoriesRequest,
+    CategoryOrderResponse,
     CategoryResponse,
     CreateAccountRequest,
     CreateCategoryRequest,
@@ -19,6 +20,8 @@ import {
     TagResponse,
     TransactionResponse,
     TransferRateResponse,
+    UpdateAccountRequest,
+    UpdateCategoryOrderRequest,
     UpdateTransactionRequest,
 } from './home-api.models';
 
@@ -57,6 +60,10 @@ export class HomeApiService {
         return this.http.post<string>(`${this.baseUrl}/Accounts`, payload);
     }
 
+    updateAccount(accountId: string, payload: UpdateAccountRequest): Observable<string> {
+        return this.http.put<string>(`${this.baseUrl}/Accounts/${accountId}`, payload);
+    }
+
     deleteAccount(accountId: string): Observable<string> {
         return this.http.delete<string>(`${this.baseUrl}/Accounts/${accountId}`);
     }
@@ -88,6 +95,14 @@ export class HomeApiService {
 
     createCategory(payload: CreateCategoryRequest): Observable<string> {
         return this.http.post<string>(`${this.baseUrl}/Categories`, payload);
+    }
+
+    getCategoryOrder(): Observable<CategoryOrderResponse> {
+        return this.http.get<CategoryOrderResponse>(`${this.baseUrl}/Categories/order`);
+    }
+
+    updateCategoryOrder(payload: UpdateCategoryOrderRequest): Observable<void> {
+        return this.http.put<void>(`${this.baseUrl}/Categories/order`, payload);
     }
 
     deleteCategory(categoryId: string): Observable<string> {

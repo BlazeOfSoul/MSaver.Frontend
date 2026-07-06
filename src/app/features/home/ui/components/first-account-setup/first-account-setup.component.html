@@ -42,6 +42,16 @@
             (valueChange)="currencyChange.emit($event)"
         ></ms-select>
 
+        <label class="first-account-setup__field">
+            <span>Начальный баланс</span>
+            <ms-input
+                [ngModel]="initialBalanceText()"
+                (ngModelChange)="onInitialBalanceInput($event)"
+                inputMode="decimal"
+                placeholder="0.00"
+            ></ms-input>
+        </label>
+
         <ms-button
             variant="primary"
             [fullWidth]="true"

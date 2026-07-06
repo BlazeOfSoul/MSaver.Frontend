@@ -4,8 +4,10 @@
             <ms-first-account-setup
                 [currencyOptions]="currencyOptions"
                 [selectedCurrency]="newAccountCurrency()"
+                [initialBalance]="newAccountInitialBalance()"
                 [saving]="isSaving()"
                 (currencyChange)="setNewAccountCurrency($event)"
+                (initialBalanceChange)="setNewAccountInitialBalance($event)"
                 (createAccount)="createPrimaryAccount()"
             ></ms-first-account-setup>
         </div>
@@ -95,6 +97,7 @@
                                     [summaryBalanceValue]="accountSummaryBalance()"
                                     [newAccountName]="newAccountName()"
                                     [newAccountCurrency]="newAccountCurrency()"
+                                    [newAccountInitialBalance]="newAccountInitialBalance()"
                                     [newAccountNameError]="accountNameError()"
                                     [transferRateError]="transferRateError()"
                                     [rateLoading]="isTransferRateLoading()"
@@ -103,8 +106,12 @@
                                     (transferDraftChange)="updateTransferDraft($event)"
                                     (newAccountNameChange)="setNewAccountName($event)"
                                     (newAccountCurrencyChange)="setNewAccountCurrency($event)"
+                                    (newAccountInitialBalanceChange)="
+                                        setNewAccountInitialBalance($event)
+                                    "
                                     (createAccount)="createNewAccount()"
                                     (deleteAccount)="deleteAccount($event)"
+                                    (renamePrimaryAccount)="renamePrimaryAccount($event)"
                                     (submitTransfer)="transferBetweenAccounts()"
                                 ></ms-accounts-tab>
                             }
@@ -132,6 +139,8 @@
                                 <ms-categories-tab
                                     [incomeCategories]="filteredIncomeCategories()"
                                     [expenseCategories]="filteredExpenseCategories()"
+                                    [incomeCategoryOrderItems]="incomeCategories()"
+                                    [expenseCategoryOrderItems]="expenseCategories()"
                                     [tagGroups]="filteredTagGroups()"
                                     [categoryOptions]="allCategoryOptions()"
                                     [searchControl]="categorySearchControl"
@@ -155,6 +164,7 @@
                                     (addIncomeCategory)="addIncomeCategory()"
                                     (addExpenseCategory)="addExpenseCategory()"
                                     (deleteCategory)="deleteCategory($event)"
+                                    (moveCategory)="moveCategory($event)"
                                     (addTagGroup)="addTagGroup()"
                                     (deleteTag)="deleteTag($event)"
                                     (assignCategoryToTag)="assignCategoryToTag($event)"
@@ -165,9 +175,11 @@
                             @case ('settings') {
                                 <ms-settings-tab
                                     [applicationCurrencyCode]="applicationCurrencyCode()"
+                                    [categorySortMode]="categorySortMode()"
                                     [currencyOptions]="currencyOptions"
                                     [saving]="isSaving()"
                                     (applicationCurrencyChange)="updateApplicationCurrency($event)"
+                                    (categorySortModeChange)="setCategorySortMode($event)"
                                 ></ms-settings-tab>
                             }
                         }

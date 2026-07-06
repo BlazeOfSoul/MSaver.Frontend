@@ -17,6 +17,7 @@ import {
 } from '../data-access/home-api.models';
 import { HomeApiService } from '../data-access/home-api.service';
 import { HomePageComponent } from './home-page.component';
+import { CATEGORY_SORT_MODE_STORAGE_KEY } from './home-category-order.utils';
 
 function page<T>(items: T[]): PagedResponse<T> {
     return {
@@ -95,11 +96,14 @@ describe('HomePageComponent', () => {
         getCurrentUser: ReturnType<typeof vi.fn>;
         updateApplicationCurrency: ReturnType<typeof vi.fn>;
         getCategories: ReturnType<typeof vi.fn>;
+        getCategoryOrder: ReturnType<typeof vi.fn>;
+        updateCategoryOrder: ReturnType<typeof vi.fn>;
         getTags: ReturnType<typeof vi.fn>;
         getTagById: ReturnType<typeof vi.fn>;
         getTransactions: ReturnType<typeof vi.fn>;
         getMonthBalance: ReturnType<typeof vi.fn>;
         createAccount: ReturnType<typeof vi.fn>;
+        updateAccount: ReturnType<typeof vi.fn>;
         deleteAccount: ReturnType<typeof vi.fn>;
         deleteCategory: ReturnType<typeof vi.fn>;
         createCategory: ReturnType<typeof vi.fn>;
@@ -151,6 +155,8 @@ describe('HomePageComponent', () => {
                 }),
             ),
             getCategories: vi.fn(() => of(page<CategoryResponse>([]))),
+            getCategoryOrder: vi.fn(() => of({ categoryIds: [] })),
+            updateCategoryOrder: vi.fn(() => of(undefined)),
             getTags: vi.fn(() => of(page<TagResponse>([]))),
             getTagById: vi.fn(() =>
                 of<TagDetailsResponse>({
@@ -175,6 +181,7 @@ describe('HomePageComponent', () => {
                 }),
             ),
             createAccount: vi.fn(() => of('account-id')),
+            updateAccount: vi.fn(() => of('account-id')),
             deleteAccount: vi.fn(() => of('account-id')),
             deleteCategory: vi.fn(() => of('category-id')),
             createCategory: vi.fn(() => of('category-id')),
@@ -293,13 +300,14 @@ describe('HomePageComponent', () => {
         expect(host.querySelector('.first-account-setup')).not.toBeNull();
 
         component.setNewAccountCurrency('USD');
+        component.setNewAccountInitialBalance(150.75);
         component.createPrimaryAccount();
 
         expect(homeApi.createAccount).toHaveBeenCalledWith({
             name: 'Основной счёт',
             currencyCode: 'USD',
             color: '#23c78b',
-            initialBalance: 0,
+            initialBalance: 150.75,
         });
     });
 
@@ -2358,6 +2366,7 @@ describe('HomePageComponent', () => {
 
         fixture.componentInstance.setActiveTab('accounts');
         fixture.componentInstance.setNewAccountName('Карта');
+        fixture.componentInstance.setNewAccountInitialBalance(325.4);
 
         const initialAccountCalls = homeApi.getAccounts.mock.calls.length;
         const initialUserCalls = homeApi.getCurrentUser.mock.calls.length;
@@ -2372,7 +2381,7 @@ describe('HomePageComponent', () => {
             name: 'Карта',
             currencyCode: 'BYN',
             color: '#ffd166',
-            initialBalance: 0,
+            initialBalance: 325.4,
         });
         expect(homeApi.getAccounts.mock.calls.length).toBeGreaterThan(initialAccountCalls);
         expect(homeApi.getCurrentUser).toHaveBeenCalledTimes(initialUserCalls);
@@ -2423,6 +2432,42 @@ describe('HomePageComponent', () => {
             currencyCode: 'BYN',
             color: '#ffd166',
             initialBalance: 0,
+        });
+    });
+
+    it('renames only the primary account through the account update endpoint', () => {
+        const primaryAccount = account({
+            id: 'primary-account',
+            name: 'Основной счёт',
+            color: '#23c78b',
+            isPrimary: true,
+        });
+        const secondaryAccount = account({
+            id: 'secondary-account',
+            name: 'Карта',
+            color: '#ffd166',
+            isPrimary: false,
+        });
+        homeApi.getAccounts.mockReturnValue(of(page([primaryAccount, secondaryAccount])));
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.renamePrimaryAccount({
+            accountId: 'primary-account',
+            name: 'Семейный счёт',
+            color: '#23c78b',
+        });
+        fixture.componentInstance.renamePrimaryAccount({
+            accountId: 'secondary-account',
+            name: 'Нельзя',
+            color: '#ffd166',
+        });
+
+        expect(homeApi.updateAccount).toHaveBeenCalledOnce();
+        expect(homeApi.updateAccount).toHaveBeenCalledWith('primary-account', {
+            name: 'Семейный счёт',
+            color: '#23c78b',
         });
     });
 
@@ -5287,6 +5332,97 @@ describe('HomePageComponent', () => {
         expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
         expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls);
         expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls);
+    });
+
+    it('orders transaction category dropdown options by priority or alphabetically based on settings', () => {
+        window.localStorage.setItem(CATEGORY_SORT_MODE_STORAGE_KEY, 'priority');
+        homeApi.getCategoryOrder.mockReturnValue(
+            of({ categoryIds: ['taxi-id', 'food-id', 'rent-id'] }),
+        );
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                    },
+                    {
+                        id: 'rent-id',
+                        name: 'Rent',
+                        type: 'Debit',
+                        color: '#67a6c1',
+                    },
+                    {
+                        id: 'taxi-id',
+                        name: 'Taxi',
+                        type: 'Debit',
+                        color: '#e8b45d',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.startAddingTransaction();
+
+        expect(homeApi.getCategoryOrder).toHaveBeenCalled();
+        expect(
+            fixture.componentInstance.expenseCategoryOptions().map((option) => option.label),
+        ).toEqual(['Taxi', 'Food', 'Rent']);
+
+        fixture.componentInstance.setCategorySortMode('alphabetical');
+
+        expect(
+            fixture.componentInstance.expenseCategoryOptions().map((option) => option.label),
+        ).toEqual(['Food', 'Rent', 'Taxi']);
+    });
+
+    it('persists category order through the backend when categories are reordered', () => {
+        window.localStorage.setItem(CATEGORY_SORT_MODE_STORAGE_KEY, 'priority');
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategoryOrder.mockReturnValue(
+            of({ categoryIds: ['food-id', 'rent-id', 'taxi-id'] }),
+        );
+        homeApi.getCategories.mockReturnValue(
+            of(
+                page<CategoryResponse>([
+                    {
+                        id: 'food-id',
+                        name: 'Food',
+                        type: 'Debit',
+                        color: '#ff6f91',
+                    },
+                    {
+                        id: 'rent-id',
+                        name: 'Rent',
+                        type: 'Debit',
+                        color: '#67a6c1',
+                    },
+                    {
+                        id: 'taxi-id',
+                        name: 'Taxi',
+                        type: 'Debit',
+                        color: '#e8b45d',
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        fixture.componentInstance.setActiveTab('categories');
+        fixture.componentInstance.moveCategory({ categoryId: 'rent-id', direction: 'up' });
+
+        expect(homeApi.updateCategoryOrder).toHaveBeenCalledWith({
+            categoryIds: ['rent-id', 'food-id', 'taxi-id'],
+        });
+        expect(window.localStorage.getItem('msaver:category-priority-order')).toBeNull();
     });
 
     it('ignores unsupported category color values', () => {

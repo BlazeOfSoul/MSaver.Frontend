@@ -34,7 +34,7 @@
 
     .analytics-view-tabs {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.35rem;
         overflow: visible;
         scrollbar-width: none;
@@ -44,6 +44,10 @@
         min-width: 0;
         padding-inline: 0.35rem;
         font-size: 0.78rem;
+    }
+
+    .analytics-view-tabs ms-button .material-symbols-outlined {
+        font-size: 1.05rem;
     }
 }
 

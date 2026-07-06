@@ -78,6 +78,42 @@ describe('CategoryGroupPanelComponent', () => {
         expect(deleteSpy).toHaveBeenCalledWith('salary-id');
     });
 
+    it('emits priority move actions for non-system categories only', () => {
+        const moveSpy = vi.fn();
+        component.moveCategory.subscribe(moveSpy);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const moveButtons = host.querySelectorAll<HTMLButtonElement>('.category-chip__move');
+
+        expect(moveButtons).toHaveLength(2);
+        expect(moveButtons[0].disabled).toBe(true);
+        expect(moveButtons[1].disabled).toBe(false);
+
+        moveButtons[1].click();
+
+        expect(moveSpy).toHaveBeenCalledWith({ categoryId: 'salary-id', direction: 'down' });
+    });
+
+    it('uses the provided move availability callback for chip controls', () => {
+        fixture.componentRef.setInput('categories', [
+            category({ id: 'salary-id', name: 'Salary', isSystem: false }),
+        ]);
+        fixture.componentRef.setInput('canMoveCategory', (
+            _category: CategoryBreakdownItem,
+            direction: 'up' | 'down',
+        ) => direction === 'up');
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const moveButtons = host.querySelectorAll<HTMLButtonElement>('.category-chip__move');
+
+        expect(moveButtons).toHaveLength(2);
+        expect(moveButtons[0].disabled).toBe(false);
+        expect(moveButtons[1].disabled).toBe(true);
+    });
+
     it('renders the empty state when there are no categories', () => {
         fixture.componentRef.setInput('categories', []);
 

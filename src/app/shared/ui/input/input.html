@@ -5,6 +5,10 @@
     <span class="ms-input-icon" aria-hidden="true">
         <img [src]="icon()!" [alt]="iconAlt()" />
     </span>
+    } @else if (prefixIcon()) {
+    <span class="material-symbols-outlined ms-input-icon ms-input-icon--symbol" aria-hidden="true">
+        {{ prefixIcon() }}
+    </span>
     }
 
     <input
@@ -21,14 +25,24 @@
         [class.invalid]="invalid()"
         [attr.aria-invalid]="invalid()"
         [value]="value()"
-        [class.has-left-icon]="!!icon()"
-        [class.has-right-action]="!!actionIcon() || !!afterInputTemplate()"
+        [class.has-left-icon]="!!icon() || !!prefixIcon()"
+        [class.has-right-action]="!!actionIcon() || !!afterInputTemplate() || canClear()"
         (input)="onInput($event)"
         (focus)="onFocus()"
         (blur)="onBlur()"
     />
 
-    @if (actionIcon()) {
+    @if (canClear()) {
+    <button
+        type="button"
+        class="ms-input-action"
+        data-testid="clear-input"
+        [attr.aria-label]="clearAriaLabel()"
+        (click)="clearValue()"
+    >
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+    } @else if (actionIcon()) {
     <button
         type="button"
         class="ms-input-action"

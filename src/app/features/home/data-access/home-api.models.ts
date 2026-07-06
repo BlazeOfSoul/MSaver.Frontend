@@ -45,6 +45,11 @@ export interface CreateAccountRequest {
     initialBalance: number;
 }
 
+export interface UpdateAccountRequest {
+    name: string;
+    color: string | null;
+}
+
 export interface CategoryResponse {
     id: string;
     name: string;
@@ -57,6 +62,14 @@ export interface CreateCategoryRequest {
     name: string;
     type: CategoryType;
     color: string;
+}
+
+export interface CategoryOrderResponse {
+    categoryIds: string[];
+}
+
+export interface UpdateCategoryOrderRequest {
+    categoryIds: string[];
 }
 
 export interface TagResponse {

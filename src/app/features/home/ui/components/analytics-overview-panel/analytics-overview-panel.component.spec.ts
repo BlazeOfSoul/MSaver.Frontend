@@ -9,8 +9,9 @@ describe('AnalyticsOverviewPanelComponent', () => {
     let fixture: ComponentFixture<AnalyticsOverviewPanelComponent>;
 
     const views: ReadonlyArray<AnalyticsViewOption> = [
-        { id: 'monthly', label: 'Месяц' },
-        { id: 'yearly', label: 'Год' },
+        { id: 'monthly', label: 'Месяц', icon: 'calendar_month' },
+        { id: 'yearly', label: 'Год', icon: 'query_stats' },
+        { id: 'tables', label: 'Таблицы', icon: 'table_chart' },
     ];
 
     const metrics: ReadonlyArray<AnalyticsMetricCard> = [
@@ -57,6 +58,9 @@ describe('AnalyticsOverviewPanelComponent', () => {
         expect(cards[1].textContent ?? '').toContain('Расходы');
         expect(tabs[0].classList.contains('ms-btn-active')).toBe(true);
         expect(tabs[1].classList.contains('ms-btn-active')).toBe(false);
+        expect(tabs[0].querySelector('.material-symbols-outlined')?.textContent?.trim()).toBe(
+            'calendar_month',
+        );
     });
 
     it('emits view and account changes from panel controls', () => {
@@ -69,10 +73,10 @@ describe('AnalyticsOverviewPanelComponent', () => {
 
         const host = fixture.nativeElement as HTMLElement;
 
-        host.querySelectorAll<HTMLElement>('ms-button')[1]?.click();
+        host.querySelectorAll<HTMLElement>('ms-button')[2]?.click();
         fixture.componentInstance.accountChange.emit('main');
 
-        expect(viewSpy).toHaveBeenCalledWith('yearly');
+        expect(viewSpy).toHaveBeenCalledWith('tables');
         expect(accountSpy).toHaveBeenCalledWith('main');
     });
 });

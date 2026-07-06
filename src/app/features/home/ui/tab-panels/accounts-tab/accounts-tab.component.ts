@@ -26,6 +26,7 @@ export class AccountsTabComponent {
     summaryBalanceValue = input.required<number>();
     newAccountName = input.required<string>();
     newAccountCurrency = input.required<string>();
+    newAccountInitialBalance = input.required<number>();
     newAccountNameError = input<string>('');
     transferRateError = input<string>('');
     rateLoading = input(false);
@@ -34,8 +35,10 @@ export class AccountsTabComponent {
     transferDraftChange = output<TransferDraft>();
     newAccountNameChange = output<string>();
     newAccountCurrencyChange = output<string>();
+    newAccountInitialBalanceChange = output<number>();
     createAccount = output<void>();
     deleteAccount = output<string>();
+    renamePrimaryAccount = output<{ accountId: string; name: string; color: string }>();
     submitTransfer = output<void>();
     accountChange = output<string>();
 }

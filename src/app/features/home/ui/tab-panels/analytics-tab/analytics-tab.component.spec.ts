@@ -35,10 +35,12 @@ describe('AnalyticsTabComponent', () => {
     });
 
     it('uses concise singular labels for month and year view tabs', () => {
-        expect(component.analyticsViews.slice(0, 2).map((view) => view.label)).toEqual([
+        expect(component.analyticsViews.map((view) => view.label)).toEqual([
             'Месяц',
             'Год',
+            'Таблицы',
         ]);
+        expect(component.analyticsViews.map((view) => view.id)).not.toContain('tags');
     });
 
     it('renders the monthly slice section with an even set of useful charts', () => {
@@ -49,6 +51,9 @@ describe('AnalyticsTabComponent', () => {
             category('salary', 'Salary', 120, '#23c78b', 'income'),
         ]);
         fixture.componentRef.setInput('topExpenses', [category('food', 'Food', 75, '#ff6f91')]);
+        fixture.componentRef.setInput('tagExpenses', [
+            category('home-tag', 'Home', 20, '#67a6c1'),
+        ]);
 
         fixture.detectChanges();
 
@@ -58,8 +63,9 @@ describe('AnalyticsTabComponent', () => {
         );
 
         expect(host.textContent ?? '').toContain('Месячный срез');
-        expect(host.querySelectorAll('.analytics-section ms-chart-card')).toHaveLength(4);
+        expect(host.querySelectorAll('.analytics-section ms-chart-card')).toHaveLength(5);
         expect(chartTitles).toContain('Доходы и расходы');
+        expect(chartTitles).toContain('Расходы по тегам');
     });
 
     it('builds one doughnut dataset with one value and color per expense category', () => {
@@ -136,12 +142,11 @@ describe('AnalyticsTabComponent', () => {
         expect(component.transferIncomeDatasets()[0].data).toEqual([150, 0]);
     });
 
-    it('renders the tag chart without the redundant tag filter strip', () => {
+    it('renders the tag chart inside the month view without a separate tags tab', () => {
         fixture.componentRef.setInput('tagExpenses', [
             category('home-tag', 'Home', 120, '#67a6c1'),
             category('transport-tag', 'Transport', 40, '#23c78b'),
         ]);
-        component.activeView.set('tags');
 
         fixture.detectChanges();
 
@@ -152,6 +157,7 @@ describe('AnalyticsTabComponent', () => {
         expect(chart).not.toBeNull();
         expect(filterStrip).toBeNull();
         expect(host.querySelectorAll('.tag-filter-button')).toHaveLength(0);
+        expect(component.analyticsViews.map((view) => view.id)).not.toContain('tags');
     });
 
     it('keeps the analytics tab layout stretched instead of collapsing around wide content', () => {
