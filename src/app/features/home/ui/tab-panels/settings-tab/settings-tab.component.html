@@ -18,6 +18,26 @@
 
     <article class="panel settings-panel settings-hero">
         <div>
+            <h2>Баланс на главной</h2>
+            <p>
+                Выберите один счёт для верхней карточки или показывайте сумму всех счетов.
+            </p>
+        </div>
+
+        <ms-select
+            label="Показывать баланс"
+            [options]="balanceDisplayOptions()"
+            [value]="balanceDisplayAccountId()"
+            [disabled]="saving()"
+            [searchable]="true"
+            searchPlaceholder="Найти счёт"
+            emptyText="Счета не найдены"
+            (valueChange)="updateBalanceDisplayAccount($event)"
+        ></ms-select>
+    </article>
+
+    <article class="panel settings-panel settings-hero">
+        <div>
             <h2>Порядок категорий</h2>
             <p>
                 Как сортировать категории в списках и выборе транзакций.

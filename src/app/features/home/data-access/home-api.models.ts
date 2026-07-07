@@ -25,6 +25,11 @@ export interface CurrentUserResponse {
     username: string;
     email: string;
     applicationCurrencyCode?: string;
+    balanceDisplayAccountId?: string | null;
+}
+
+export interface UpdateBalanceDisplaySettingsRequest {
+    balanceDisplayAccountId: string | null;
 }
 
 export interface MonthBalanceResponse {

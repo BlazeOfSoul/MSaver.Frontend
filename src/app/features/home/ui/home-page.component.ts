@@ -108,6 +108,8 @@ export class HomePageComponent {
     readonly filteredTagGroups = this.dashboard.filteredTagGroups;
     readonly toolbarAccountOptions = this.dashboard.toolbarAccountOptions;
     readonly accountOptions = this.dashboard.accountOptions;
+    readonly balanceDisplayOptions = this.dashboard.balanceDisplayOptions;
+    readonly selectedBalanceDisplayAccountId = this.dashboard.selectedBalanceDisplayAccountId;
     readonly applicationCurrencyCode = this.dashboard.applicationCurrencyCode;
     readonly accountSummaryBalance = this.dashboard.accountSummaryBalance;
     readonly accountSummaryBalanceLabel = this.dashboard.accountSummaryBalanceLabel;
@@ -257,6 +259,10 @@ export class HomePageComponent {
 
     updateApplicationCurrency(value: string): void {
         this.dashboard.setApplicationCurrencyCode(value);
+    }
+
+    setBalanceDisplayAccount(accountId: string): void {
+        this.dashboard.setBalanceDisplayAccount(accountId);
     }
 
     setCategorySortMode(value: CategorySortMode): void {

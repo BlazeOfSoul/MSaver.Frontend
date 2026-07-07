@@ -13,6 +13,8 @@ import { CategorySortMode } from '../../home-category-order.utils';
 export class SettingsTabComponent {
     applicationCurrencyCode = input.required<string>();
     categorySortMode = input.required<CategorySortMode>();
+    balanceDisplayAccountId = input.required<string>();
+    balanceDisplayOptions = input.required<ReadonlyArray<MsSelectOption>>();
     currencyOptions = input.required<ReadonlyArray<MsSelectOption>>();
     saving = input(false);
 
@@ -22,10 +24,15 @@ export class SettingsTabComponent {
     ];
 
     applicationCurrencyChange = output<string>();
+    balanceDisplayAccountChange = output<string>();
     categorySortModeChange = output<CategorySortMode>();
 
     updateApplicationCurrency(value: string): void {
         this.applicationCurrencyChange.emit(value);
+    }
+
+    updateBalanceDisplayAccount(value: string): void {
+        this.balanceDisplayAccountChange.emit(value);
     }
 
     updateCategorySortMode(value: string): void {

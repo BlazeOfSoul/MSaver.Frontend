@@ -178,9 +178,14 @@
                                 <ms-settings-tab
                                     [applicationCurrencyCode]="applicationCurrencyCode()"
                                     [categorySortMode]="categorySortMode()"
+                                    [balanceDisplayAccountId]="selectedBalanceDisplayAccountId()"
+                                    [balanceDisplayOptions]="balanceDisplayOptions()"
                                     [currencyOptions]="currencyOptions"
                                     [saving]="isSaving()"
                                     (applicationCurrencyChange)="updateApplicationCurrency($event)"
+                                    (balanceDisplayAccountChange)="
+                                        setBalanceDisplayAccount($event)
+                                    "
                                     (categorySortModeChange)="setCategorySortMode($event)"
                                 ></ms-settings-tab>
                             }

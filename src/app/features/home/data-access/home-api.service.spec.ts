@@ -48,4 +48,20 @@ describe('HomeApiService', () => {
         expect(request.request.body).toEqual({ categoryIds: ['food-id', 'rent-id'] });
         request.flush(null);
     });
+
+    it('updates the saved balance display setting for the current user', () => {
+        service.updateBalanceDisplaySettings({ balanceDisplayAccountId: 'all' }).subscribe();
+
+        const request = httpMock.expectOne(
+            `${environment.apiUrl}/Users/me/settings/balance-display`,
+        );
+        expect(request.request.method).toBe('PUT');
+        expect(request.request.body).toEqual({ balanceDisplayAccountId: 'all' });
+        request.flush({
+            id: 'user-123',
+            username: 'Alex',
+            email: 'alex@example.com',
+            balanceDisplayAccountId: 'all',
+        });
+    });
 });

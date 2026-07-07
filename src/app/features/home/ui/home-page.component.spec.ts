@@ -95,6 +95,7 @@ describe('HomePageComponent', () => {
         getAccounts: ReturnType<typeof vi.fn>;
         getCurrentUser: ReturnType<typeof vi.fn>;
         updateApplicationCurrency: ReturnType<typeof vi.fn>;
+        updateBalanceDisplaySettings: ReturnType<typeof vi.fn>;
         getCategories: ReturnType<typeof vi.fn>;
         getCategoryOrder: ReturnType<typeof vi.fn>;
         updateCategoryOrder: ReturnType<typeof vi.fn>;
@@ -154,6 +155,16 @@ describe('HomePageComponent', () => {
                     email: 'alex@example.com',
                     applicationCurrencyCode: payload.applicationCurrencyCode,
                 }),
+            ),
+            updateBalanceDisplaySettings: vi.fn(
+                (payload: { balanceDisplayAccountId: string | null }) =>
+                    of<CurrentUserResponse>({
+                        id: 'user-123',
+                        username: 'Alex',
+                        email: 'alex@example.com',
+                        applicationCurrencyCode: 'BYN',
+                        balanceDisplayAccountId: payload.balanceDisplayAccountId,
+                    }),
             ),
             getCategories: vi.fn(() => of(page<CategoryResponse>([]))),
             getCategoryOrder: vi.fn(() => of({ categoryIds: [] })),
@@ -2814,6 +2825,141 @@ describe('HomePageComponent', () => {
 
         expect(host.textContent ?? '').toContain('Сводный баланс');
         expect(host.textContent ?? '').toContain('25,00 Br');
+    });
+
+    it('uses the configured account or all accounts for the main balance summary card', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    {
+                        id: 'byn-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 10,
+                        color: '#23c78b',
+                        isArchived: false,
+                        isPrimary: true,
+                    },
+                    {
+                        id: 'usd-account',
+                        name: 'USD reserve',
+                        currencyCode: 'USD',
+                        currentBalance: 5,
+                        color: '#67a6c1',
+                        isArchived: false,
+                        isPrimary: false,
+                    },
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) =>
+            of({
+                rate: fromAccountId === 'usd-account' && toAccountId === 'byn-account' ? 3 : 1,
+                fromCurrencyCode: fromAccountId === 'usd-account' ? 'USD' : 'BYN',
+                toCurrencyCode: 'BYN',
+            }),
+        );
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId,
+                    currencyCode: accountId === 'usd-account' ? 'USD' : 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: accountId === 'usd-account' ? 5 : 10,
+                    year,
+                    month,
+                }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const balanceCard = () =>
+            fixture.componentInstance.summaryCards().find((card) => card.id === 'balance');
+
+        expect(balanceCard()?.value).toBe('10,00 Br');
+        expect(balanceCard()?.helper).toBe('Основной счёт');
+
+        fixture.componentInstance.setBalanceDisplayAccount('all');
+
+        expect(balanceCard()?.value).toBe('25,00 Br');
+        expect(balanceCard()?.helper).toBe('Все счета');
+        expect(homeApi.updateBalanceDisplaySettings).toHaveBeenCalledWith({
+            balanceDisplayAccountId: 'all',
+        });
+        expect(window.localStorage.getItem('msaver:balance-display-account')).toBeNull();
+
+        fixture.componentInstance.setBalanceDisplayAccount('usd-account');
+
+        expect(balanceCard()?.value).toBe('15,00 Br');
+        expect(balanceCard()?.helper).toBe('USD reserve');
+        expect(homeApi.updateBalanceDisplaySettings).toHaveBeenCalledWith({
+            balanceDisplayAccountId: 'usd-account',
+        });
+        expect(window.localStorage.getItem('msaver:balance-display-account')).toBeNull();
+    });
+
+    it('uses the saved backend balance display setting instead of the local device value', () => {
+        window.localStorage.setItem('msaver:balance-display-account', 'usd-account');
+        homeApi.getCurrentUser.mockReturnValue(
+            of<CurrentUserResponse>({
+                id: 'user-123',
+                username: 'Alex',
+                email: 'alex@example.com',
+                applicationCurrencyCode: 'BYN',
+                balanceDisplayAccountId: 'all',
+            }),
+        );
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    account({
+                        id: 'byn-account',
+                        currentBalance: 10,
+                    }),
+                    account({
+                        id: 'usd-account',
+                        name: 'USD reserve',
+                        currencyCode: 'USD',
+                        currentBalance: 5,
+                        color: '#67a6c1',
+                        isPrimary: false,
+                    }),
+                ] as AccountResponse[]),
+            ),
+        );
+        homeApi.getTransferRate.mockImplementation((fromAccountId: string, toAccountId: string) =>
+            of({
+                rate: fromAccountId === 'usd-account' && toAccountId === 'byn-account' ? 3 : 1,
+                fromCurrencyCode: fromAccountId === 'usd-account' ? 'USD' : 'BYN',
+                toCurrencyCode: 'BYN',
+            }),
+        );
+        homeApi.getMonthBalance.mockImplementation(
+            (accountId: string, year: number, month: number) =>
+                of<MonthBalanceResponse>({
+                    accountId,
+                    accountName: accountId,
+                    currencyCode: accountId === 'usd-account' ? 'USD' : 'BYN',
+                    openingBalance: 0,
+                    monthChange: 0,
+                    closingBalance: accountId === 'usd-account' ? 5 : 10,
+                    year,
+                    month,
+                }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        const balanceCard = fixture.componentInstance
+            .summaryCards()
+            .find((card) => card.id === 'balance');
+
+        expect(balanceCard?.value).toBe('25,00 Br');
+        expect(balanceCard?.helper).toBe('Все счета');
     });
 
     it('shows the renamed primary account name in the balance summary card', () => {

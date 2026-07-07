@@ -21,6 +21,7 @@ import {
     TransactionResponse,
     TransferRateResponse,
     UpdateAccountRequest,
+    UpdateBalanceDisplaySettingsRequest,
     UpdateCategoryOrderRequest,
     UpdateTransactionRequest,
 } from './home-api.models';
@@ -41,6 +42,15 @@ export class HomeApiService {
 
     getCurrentUser(): Observable<CurrentUserResponse> {
         return this.http.get<CurrentUserResponse>(`${this.baseUrl}/Users/me`);
+    }
+
+    updateBalanceDisplaySettings(
+        payload: UpdateBalanceDisplaySettingsRequest,
+    ): Observable<CurrentUserResponse> {
+        return this.http.put<CurrentUserResponse>(
+            `${this.baseUrl}/Users/me/settings/balance-display`,
+            payload,
+        );
     }
 
     getAccounts(request: ListRequestParams = {}): Observable<PagedResponse<AccountResponse>> {

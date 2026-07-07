@@ -110,6 +110,7 @@ const FRIENDLY_LOAD_ERROR_MESSAGE =
 const PRIMARY_ACCOUNT_NAME = 'Основной счёт';
 const PRIMARY_ACCOUNT_NAME_KEY = normalizeAccountName(PRIMARY_ACCOUNT_NAME);
 const APPLICATION_CURRENCY_STORAGE_KEY = 'msaver:application-currency';
+const ALL_ACCOUNTS_BALANCE_ID = 'all';
 const SUPPORTED_CURRENCY_CODES = new Set(CURRENCY_OPTIONS.map((option) => option.value));
 
 function normalizeAccountName(value: string): string {
@@ -192,6 +193,7 @@ export class HomeDashboardStore {
     readonly selectedAccountId = signal('all');
     readonly accountsSelectedAccountId = signal('all');
     readonly analyticsSelectedAccountId = signal('all');
+    readonly balanceDisplayAccountId = signal<string | null>(null);
     readonly searchQuery = signal('');
     readonly accountSearchQuery = signal('');
     readonly categorySearchQuery = signal('');
@@ -463,6 +465,22 @@ export class HomeDashboardStore {
             label: `${account.name} (${account.currencyLabel})`,
         })),
     );
+    readonly selectedBalanceDisplayAccountId = computed(() =>
+        this.resolveBalanceDisplayAccountId(this.balanceDisplayAccountId()),
+    );
+    readonly balanceDisplayOptions = computed<MsSelectOption[]>(() => [
+        {
+            value: ALL_ACCOUNTS_BALANCE_ID,
+            label: 'Все счета',
+            description: `Сумма в ${this.applicationCurrencyCode()}`,
+        },
+        ...this.accounts().map((account) => ({
+            value: account.id,
+            label: account.name,
+            description: account.currencyLabel,
+            color: account.color,
+        })),
+    ]);
     readonly incomeCategoryOptions = computed<MsSelectOption[]>(() =>
         this.transactionCategoryOptions('Credit'),
     );
@@ -687,13 +705,20 @@ export class HomeDashboardStore {
         ];
     });
     readonly summaryCards = computed<ReadonlyArray<HomeSummaryCard>>(() => {
-        const primaryAccount = this.primaryAccount();
-        const primaryBalanceValue = primaryAccount
-            ? this.convertAccountAmount(primaryAccount.id, primaryAccount.balanceValue)
-            : 0;
+        const balanceDisplayAccountId = this.selectedBalanceDisplayAccountId();
+        const balanceDisplayAccount =
+            balanceDisplayAccountId === ALL_ACCOUNTS_BALANCE_ID
+                ? undefined
+                : this.accounts().find((account) => account.id === balanceDisplayAccountId);
+        const balanceSummaryValue = balanceDisplayAccount
+            ? this.convertAccountAmount(
+                  balanceDisplayAccount.id,
+                  balanceDisplayAccount.balanceValue,
+              )
+            : this.accountSummaryBalance();
         const hasSelectedMonthBalances = this.hasSelectedMonthBalances();
         const balanceValue = hasSelectedMonthBalances
-            ? formatMoney(primaryBalanceValue, this.applicationCurrencyCode())
+            ? formatMoney(balanceSummaryValue, this.applicationCurrencyCode())
             : '...';
         const debtSummary = this.debtSummary();
         const debtBalanceValue = hasSelectedMonthBalances
@@ -705,8 +730,8 @@ export class HomeDashboardStore {
                 id: 'balance',
                 label: 'Баланс',
                 value: balanceValue,
-                helper: primaryAccount?.name ?? PRIMARY_ACCOUNT_NAME,
-                tone: hasSelectedMonthBalances && primaryBalanceValue < 0 ? 'negative' : 'primary',
+                helper: balanceDisplayAccount?.name ?? 'Все счета',
+                tone: hasSelectedMonthBalances && balanceSummaryValue < 0 ? 'negative' : 'primary',
                 icon: 'account_balance_wallet',
             },
             {
@@ -918,6 +943,24 @@ export class HomeDashboardStore {
         }
 
         this.refreshApplicationExchangeRates(nextCode);
+    }
+
+    setBalanceDisplayAccount(accountId: string): void {
+        const nextAccountId = this.resolveBalanceDisplayAccountId(accountId);
+
+        if (nextAccountId === this.selectedBalanceDisplayAccountId() || this.isSaving()) {
+            return;
+        }
+
+        this.runMutation(
+            this.homeApi.updateBalanceDisplaySettings({
+                balanceDisplayAccountId: nextAccountId,
+            }),
+            'Не удалось сохранить настройку баланса.',
+            (currentUser) => {
+                this.balanceDisplayAccountId.set(currentUser.balanceDisplayAccountId ?? null);
+            },
+        );
     }
 
     goToPreviousMonth(): void {
@@ -1626,6 +1669,7 @@ export class HomeDashboardStore {
 
     private setPayload(payload: DashboardPayload): void {
         this.accountResponses.set(payload.accounts);
+        this.balanceDisplayAccountId.set(payload.currentUser.balanceDisplayAccountId ?? null);
         this.setApplicationCurrency(payload.currentUser.applicationCurrencyCode);
         this.exchangeRatesByAccountId.set(payload.exchangeRatesByAccountId);
         this.setTransactionPage(payload.transactionPage);
@@ -2554,6 +2598,18 @@ export class HomeDashboardStore {
             accountId === 'all' ||
             this.accountResponses().some((account) => account.id === accountId)
         );
+    }
+
+    private resolveBalanceDisplayAccountId(accountId: string | null): string {
+        if (accountId === ALL_ACCOUNTS_BALANCE_ID) {
+            return ALL_ACCOUNTS_BALANCE_ID;
+        }
+
+        if (accountId && this.accounts().some((account) => account.id === accountId)) {
+            return accountId;
+        }
+
+        return this.primaryAccount()?.id ?? this.accounts()[0]?.id ?? ALL_ACCOUNTS_BALANCE_ID;
     }
 
     private isAssignableTagCategory(categoryId: string): boolean {
