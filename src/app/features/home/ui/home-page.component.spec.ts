@@ -2122,6 +2122,57 @@ describe('HomePageComponent', () => {
         expect(fixture.componentInstance.filteredTransactions()[0]?.id).toBe('second-transaction');
     });
 
+    it('hides transactions outside the selected month when the API returns an overflowing page', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-07-15T12:00:00'));
+
+        try {
+            const mainAccount = account({
+                id: 'main-account',
+                name: 'Основной',
+                currentBalance: 100,
+            });
+            const salaryCategory: CategoryResponse = {
+                id: 'salary-category',
+                name: 'Зарплата',
+                type: 'Credit',
+                color: '#23c78b',
+            };
+            const julyTransaction = {
+                ...transaction('july-income', mainAccount, salaryCategory, 100),
+                date: '2026-07-31T23:59:00',
+            };
+            const augustTransaction = {
+                ...transaction('august-income', mainAccount, salaryCategory, 1),
+                date: '2026-08-01T00:01:00',
+            };
+
+            homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
+            homeApi.getCategories.mockReturnValue(of(page<CategoryResponse>([salaryCategory])));
+            homeApi.getTransactions.mockImplementation(
+                (query: { size?: number; fromDate: string; toDate: string }) => {
+                    if (query.size) {
+                        return of(page<TransactionResponse>([augustTransaction, julyTransaction]));
+                    }
+
+                    return of(page<TransactionResponse>([julyTransaction, augustTransaction]));
+                },
+            );
+
+            fixture = TestBed.createComponent(HomePageComponent);
+            fixture.detectChanges();
+
+            const component = fixture.componentInstance;
+
+            expect(component.filteredTransactions().map((item) => item.id)).toEqual([
+                'july-income',
+            ]);
+            expect(summaryCardValue(component, 'operations')).toBe('1');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('reloads only the current transaction page and selected balance when moving inside a loaded year', () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-06-11T12:00:00'));

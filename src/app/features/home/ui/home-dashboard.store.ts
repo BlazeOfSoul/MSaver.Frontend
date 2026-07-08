@@ -329,11 +329,15 @@ export class HomeDashboardStore {
         ),
     );
     readonly transactions = computed<TransactionItem[]>(() => {
-        if (this.transactionPageMonthKey() !== monthKey(this.selectedMonth())) {
+        const selectedMonthKey = monthKey(this.selectedMonth());
+
+        if (this.transactionPageMonthKey() !== selectedMonthKey) {
             return [];
         }
 
-        return this.transactionResponses().map((transaction) => mapTransaction(transaction));
+        return this.transactionResponses()
+            .filter((transaction) => this.transactionMonthKey(transaction.date) === selectedMonthKey)
+            .map((transaction) => mapTransaction(transaction));
     });
     readonly selectedYearTransactions = computed(() => {
         const selectedAccountId = this.analyticsSelectedAccountId();
