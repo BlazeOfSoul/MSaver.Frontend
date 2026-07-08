@@ -28,6 +28,10 @@ export function toIsoDateTimeLocal(value: Date): string {
     return `${toIsoDate(value)}T${`${value.getHours()}`.padStart(2, '0')}:${`${value.getMinutes()}`.padStart(2, '0')}`;
 }
 
+export function toApiDateTime(value: Date): string {
+    return `${toIsoDate(value)}T${padDatePart(value.getHours())}:${padDatePart(value.getMinutes())}:${padDatePart(value.getSeconds())}`;
+}
+
 export interface ApiDateParts {
     year: number;
     month: number;

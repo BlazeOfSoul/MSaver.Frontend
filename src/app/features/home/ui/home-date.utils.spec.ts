@@ -1,6 +1,7 @@
 import {
     apiDateMonthKey,
     apiDateTimestamp,
+    toApiDateTime,
     toApiDate,
     toApiDateTimeInputValue,
 } from './home-date.utils';
@@ -12,6 +13,10 @@ describe('home date utils', () => {
 
     it('keeps existing date-only values unchanged', () => {
         expect(toApiDate('2026-06-05')).toBe('2026-06-05');
+    });
+
+    it('formats api boundary date-times with seconds', () => {
+        expect(toApiDateTime(new Date(2026, 7, 1, 0, 0, 0))).toBe('2026-08-01T00:00:00');
     });
 
     it('reads api date-times as transaction wall-clock values', () => {

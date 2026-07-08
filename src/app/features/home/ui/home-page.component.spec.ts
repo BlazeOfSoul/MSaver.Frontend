@@ -1366,11 +1366,17 @@ describe('HomePageComponent', () => {
 
         homeApi.getTransactions.mockImplementation(
             (query: { fromDate: string; toDate: string; page?: number }) => {
-                if (query.fromDate === '2027-01-01' && query.toDate === '2028-01-01') {
+                if (
+                    query.fromDate === '2027-01-01T00:00:00' &&
+                    query.toDate === '2028-01-01T00:00:00'
+                ) {
                     return pendingYear2027Transactions.asObservable();
                 }
 
-                if (query.fromDate === '2026-01-01' && query.toDate === '2027-01-01') {
+                if (
+                    query.fromDate === '2026-01-01T00:00:00' &&
+                    query.toDate === '2027-01-01T00:00:00'
+                ) {
                     return of(page<TransactionResponse>([year2026Transaction]));
                 }
 
@@ -2153,8 +2159,8 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions).toHaveBeenCalledTimes(1);
         expect(homeApi.getTransactions).toHaveBeenCalledWith(
             expect.objectContaining({
-                fromDate: '2026-07-01',
-                toDate: '2026-08-01',
+                fromDate: '2026-07-01T00:00:00',
+                toDate: '2026-08-01T00:00:00',
                 page: 1,
                 size: 25,
             }),
@@ -2208,16 +2214,16 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions).toHaveBeenCalledTimes(2);
         expect(homeApi.getTransactions).toHaveBeenCalledWith(
             expect.objectContaining({
-                fromDate: '2027-01-01',
-                toDate: '2027-02-01',
+                fromDate: '2027-01-01T00:00:00',
+                toDate: '2027-02-01T00:00:00',
                 page: 1,
                 size: 25,
             }),
         );
         expect(homeApi.getTransactions).toHaveBeenCalledWith(
             expect.objectContaining({
-                fromDate: '2027-01-01',
-                toDate: '2028-01-01',
+                fromDate: '2027-01-01T00:00:00',
+                toDate: '2028-01-01T00:00:00',
                 page: 1,
             }),
         );
@@ -2404,8 +2410,8 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
         expect(homeApi.getTransactions).toHaveBeenLastCalledWith(
             expect.objectContaining({
-                fromDate: '2026-06-01',
-                toDate: '2026-07-01',
+                fromDate: '2026-06-01T00:00:00',
+                toDate: '2026-07-01T00:00:00',
                 page: 1,
                 size: 25,
             }),
@@ -2418,8 +2424,8 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions).toHaveBeenCalledTimes(1);
         expect(homeApi.getTransactions).toHaveBeenCalledWith(
             expect.objectContaining({
-                fromDate: '2026-01-01',
-                toDate: '2027-01-01',
+                fromDate: '2026-01-01T00:00:00',
+                toDate: '2027-01-01T00:00:00',
                 page: 1,
             }),
         );
@@ -3084,7 +3090,7 @@ describe('HomePageComponent', () => {
         homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([mainAccount])));
         homeApi.getTransactions.mockImplementation(
             (query: { size?: number; fromDate: string; toDate: string }) => {
-                if (query.size && query.fromDate === '2026-07-01') {
+                if (query.size && query.fromDate === '2026-07-01T00:00:00') {
                     return pendingJulyTransactions$.asObservable();
                 }
 

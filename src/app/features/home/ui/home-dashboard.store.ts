@@ -56,8 +56,8 @@ import {
     startOfMonth,
     startOfYear,
     toApiDate,
+    toApiDateTime,
     toApiDateTimeInputValue,
-    toIsoDate,
     toIsoDateTimeLocal,
 } from './home-date.utils';
 import { formatMoney, safeText } from './home-formatters';
@@ -2966,8 +2966,8 @@ export class HomeDashboardStore {
 
         return {
             accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
-            fromDate: toIsoDate(monthStart),
-            toDate: toIsoDate(nextMonthStart),
+            fromDate: toApiDateTime(monthStart),
+            toDate: toApiDateTime(nextMonthStart),
         };
     }
 
@@ -2979,8 +2979,8 @@ export class HomeDashboardStore {
         const nextYearStart = addMonths(yearStart, 12);
 
         return {
-            fromDate: toIsoDate(yearStart),
-            toDate: toIsoDate(nextYearStart),
+            fromDate: toApiDateTime(yearStart),
+            toDate: toApiDateTime(nextYearStart),
         };
     }
 
