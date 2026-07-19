@@ -12,6 +12,16 @@
             [value]="selectedAccountId()"
             (valueChange)="accountChange.emit($event)"
         ></ms-select>
+        <ms-button
+            class="analytics-toolbar__export"
+            variant="primary"
+            [disabled]="exportDisabled()"
+            [loading]="exportLoading()"
+            (onClick)="exportRequested.emit()"
+        >
+            <span class="material-symbols-outlined" aria-hidden="true">download</span>
+            Экспорт CSV
+        </ms-button>
     </div>
 
     <div class="metric-grid">

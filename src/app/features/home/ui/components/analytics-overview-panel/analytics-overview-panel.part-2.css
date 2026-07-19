@@ -51,6 +51,16 @@
     }
 }
 
+@media (max-width: 640px) {
+    .analytics-toolbar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .analytics-toolbar__export {
+        width: 100%;
+    }
+}
+
 @media (min-width: 1200px) {
     .metric-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));

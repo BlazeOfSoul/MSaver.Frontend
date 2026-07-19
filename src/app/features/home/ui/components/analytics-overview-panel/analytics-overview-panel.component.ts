@@ -28,7 +28,10 @@ export class AnalyticsOverviewPanelComponent {
     selectedAccountId = input.required<string>();
     views = input.required<ReadonlyArray<AnalyticsViewOption>>();
     activeView = input.required<AnalyticsViewId>();
+    exportDisabled = input(false);
+    exportLoading = input(false);
 
     accountChange = output<string>();
     viewChange = output<AnalyticsViewId>();
+    exportRequested = output<void>();
 }

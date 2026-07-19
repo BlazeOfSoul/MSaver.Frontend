@@ -353,10 +353,10 @@ describe('HomePageComponent', () => {
         fixture.detectChanges();
 
         planningHosts = fixture.debugElement.queryAll(By.directive(PlanningTabComponent));
-        expect(planningHosts).toHaveLength(1);
-        expect(planningHosts[0].componentInstance.view()).toBe('imports');
+        expect(planningHosts).toHaveLength(0);
+        expect(host.querySelector('ms-analytics-tab')).not.toBeNull();
         expect(fixture.componentInstance.activeTabDescription()).toBe(
-            'Импорт CSV и графики по доходам, расходам и годовому движению.',
+            'Экспорт операций и графики по доходам, расходам и годовому движению.',
         );
 
         fixture.componentInstance.setActiveTab('categories');

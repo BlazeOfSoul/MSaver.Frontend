@@ -23,7 +23,6 @@ import { AccountsTabComponent } from './tab-panels/accounts-tab/accounts-tab.com
 import { AnalyticsTabComponent } from './tab-panels/analytics-tab/analytics-tab.component';
 import { CategoriesTabComponent } from './tab-panels/categories-tab/categories-tab.component';
 import { OverviewTabComponent } from './tab-panels/overview-tab/overview-tab.component';
-import { PlanningTabComponent } from './tab-panels/planning-tab/planning-tab.component';
 import { SettingsTabComponent } from './tab-panels/settings-tab/settings-tab.component';
 import { CategoryMoveDirection, CategorySortMode } from './home-category-order.utils';
 import { HomeTabId, TransactionDraft, TransactionItem, TransferDraft } from './home-page.models';
@@ -40,7 +39,6 @@ import { PwaPushNotificationService } from '../../../core/push/pwa-push-notifica
         MainEmptyStateComponent,
         MainTabBarComponent,
         OverviewTabComponent,
-        PlanningTabComponent,
         AccountsTabComponent,
         AnalyticsTabComponent,
         CategoriesTabComponent,
@@ -131,6 +129,8 @@ export class HomePageComponent {
     readonly tagExpensesChart = this.dashboard.tagExpensesChart;
     readonly topExpensesChart = this.dashboard.topExpensesChart;
     readonly analyticsMetrics = this.dashboard.analyticsMetrics;
+    readonly analyticsMonthTransactions = this.dashboard.analyticsMonthTransactions;
+    readonly analyticsTransactionsLoading = this.dashboard.isYearTransactionsLoading;
     readonly summaryCards = this.dashboard.summaryCards;
     readonly activeTabTitle = this.dashboard.activeTabTitle;
     readonly activeTabDescription = this.dashboard.activeTabDescription;

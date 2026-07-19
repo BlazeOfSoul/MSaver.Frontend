@@ -54,4 +54,15 @@ describe('Analytics overview panel responsive styles', () => {
             'grid-template-columns: repeat(3, minmax(0, 1fr))',
         );
     });
+    it('stacks the account filter and full-width export button on phones', () => {
+        const mobileToolbar = styles.match(
+            /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.analytics-toolbar\s*\{(?<body>[^}]*)\}/,
+        );
+        const mobileExport = styles.match(
+            /@media\s*\(max-width:\s*640px\)\s*\{[\s\S]*?\.analytics-toolbar__export\s*\{(?<body>[^}]*)\}/,
+        );
+
+        expect(mobileToolbar?.groups?.['body']).toContain('grid-template-columns: minmax(0, 1fr)');
+        expect(mobileExport?.groups?.['body']).toContain('width: 100%');
+    });
 });

@@ -141,21 +141,6 @@
                 </div>
             }
         </article>
-    } @else if (view() === 'imports') {
-        <article class="panel planning-card planning-launcher">
-            <div class="planning-launcher__icon planning-launcher__icon--import" aria-hidden="true">
-                <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
-            </div>
-            <div class="planning-launcher__copy">
-                <span class="planning-card__eyebrow">Операции</span>
-                <h2>Импорт CSV</h2>
-                <p>Загрузите операции из банковской выгрузки и проверьте их перед добавлением.</p>
-            </div>
-            <ms-button variant="primary" (onClick)="openCsvImport()">
-                <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
-                Импортировать
-            </ms-button>
-        </article>
     } @else {
         @if (!embedded()) {
             <article class="panel planning-card planning-launcher">
@@ -290,14 +275,6 @@
                         (valueChange)="setRecurringFrequency($event)"
                     ></ms-select>
 
-                    <label class="planning-field planning-field--wide">
-                        <span>Описание</span>
-                        <ms-input
-                            placeholder="Например, подписка или зарплата"
-                            [formControl]="recurringDescription"
-                        ></ms-input>
-                    </label>
-
                     <label class="planning-notification-toggle">
                         <input
                             class="planning-notification-toggle__input"
@@ -314,10 +291,19 @@
                         </span>
                     </label>
 
+                    <label class="planning-field planning-field--wide">
+                        <span>Описание</span>
+                        <ms-input
+                            placeholder="Например, подписка или зарплата"
+                            [formControl]="recurringDescription"
+                        ></ms-input>
+                    </label>
+
                     <ms-button
                         variant="primary"
                         [loading]="saving()"
                         [disabled]="!recurringDateTimeValid()"
+                        [fullWidth]="true"
                         (onClick)="saveRecurringTransaction()"
                     >
                         <span class="material-symbols-outlined" aria-hidden="true"
@@ -368,27 +354,36 @@
                                     {{ formatAmount(item.amount, item.currencyCode) }}
                                 </div>
                                 <div class="recurring-row__actions">
-                                    <ms-button
-                                        class="recurring-row__confirm"
-                                        variant="success"
-                                        size="sm"
-                                        [loading]="saving()"
-                                        [disabled]="!isDue(item)"
-                                        (onClick)="completeRecurringTransaction(item)"
-                                    >
-                                        {{ isDue(item) ? 'Подтвердить' : 'Ожидается' }}
-                                    </ms-button>
                                     @if (isDue(item)) {
+                                        <ms-button
+                                            class="recurring-row__confirm"
+                                            variant="success"
+                                            size="sm"
+                                            [loading]="saving()"
+                                            [attr.aria-label]="
+                                                'Подтвердить расписание ' +
+                                                (item.description || item.categoryName)
+                                            "
+                                            (onClick)="completeRecurringTransaction(item)"
+                                        >
+                                            Подтвердить
+                                        </ms-button>
                                         <ms-button
                                             class="recurring-row__skip"
                                             appearance="outline"
                                             variant="secondary"
                                             size="sm"
                                             [loading]="saving()"
+                                            [attr.aria-label]="
+                                                'Пропустить расписание ' +
+                                                (item.description || item.categoryName)
+                                            "
                                             (onClick)="skipRecurringTransaction(item)"
                                         >
                                             Пропустить
                                         </ms-button>
+                                    } @else {
+                                        <span class="recurring-row__status">Ожидается</span>
                                     }
                                     <ms-button
                                         class="recurring-row__delete"
@@ -396,7 +391,10 @@
                                         variant="danger"
                                         size="sm"
                                         (onClick)="deleteRecurringTransaction(item)"
-                                        aria-label="Удалить расписание"
+                                        [attr.aria-label]="
+                                            'Удалить расписание ' +
+                                            (item.description || item.categoryName)
+                                        "
                                     >
                                         <span class="material-symbols-outlined" aria-hidden="true"
                                             >delete</span
@@ -431,107 +429,6 @@
     }
 </section>
 
-@if (view() === 'imports' && csvDialogOpen()) {
-    <ms-dialog-shell (closed)="closeCsvImport()">
-        <section
-            class="planning-card planning-import-dialog"
-            role="dialog"
-            [attr.aria-modal]="pendingConfirmation() ? null : 'true'"
-            [attr.aria-hidden]="pendingConfirmation() ? 'true' : null"
-            [attr.inert]="pendingConfirmation() ? '' : null"
-            aria-labelledby="planning-import-title"
-        >
-            <header class="planning-card__header planning-import-dialog__header">
-                <div class="planning-import-dialog__heading">
-                    <span class="planning-card__eyebrow">Загрузка данных</span>
-                    <h2 id="planning-import-title">Импорт из CSV</h2>
-                </div>
-                <ms-button
-                    class="planning-import-dialog__close"
-                    appearance="icon"
-                    variant="neutral"
-                    size="sm"
-                    aria-label="Закрыть импорт CSV"
-                    (onClick)="closeCsvImport()"
-                >
-                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                </ms-button>
-                <p class="planning-import-dialog__intro">
-                    Поддерживаются колонки «Дата», «Сумма», «Категория» и необязательное «Описание».
-                    Повторный импорт того же файла безопасен: уже добавленные строки будут
-                    пропущены.
-                </p>
-            </header>
-
-            <div class="planning-import-controls">
-                <label class="planning-file-input">
-                    <input type="file" accept=".csv,text/csv" (change)="selectImportFile($event)" />
-                    <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
-                    <span>{{ importFileName() || 'Выбрать файл' }}</span>
-                </label>
-
-                <ms-select
-                    [contained]="true"
-                    label="Счёт для импорта"
-                    [options]="accounts()"
-                    [value]="importAccountId()"
-                    placeholder="Выберите счёт"
-                    [searchable]="true"
-                    (valueChange)="setImportAccount($event)"
-                ></ms-select>
-
-                <ms-button
-                    variant="primary"
-                    [disabled]="!readyImportRows().length || !importAccountId()"
-                    [loading]="saving()"
-                    (onClick)="importCsv()"
-                >
-                    Импортировать
-                </ms-button>
-            </div>
-
-            @if (importMessage()) {
-                <p class="planning-import-message" role="status">{{ importMessage() }}</p>
-            }
-
-            @if (preparedImportRows().length) {
-                <div
-                    class="import-preview"
-                    role="table"
-                    aria-label="Предпросмотр CSV"
-                    [attr.aria-rowcount]="preparedImportRows().length + 1"
-                    tabindex="0"
-                >
-                    <div class="import-preview__head" role="row">
-                        <span role="columnheader">Строка</span><span role="columnheader">Дата</span
-                        ><span role="columnheader">Категория</span
-                        ><span role="columnheader">Сумма</span
-                        ><span role="columnheader">Статус</span>
-                    </div>
-                    @for (item of preparedImportRows().slice(0, 8); track item.row.sourceRow) {
-                        <div
-                            class="import-preview__row"
-                            [class.import-preview__row--invalid]="item.issue"
-                            role="row"
-                        >
-                            <span role="cell">#{{ item.row.sourceRow }}</span>
-                            <span role="cell">{{ item.row.date }}</span>
-                            <span role="cell">{{ item.row.categoryName }}</span>
-                            <span role="cell">{{ item.row.amount ?? '—' }}</span>
-                            <span role="cell">{{ item.issue || 'Готово' }}</span>
-                        </div>
-                    }
-                </div>
-                @if (preparedImportRows().length > 8) {
-                    <p class="planning-hint">
-                        Показаны первые 8 из {{ preparedImportRows().length }} строк.
-                    </p>
-                }
-            }
-        </section>
-    </ms-dialog-shell>
-}
-
 @if (pendingConfirmation(); as confirmation) {
     <ms-dialog-shell (closed)="closeConfirmation()">
         <section
@@ -541,7 +438,11 @@
             aria-labelledby="planning-confirm-title"
             aria-describedby="planning-confirm-description"
         >
-            <div class="planning-confirm-dialog__icon" aria-hidden="true">
+            <div
+                class="planning-confirm-dialog__icon"
+                [class.planning-confirm-dialog__icon--danger]="confirmation.danger"
+                aria-hidden="true"
+            >
                 <span class="material-symbols-outlined" aria-hidden="true">
                     {{ confirmation.danger ? 'delete' : 'help' }}
                 </span>
@@ -551,12 +452,18 @@
                 <p id="planning-confirm-description">{{ confirmation.message }}</p>
             </div>
             <footer class="planning-confirm-dialog__actions">
-                <ms-button variant="neutral" appearance="outline" (onClick)="closeConfirmation()">
+                <ms-button
+                    variant="neutral"
+                    appearance="ghost"
+                    [fullWidth]="true"
+                    (onClick)="closeConfirmation()"
+                >
                     Отмена
                 </ms-button>
                 <ms-button
                     [variant]="confirmation.danger ? 'danger' : 'primary'"
                     (onClick)="confirmPendingAction()"
+                    [fullWidth]="true"
                 >
                     {{ confirmation.confirmLabel }}
                 </ms-button>

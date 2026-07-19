@@ -1,5 +1,4 @@
 import {
-    csvDateToUtc,
     deviceTimeZone,
     localDateAndTimeToUtc,
     localInputToUtc,
@@ -92,28 +91,4 @@ describe('planning time utils', () => {
             '2026-03-08T03:30:00.000Z',
         );
     });
-
-    it.each([
-        ['2026-07-18', [2026, 7, 18]],
-        ['18.07.2026', [2026, 7, 18]],
-        ['29.02.2028', [2028, 2, 29]],
-    ])('parses CSV date %s as local noon', (source, expectedDateParts) => {
-        const result = csvDateToUtc(source);
-
-        expect(result).not.toBeNull();
-        const parsed = new Date(result!);
-        expect([
-            parsed.getFullYear(),
-            parsed.getMonth() + 1,
-            parsed.getDate(),
-            parsed.getHours(),
-        ]).toEqual([...expectedDateParts, 12]);
-    });
-
-    it.each(['2026-02-29', '2026-04-31', '31.04.2026', '18/07/2026', '', 'not-a-date'])(
-        'rejects invalid or unsupported CSV date %j',
-        (source) => {
-            expect(csvDateToUtc(source)).toBeNull();
-        },
-    );
 });

@@ -5,8 +5,11 @@
         [selectedAccountId]="selectedAccountId()"
         [views]="analyticsViews"
         [activeView]="activeView()"
+        [exportDisabled]="transactionsLoading() || !transactions().length"
+        [exportLoading]="transactionsLoading()"
         (accountChange)="accountChange.emit($event)"
         (viewChange)="setActiveView($event)"
+        (exportRequested)="exportTransactionsCsv()"
     ></ms-analytics-overview-panel>
 
     @switch (activeView()) {

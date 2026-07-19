@@ -231,31 +231,6 @@ export interface CreateRecurringTransactionRequest {
     notificationsEnabled: boolean;
 }
 
-export interface ImportTransactionRowRequest {
-    sourceRow: number;
-    categoryId: string;
-    amount: number;
-    date: string;
-    description: string;
-}
-
-export interface ImportTransactionsRequest {
-    accountId: string;
-    importBatchId: string;
-    rows: ImportTransactionRowRequest[];
-}
-
-export interface ImportTransactionIssue {
-    sourceRow: number;
-    message: string;
-}
-
-export interface ImportTransactionsResponse {
-    importedCount: number;
-    skippedDuplicateCount: number;
-    issues: ImportTransactionIssue[];
-}
-
 export interface VapidPublicKeyResponse {
     publicKey: string;
 }

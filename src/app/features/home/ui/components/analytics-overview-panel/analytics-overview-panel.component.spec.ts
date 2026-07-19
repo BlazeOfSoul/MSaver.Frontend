@@ -50,7 +50,7 @@ describe('AnalyticsOverviewPanelComponent', () => {
 
         const host = fixture.nativeElement as HTMLElement;
         const cards = Array.from(host.querySelectorAll('.metric-card'));
-        const tabs = Array.from(host.querySelectorAll('ms-button'));
+        const tabs = Array.from(host.querySelectorAll('.analytics-view-tabs ms-button'));
 
         expect(cards).toHaveLength(2);
         expect(cards[0].textContent ?? '').toContain('Доходы');
@@ -73,10 +73,39 @@ describe('AnalyticsOverviewPanelComponent', () => {
 
         const host = fixture.nativeElement as HTMLElement;
 
-        host.querySelectorAll<HTMLElement>('ms-button')[2]?.click();
+        host.querySelectorAll<HTMLElement>('.analytics-view-tabs ms-button')[2]?.click();
         fixture.componentInstance.accountChange.emit('main');
 
         expect(viewSpy).toHaveBeenCalledWith('tables');
         expect(accountSpy).toHaveBeenCalledWith('main');
+    });
+    it('emits export requests and reflects the disabled state', () => {
+        const exportSpy = vi.fn();
+        fixture.componentInstance.exportRequested.subscribe(exportSpy);
+        fixture.componentRef.setInput('exportDisabled', true);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const exportButton = host.querySelector<HTMLElement>('.analytics-toolbar__export');
+
+        expect(exportButton?.textContent ?? '').toContain('Экспорт CSV');
+        expect(exportButton?.getAttribute('aria-disabled')).toBe('true');
+
+        exportButton?.click();
+        expect(exportSpy).not.toHaveBeenCalled();
+
+        fixture.componentRef.setInput('exportDisabled', false);
+        fixture.componentRef.setInput('exportLoading', true);
+        fixture.detectChanges();
+
+        expect(exportButton?.getAttribute('aria-busy')).toBe('true');
+        exportButton?.click();
+        expect(exportSpy).not.toHaveBeenCalled();
+
+        fixture.componentRef.setInput('exportLoading', false);
+        fixture.detectChanges();
+        exportButton?.click();
+
+        expect(exportSpy).toHaveBeenCalledOnce();
     });
 });

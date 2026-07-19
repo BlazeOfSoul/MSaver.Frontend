@@ -131,15 +131,6 @@
                             }
 
                             @case ('analytics') {
-                                <ms-planning-tab
-                                    view="imports"
-                                    [month]="selectedMonth()"
-                                    [accounts]="accountOptions()"
-                                    [expenseCategories]="expenseCategories()"
-                                    [incomeCategories]="incomeCategories()"
-                                    (transactionsChanged)="reloadDashboard()"
-                                ></ms-planning-tab>
-
                                 <ms-analytics-tab
                                     [metrics]="analyticsMetrics()"
                                     [incomeVsExpense]="incomeVsExpense()"
@@ -154,6 +145,9 @@
                                     [topExpenses]="topExpensesChart()"
                                     [accountOptions]="toolbarAccountOptions()"
                                     [selectedAccountId]="analyticsSelectedAccountId()"
+                                    [selectedMonth]="selectedMonth()"
+                                    [transactions]="analyticsMonthTransactions()"
+                                    [transactionsLoading]="analyticsTransactionsLoading()"
                                     (accountChange)="setAnalyticsAccountFilter($event)"
                                 ></ms-analytics-tab>
                             }

@@ -20,34 +20,16 @@ import { InputComponent } from '../../../../../shared/ui/input/input';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import {
     BudgetItemResponse,
-    ImportTransactionRowRequest,
     RecurrenceFrequency,
     RecurringTransactionResponse,
 } from '../../../data-access/home-api.models';
 import { HomeApiService } from '../../../data-access/home-api.service';
 import { CategoryBreakdownItem } from '../../home-page.models';
 import { formatMoney } from '../../home-formatters';
-import {
-    createCsvImportBatchId,
-    normalizeCategoryName,
-    parseTransactionsCsv,
-    ParsedCsvRow,
-} from './planning-csv.utils';
-import {
-    csvDateToUtc,
-    deviceTimeZone,
-    localInputToUtc,
-    toLocalDateTimeInputValue,
-} from './planning-time.utils';
+import { deviceTimeZone, localInputToUtc, toLocalDateTimeInputValue } from './planning-time.utils';
 
 type RecurringKind = 'expense' | 'income';
-type PlanningView = 'imports' | 'budgets' | 'recurring';
-
-interface PreparedImportRow {
-    row: ParsedCsvRow;
-    request: ImportTransactionRowRequest | null;
-    issue: string | null;
-}
+type PlanningView = 'budgets' | 'recurring';
 
 interface PendingConfirmation {
     title: string;
@@ -81,8 +63,6 @@ interface PendingConfirmation {
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PlanningTabComponent {
-    private static readonly MAX_IMPORT_FILE_BYTES = 2 * 1024 * 1024;
-    private static readonly MAX_IMPORT_ROWS = 500;
     private static readonly CLOCK_REFRESH_INTERVAL_MS = 30_000;
 
     private readonly api = inject(HomeApiService);
@@ -104,11 +84,6 @@ export class PlanningTabComponent {
     readonly recurringLoading = signal(false);
     readonly saving = signal(false);
     readonly message = signal('');
-    readonly importMessage = signal('');
-    readonly parsedImportRows = signal<ReadonlyArray<ParsedCsvRow>>([]);
-    readonly importFileName = signal('');
-    readonly importBatchId = signal('');
-    readonly csvDialogOpen = signal(false);
     readonly recurringDialogOpen = signal(false);
     readonly pendingConfirmation = signal<PendingConfirmation | null>(null);
     readonly currentTime = signal(Date.now());
@@ -123,7 +98,6 @@ export class PlanningTabComponent {
     readonly recurringNotificationsEnabled = signal(true);
     readonly recurringDateTime = signal(toLocalDateTimeInputValue(new Date()));
     readonly recurringDateTimeValid = signal(true);
-    readonly importAccountId = signal('');
 
     readonly budgetAmount = new FormControl('', { nonNullable: true });
     readonly recurringAmount = new FormControl('', { nonNullable: true });
@@ -147,64 +121,6 @@ export class PlanningTabComponent {
         this.recurringKind() === 'expense'
             ? this.expenseCategoryOptions()
             : this.incomeCategoryOptions(),
-    );
-    readonly preparedImportRows = computed<ReadonlyArray<PreparedImportRow>>(() => {
-        const categories = [...this.expenseCategories(), ...this.incomeCategories()];
-
-        return this.parsedImportRows().map((row) => {
-            if (row.issue || row.amount === null) {
-                return {
-                    row,
-                    request: null,
-                    issue: row.issue ?? 'Некорректная сумма.',
-                };
-            }
-
-            const matchingCategories = categories.filter(
-                (item) =>
-                    normalizeCategoryName(item.name) === normalizeCategoryName(row.categoryName),
-            );
-            const date = csvDateToUtc(row.date);
-
-            if (!matchingCategories.length) {
-                return { row, request: null, issue: `Не найдена категория «${row.categoryName}».` };
-            }
-
-            if (matchingCategories.length > 1) {
-                return {
-                    row,
-                    request: null,
-                    issue: `Название «${row.categoryName}» соответствует нескольким категориям. Уточните название категории в CSV.`,
-                };
-            }
-
-            if (!date) {
-                return { row, request: null, issue: 'Некорректная дата.' };
-            }
-
-            const category = matchingCategories[0];
-
-            return {
-                row,
-                issue: null,
-                request: {
-                    sourceRow: row.sourceRow,
-                    categoryId: category.id,
-                    amount:
-                        category.type === 'expense' ? -Math.abs(row.amount) : Math.abs(row.amount),
-                    date,
-                    description: row.description,
-                },
-            };
-        });
-    });
-    readonly readyImportRows = computed(() =>
-        this.preparedImportRows()
-            .map((item) => item.request)
-            .filter((item): item is ImportTransactionRowRequest => item !== null),
-    );
-    readonly invalidImportRowCount = computed(
-        () => this.preparedImportRows().length - this.readyImportRows().length,
     );
     readonly activeRecurringTransactions = computed(() =>
         this.recurringTransactions().filter((item) => item.isActive),
@@ -238,9 +154,6 @@ export class PlanningTabComponent {
 
         effect(() => {
             const view = this.view();
-            if (view !== 'imports') {
-                this.csvDialogOpen.set(false);
-            }
             if (view !== 'recurring') {
                 this.recurringDialogOpen.set(false);
             }
@@ -297,20 +210,6 @@ export class PlanningTabComponent {
 
     setRecurringDateTimeValidity(valid: boolean): void {
         this.recurringDateTimeValid.set(valid);
-    }
-
-    setImportAccount(value: string): void {
-        this.importAccountId.set(value);
-    }
-
-    openCsvImport(): void {
-        if (this.view() === 'imports') {
-            this.csvDialogOpen.set(true);
-        }
-    }
-
-    closeCsvImport(): void {
-        this.csvDialogOpen.set(false);
     }
 
     openRecurringPlanning(): void {
@@ -477,108 +376,6 @@ export class PlanningTabComponent {
                 });
             },
         );
-    }
-
-    async selectImportFile(event: Event): Promise<void> {
-        const input = event.target;
-        if (!(input instanceof HTMLInputElement) || !input.files?.[0]) {
-            return;
-        }
-
-        try {
-            const file = input.files[0];
-            if (file.size > PlanningTabComponent.MAX_IMPORT_FILE_BYTES) {
-                throw new Error('CSV-файл слишком большой. Максимальный размер — 2 МБ.');
-            }
-
-            const source = await file.text();
-            const rows = parseTransactionsCsv(source);
-            if (rows.length > PlanningTabComponent.MAX_IMPORT_ROWS) {
-                throw new Error(
-                    `В одном файле может быть не более ${PlanningTabComponent.MAX_IMPORT_ROWS} строк.`,
-                );
-            }
-
-            this.parsedImportRows.set(rows);
-            this.importFileName.set(file.name);
-            this.importBatchId.set(await createCsvImportBatchId(source));
-            const invalidCount = rows.filter((row) => row.issue !== null).length;
-            this.importMessage.set(
-                invalidCount
-                    ? `Найдено строк с ошибками: ${invalidCount}. Они видны в предпросмотре и не будут импортированы.`
-                    : 'Все строки готовы. Сумма получит знак по типу категории.',
-            );
-        } catch (error) {
-            this.parsedImportRows.set([]);
-            this.importFileName.set('');
-            this.importBatchId.set('');
-            this.importMessage.set(
-                error instanceof Error ? error.message : 'Не удалось прочитать CSV.',
-            );
-        } finally {
-            input.value = '';
-        }
-    }
-
-    importCsv(): void {
-        const accountId = this.importAccountId();
-        const importBatchId = this.importBatchId();
-        const rows = this.readyImportRows();
-
-        if (!accountId || !importBatchId || rows.length === 0) {
-            this.importMessage.set('Выберите счёт и исправьте строки, отмеченные в предпросмотре.');
-            return;
-        }
-
-        const invalidCount = this.invalidImportRowCount();
-        if (invalidCount > 0) {
-            this.requestConfirmation(
-                'Импортировать только валидные строки?',
-                `${rows.length} строк будут импортированы, ${invalidCount} строк с ошибками — пропущены.`,
-                'Импортировать',
-                false,
-                () => this.performCsvImport(accountId, importBatchId, rows),
-            );
-            return;
-        }
-
-        this.performCsvImport(accountId, importBatchId, rows);
-    }
-
-    private performCsvImport(
-        accountId: string,
-        importBatchId: string,
-        rows: ImportTransactionRowRequest[],
-    ): void {
-        this.saving.set(true);
-        this.api
-            .importTransactions({ accountId, importBatchId, rows })
-            .pipe(finalize(() => this.saving.set(false)))
-            .subscribe({
-                next: (result) => {
-                    const details = [
-                        `Добавлено: ${result.importedCount}.`,
-                        result.skippedDuplicateCount
-                            ? `Пропущено дублей: ${result.skippedDuplicateCount}.`
-                            : '',
-                        result.issues.length ? `Строк с ошибками: ${result.issues.length}.` : '',
-                        result.issues.length
-                            ? `Проверьте: ${result.issues
-                                  .slice(0, 5)
-                                  .map((issue) => `#${issue.sourceRow}: ${issue.message}`)
-                                  .join('; ')}${result.issues.length > 5 ? '; …' : ''}`
-                            : '',
-                    ]
-                        .filter(Boolean)
-                        .join(' ');
-                    this.importMessage.set(details);
-                    this.transactionsChanged.emit();
-                },
-                error: () =>
-                    this.importMessage.set(
-                        'Импорт не выполнен. Проверьте данные и повторите попытку.',
-                    ),
-            });
     }
 
     formatAmount(value: number, currencyCode: string): string {

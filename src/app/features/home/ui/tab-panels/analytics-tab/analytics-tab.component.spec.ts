@@ -1,5 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MS_CATEGORY_COLORS, MS_CATEGORY_OTHER_COLOR } from '../../../../../shared/theme/theme-colors';
+import {
+    MS_CATEGORY_COLORS,
+    MS_CATEGORY_OTHER_COLOR,
+} from '../../../../../shared/theme/theme-colors';
 import { AnalyticsTabComponent } from './analytics-tab.component';
 
 describe('AnalyticsTabComponent', () => {
@@ -32,6 +35,8 @@ describe('AnalyticsTabComponent', () => {
         fixture.componentRef.setInput('topExpenses', []);
         fixture.componentRef.setInput('accountOptions', [{ value: 'all', label: 'All' }]);
         fixture.componentRef.setInput('selectedAccountId', 'all');
+        fixture.componentRef.setInput('selectedMonth', new Date(2026, 6, 1));
+        fixture.componentRef.setInput('transactions', []);
     });
 
     it('uses concise singular labels for month and year view tabs', () => {
@@ -43,6 +48,70 @@ describe('AnalyticsTabComponent', () => {
         expect(component.analyticsViews.map((view) => view.id)).not.toContain('tags');
     });
 
+    it('downloads the CSV and releases its temporary object URL', () => {
+        fixture.componentRef.setInput('transactions', [
+            {
+                id: 'transaction-id',
+                account: {
+                    id: 'account-id',
+                    name: 'Main',
+                    color: '#23c78b',
+                    currencyCode: 'BYN',
+                    isArchived: false,
+                },
+                category: {
+                    id: 'category-id',
+                    name: 'Food',
+                    type: 'Debit',
+                    color: '#ff6f91',
+                },
+                amount: -12.5,
+                date: '2026-07-19T10:00:00.000Z',
+                description: 'Lunch',
+            },
+        ]);
+        fixture.detectChanges();
+
+        const createDescriptor = Object.getOwnPropertyDescriptor(window.URL, 'createObjectURL');
+        const revokeDescriptor = Object.getOwnPropertyDescriptor(window.URL, 'revokeObjectURL');
+        const createObjectUrl = vi.fn((_blob: Blob) => 'blob:transactions');
+        const revokeObjectUrl = vi.fn();
+        Object.defineProperty(window.URL, 'createObjectURL', {
+            configurable: true,
+            value: createObjectUrl,
+        });
+        Object.defineProperty(window.URL, 'revokeObjectURL', {
+            configurable: true,
+            value: revokeObjectUrl,
+        });
+        const clickSpy = vi
+            .spyOn(HTMLAnchorElement.prototype, 'click')
+            .mockImplementation(() => undefined);
+
+        try {
+            component.exportTransactionsCsv();
+
+            expect(createObjectUrl).toHaveBeenCalledOnce();
+            expect(createObjectUrl.mock.calls[0][0].type).toBe('text/csv;charset=utf-8');
+            expect(clickSpy).toHaveBeenCalledOnce();
+            expect(revokeObjectUrl).toHaveBeenCalledWith('blob:transactions');
+            expect(
+                document.querySelector('a[download="msaver-operations-2026-07-all.csv"]'),
+            ).toBeNull();
+        } finally {
+            clickSpy.mockRestore();
+            if (createDescriptor) {
+                Object.defineProperty(window.URL, 'createObjectURL', createDescriptor);
+            } else {
+                Reflect.deleteProperty(window.URL, 'createObjectURL');
+            }
+            if (revokeDescriptor) {
+                Object.defineProperty(window.URL, 'revokeObjectURL', revokeDescriptor);
+            } else {
+                Reflect.deleteProperty(window.URL, 'revokeObjectURL');
+            }
+        }
+    });
     it('renders the monthly slice section with an even set of useful charts', () => {
         fixture.componentRef.setInput('expenseCategories', [
             category('food', 'Food', 75, '#ff6f91'),
@@ -51,9 +120,7 @@ describe('AnalyticsTabComponent', () => {
             category('salary', 'Salary', 120, '#23c78b', 'income'),
         ]);
         fixture.componentRef.setInput('topExpenses', [category('food', 'Food', 75, '#ff6f91')]);
-        fixture.componentRef.setInput('tagExpenses', [
-            category('home-tag', 'Home', 20, '#67a6c1'),
-        ]);
+        fixture.componentRef.setInput('tagExpenses', [category('home-tag', 'Home', 20, '#67a6c1')]);
 
         fixture.detectChanges();
 

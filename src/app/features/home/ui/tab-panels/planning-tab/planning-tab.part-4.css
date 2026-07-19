@@ -145,7 +145,11 @@
         grid-row: 1;
     }
 
-    .recurring-row__actions:not(:has(.recurring-row__skip)) .recurring-row__confirm {
-        grid-column: 1 / 3;
+    .recurring-row__actions:not(:has(.recurring-row__skip)) {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .recurring-row__actions:not(:has(.recurring-row__skip)) .recurring-row__delete {
+        grid-column: 2;
     }
 }

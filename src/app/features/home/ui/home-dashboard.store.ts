@@ -249,7 +249,7 @@ export class HomeDashboardStore {
     private hasLoadedCategories = false;
     private isCategoryDataLoading = false;
     private isTagDetailsLoading = false;
-    private isYearTransactionsLoading = false;
+    readonly isYearTransactionsLoading = signal(false);
     private shouldRefreshTagDetailsAfterLoad = false;
     private areYearTransactionsStale = false;
     private readonly optimisticTagCategoryIds = new Map<string, ReadonlyArray<string>>();
@@ -799,7 +799,7 @@ export class HomeDashboardStore {
             case 'accounts':
                 return 'Баланс выбранного месяца, счета и переводы между ними.';
             case 'analytics':
-                return 'Импорт CSV и графики по доходам, расходам и годовому движению.';
+                return 'Экспорт операций и графики по доходам, расходам и годовому движению.';
             case 'categories':
                 return 'Бюджеты и управление категориями доходов, расходов и тегами аналитики.';
             case 'settings':
@@ -1701,7 +1701,7 @@ export class HomeDashboardStore {
         this.hasLoadedCategories = false;
         this.isCategoryDataLoading = false;
         this.hasLoadedTagDetails.set(false);
-        this.isYearTransactionsLoading = false;
+        this.isYearTransactionsLoading.set(false);
         this.areYearTransactionsStale = false;
         this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()), null);
         this.yearTransactionResponses.set([]);
@@ -1833,13 +1833,13 @@ export class HomeDashboardStore {
             return;
         }
 
-        this.isYearTransactionsLoading = true;
+        this.isYearTransactionsLoading.set(true);
 
         this.loadTransactions(this.yearTransactionQuery())
             .pipe(
                 finalize(() => {
                     if (requestId === this.selectedYearTransactionsRequestId) {
-                        this.isYearTransactionsLoading = false;
+                        this.isYearTransactionsLoading.set(false);
                     }
                 }),
                 takeUntilDestroyed(this.destroyRef),
@@ -1980,7 +1980,7 @@ export class HomeDashboardStore {
         if (
             tab !== 'analytics' ||
             !this.areYearTransactionsStale ||
-            this.isYearTransactionsLoading
+            this.isYearTransactionsLoading()
         ) {
             return;
         }

@@ -16,8 +16,6 @@ import {
     CreateTransferRequest,
     CurrentUserResponse,
     GetBudgetsResponse,
-    ImportTransactionsRequest,
-    ImportTransactionsResponse,
     MonthBalanceResponse,
     PagedResponse,
     PushSubscriptionRequest,
@@ -268,13 +266,6 @@ export class HomeApiService {
 
     deleteRecurringTransaction(id: string): Observable<void> {
         return this.http.delete<void>(`${this.baseUrl}/recurring-transactions/${id}`);
-    }
-
-    importTransactions(payload: ImportTransactionsRequest): Observable<ImportTransactionsResponse> {
-        return this.http.post<ImportTransactionsResponse>(
-            `${this.baseUrl}/Transactions/import`,
-            payload,
-        );
     }
 
     getVapidPublicKey(): Observable<VapidPublicKeyResponse> {

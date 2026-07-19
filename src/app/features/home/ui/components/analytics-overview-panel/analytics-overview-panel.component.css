@@ -32,7 +32,15 @@
 }
 
 .analytics-toolbar {
-    width: min(100%, 22rem);
+    display: grid;
+    grid-template-columns: minmax(0, 22rem) auto;
+    align-items: end;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.analytics-toolbar__export {
+    justify-self: start;
 }
 
 .metric-grid {

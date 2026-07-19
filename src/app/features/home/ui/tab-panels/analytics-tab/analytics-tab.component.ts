@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+    input,
+    output,
+    signal,
+} from '@angular/core';
 import {
     MS_ANALYTICS_CHART_COLORS,
     MS_CATEGORY_COLORS,
@@ -12,6 +21,7 @@ import {
 } from '../../components/analytics-overview-panel/analytics-overview-panel.component';
 import { ChartCardComponent } from '../../components/chart-card/chart-card.component';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
+import { TransactionResponse } from '../../../data-access/home-api.models';
 import {
     AnalyticsCategoryMonthTable,
     HomeChartDataset,
@@ -33,6 +43,7 @@ import {
     limitBreakdownItems,
     selectLimitedBreakdownItems,
 } from './analytics-tab.helpers';
+import { createTransactionsCsvExport } from './analytics-csv-export.utils';
 
 @Component({
     selector: 'ms-analytics-tab',
@@ -52,6 +63,8 @@ import {
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AnalyticsTabComponent {
+    private readonly document = inject(DOCUMENT);
+
     metrics = input.required<ReadonlyArray<AnalyticsMetricCard>>();
     incomeVsExpense = input.required<ReadonlyArray<AnalyticsStackedPoint>>();
     categoryMonthTable = input.required<AnalyticsCategoryMonthTable>();
@@ -65,6 +78,9 @@ export class AnalyticsTabComponent {
     topExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     accountOptions = input.required<ReadonlyArray<MsSelectOption>>();
     selectedAccountId = input.required<string>();
+    selectedMonth = input.required<Date>();
+    transactions = input.required<ReadonlyArray<TransactionResponse>>();
+    transactionsLoading = input(false);
 
     accountChange = output<string>();
     readonly activeView = signal<AnalyticsViewId>('monthly');
@@ -87,6 +103,42 @@ export class AnalyticsTabComponent {
         { value: '15', label: 'Топ 15' },
         { value: 'all', label: 'Все' },
     ];
+
+    exportTransactionsCsv(): void {
+        if (!this.transactions().length) {
+            return;
+        }
+
+        const accountLabel =
+            this.accountOptions().find((option) => option.value === this.selectedAccountId())
+                ?.label ?? 'all';
+        const exportFile = createTransactionsCsvExport(
+            this.transactions(),
+            this.selectedMonth(),
+            accountLabel,
+        );
+        const urlApi = this.document.defaultView?.URL;
+
+        if (!urlApi || typeof urlApi.createObjectURL !== 'function') {
+            return;
+        }
+
+        const objectUrl = urlApi.createObjectURL(
+            new Blob([exportFile.content], { type: 'text/csv;charset=utf-8' }),
+        );
+        const link = this.document.createElement('a');
+        link.href = objectUrl;
+        link.download = exportFile.fileName;
+        link.hidden = true;
+        this.document.body.appendChild(link);
+
+        try {
+            link.click();
+        } finally {
+            link.remove();
+            urlApi.revokeObjectURL(objectUrl);
+        }
+    }
 
     readonly incomeVsExpenseLabels = computed(() => chartLabels(this.incomeVsExpense()));
     readonly incomeVsExpenseDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
@@ -124,9 +176,7 @@ export class AnalyticsTabComponent {
             otherColor: MS_CATEGORY_OTHER_COLOR,
         }),
     );
-    readonly incomeCategoryLabels = computed(() =>
-        breakdownLabels(this.visibleIncomeCategories()),
-    );
+    readonly incomeCategoryLabels = computed(() => breakdownLabels(this.visibleIncomeCategories()));
     readonly incomeCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
         buildBreakdownDataset(
             'Доходы',

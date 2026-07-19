@@ -1,5 +1,4 @@
-.planning-notice,
-.planning-import-message {
+.planning-notice {
     padding: 0.8rem 0.95rem;
     border: 1px solid color-mix(in oklab, var(--color-ms-primary), transparent 58%);
     border-radius: var(--radius-ms-lg);
@@ -7,19 +6,20 @@
     background: var(--color-ms-primary-alpha-08);
 }
 
-.planning-date-time {
-    grid-column: span 2;
+.planning-date-time,
+.planning-form--recurring > ms-button {
+    grid-column: 1 / -1;
     min-width: 0;
 }
 
 .planning-confirm-dialog {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    width: min(100%, 28rem);
+    width: min(100%, 25rem);
     gap: 0.9rem;
-    padding: 1rem;
+    padding: 1.1rem;
     border: 1px solid var(--color-ms-border);
-    border-radius: var(--radius-ms-lg);
+    border-radius: var(--radius-ms-xl);
     background:
         linear-gradient(180deg, var(--color-ms-white-alpha-05), var(--color-ms-white-alpha-015)),
         var(--color-ms-surface-raised);
@@ -34,6 +34,11 @@
     border-radius: 50%;
     color: var(--color-ms-primary-soft);
     background: var(--color-ms-primary-alpha-08);
+}
+
+.planning-confirm-dialog__icon--danger {
+    color: var(--color-ms-danger-soft);
+    background: var(--color-ms-danger-surface);
 }
 
 .planning-confirm-dialog__copy h2,
@@ -53,9 +58,9 @@
 }
 
 .planning-confirm-dialog__actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-column: 1 / -1;
-    justify-content: flex-end;
     gap: 0.65rem;
 }
 
@@ -63,14 +68,6 @@
     .planning-form--budget,
     .planning-form--recurring {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .planning-import-controls {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .planning-import-controls ms-button {
-        grid-column: span 2;
     }
 }
 
@@ -91,14 +88,13 @@
     }
 
     .planning-form--budget,
-    .planning-form--recurring,
-    .planning-import-controls {
+    .planning-form--recurring {
         grid-template-columns: minmax(0, 1fr);
     }
 
     .planning-field--wide,
     .planning-date-time,
-    .planning-import-controls ms-button {
+    .planning-form--recurring > ms-button {
         grid-column: auto;
     }
 
@@ -108,23 +104,10 @@
 
     .planning-confirm-dialog__actions {
         display: grid;
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .budget-row__value {
         text-align: left;
-    }
-
-    .recurring-row {
-        grid-template-columns: auto minmax(0, 1fr);
-    }
-
-    .recurring-row__amount,
-    .recurring-row__actions {
-        grid-column: 2;
-    }
-
-    .recurring-row__actions {
-        flex-wrap: wrap;
     }
 }

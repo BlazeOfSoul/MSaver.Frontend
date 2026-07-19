@@ -63,29 +63,3 @@ export function localInputToUtc(value: string, factory?: LocalDateTimeFactory): 
         resolveLocalWallClock({ year, month, day, hours, minutes }, factory)?.toISOString() ?? null
     );
 }
-
-export function csvDateToUtc(value: string): string | null {
-    const normalized = value.trim();
-    const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
-    const dot = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(normalized);
-    const parts = iso
-        ? { year: Number(iso[1]), month: Number(iso[2]), day: Number(iso[3]) }
-        : dot
-          ? { year: Number(dot[3]), month: Number(dot[2]), day: Number(dot[1]) }
-          : null;
-
-    if (!parts) {
-        return null;
-    }
-
-    const localDate = new Date(parts.year, parts.month - 1, parts.day, 12);
-    if (
-        localDate.getFullYear() !== parts.year ||
-        localDate.getMonth() !== parts.month - 1 ||
-        localDate.getDate() !== parts.day
-    ) {
-        return null;
-    }
-
-    return localDate.toISOString();
-}

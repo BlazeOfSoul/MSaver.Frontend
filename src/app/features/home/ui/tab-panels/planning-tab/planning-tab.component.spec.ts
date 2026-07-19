@@ -3,12 +3,10 @@ import { of } from 'rxjs';
 import { PwaPushNotificationService } from '../../../../../core/push/pwa-push-notification.service';
 import {
     BudgetItemResponse,
-    ImportTransactionsResponse,
     RecurringTransactionResponse,
 } from '../../../data-access/home-api.models';
 import { HomeApiService } from '../../../data-access/home-api.service';
 import { CategoryBreakdownItem } from '../../home-page.models';
-import { parseTransactionsCsv } from './planning-csv.utils';
 import { PlanningTabComponent } from './planning-tab.component';
 
 function category(overrides: Partial<CategoryBreakdownItem> = {}): CategoryBreakdownItem {
@@ -71,7 +69,6 @@ describe('PlanningTabComponent', () => {
     let api: {
         getBudgets: ReturnType<typeof vi.fn>;
         getRecurringTransactions: ReturnType<typeof vi.fn>;
-        importTransactions: ReturnType<typeof vi.fn>;
         upsertBudget: ReturnType<typeof vi.fn>;
         deleteBudget: ReturnType<typeof vi.fn>;
         createRecurringTransaction: ReturnType<typeof vi.fn>;
@@ -93,13 +90,6 @@ describe('PlanningTabComponent', () => {
                 }),
             ),
             getRecurringTransactions: vi.fn(() => of([])),
-            importTransactions: vi.fn(() =>
-                of<ImportTransactionsResponse>({
-                    importedCount: 1,
-                    skippedDuplicateCount: 0,
-                    issues: [],
-                }),
-            ),
             upsertBudget: vi.fn(() => of(undefined)),
             deleteBudget: vi.fn(() => of(undefined)),
             createRecurringTransaction: vi.fn(() => of(recurring())),
@@ -134,93 +124,7 @@ describe('PlanningTabComponent', () => {
         vi.restoreAllMocks();
     });
 
-    it('keeps invalid CSV rows in preview and imports only valid rows after confirmation', () => {
-        fixture.componentRef.setInput('view', 'imports');
-        component.parsedImportRows.set(
-            parseTransactionsCsv(
-                [
-                    'date,amount,description,category',
-                    '2026-07-01,25,Lunch,Food',
-                    '2026-07-02,invalid,Bad amount,Food',
-                    '2026-07-03,15,Unknown category,Travel',
-                ].join('\n'),
-            ),
-        );
-        component.importBatchId.set('a'.repeat(64));
-        component.setImportAccount('account-id');
-        component.openCsvImport();
-        fixture.detectChanges();
-
-        const host = fixture.nativeElement as HTMLElement;
-        expect(host.querySelectorAll('.import-preview__row')).toHaveLength(3);
-        expect(host.querySelectorAll('.import-preview__row--invalid')).toHaveLength(2);
-        expect(component.readyImportRows()).toHaveLength(1);
-        expect(component.invalidImportRowCount()).toBe(2);
-
-        component.importCsv();
-
-        expect(component.pendingConfirmation()?.message).toContain('1');
-        expect(api.importTransactions).not.toHaveBeenCalled();
-        component.confirmPendingAction();
-
-        expect(api.importTransactions).toHaveBeenCalledWith({
-            accountId: 'account-id',
-            importBatchId: 'a'.repeat(64),
-            rows: [
-                expect.objectContaining({
-                    sourceRow: 2,
-                    categoryId: 'food-id',
-                    amount: -25,
-                    description: 'Lunch',
-                }),
-            ],
-        });
-    });
-
-    it('does not import a partial CSV when the user cancels confirmation', () => {
-        fixture.componentRef.setInput('view', 'imports');
-        component.parsedImportRows.set(
-            parseTransactionsCsv(
-                [
-                    'date,amount,description,category',
-                    '2026-07-01,25,Lunch,Food',
-                    '2026-07-02,invalid,Bad amount,Food',
-                ].join('\n'),
-            ),
-        );
-        component.importBatchId.set('a'.repeat(64));
-        component.setImportAccount('account-id');
-
-        component.importCsv();
-        component.closeConfirmation();
-
-        expect(component.pendingConfirmation()).toBeNull();
-        expect(api.importTransactions).not.toHaveBeenCalled();
-    });
-
-    it('rejects ambiguous normalized category names instead of assigning a silent type', () => {
-        fixture.componentRef.setInput('view', 'imports');
-        fixture.componentRef.setInput('expenseCategories', [
-            category({ id: 'expense-e', name: 'Все' }),
-        ]);
-        fixture.componentRef.setInput('incomeCategories', [
-            category({ id: 'income-yo', name: 'Всё', type: 'income' }),
-        ]);
-        component.parsedImportRows.set(
-            parseTransactionsCsv(
-                ['date,amount,description,category', '2026-07-01,25,Ambiguous,ВСЁ'].join('\n'),
-            ),
-        );
-        fixture.detectChanges();
-
-        expect(component.readyImportRows()).toHaveLength(0);
-        expect(component.invalidImportRowCount()).toBe(1);
-        expect(component.preparedImportRows()[0].issue).toContain(
-            'соответствует нескольким категориям',
-        );
-    });
-
-    it('marks only due occurrences as confirmable', () => {
+    it('renders actions only for due occurrences and a passive status for future ones', () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-07-18T12:00:00.000Z'));
         component.currentTime.set(Date.now());
@@ -236,22 +140,32 @@ describe('PlanningTabComponent', () => {
         component.openRecurringPlanning();
         fixture.detectChanges();
 
-        expect(component.isDue(due)).toBe(true);
-        expect(component.isDue(future)).toBe(false);
-
         const rows = Array.from(
             (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.recurring-row'),
         );
+        const dueActions = rows[0].querySelector<HTMLElement>('.recurring-row__actions');
+        const futureActions = rows[1].querySelector<HTMLElement>('.recurring-row__actions');
+
         expect(rows[0].classList.contains('recurring-row--due')).toBe(true);
-        expect(rows[1].classList.contains('recurring-row--due')).toBe(false);
+        expect(dueActions?.querySelector('.recurring-row__confirm')).not.toBeNull();
+        expect(dueActions?.querySelector('.recurring-row__skip')).not.toBeNull();
         expect(
-            rows[1]
-                .querySelector<HTMLElement>('.recurring-row__actions ms-button')
-                ?.getAttribute('aria-disabled'),
-        ).toBe('true');
+            dueActions?.querySelector('.recurring-row__confirm')?.getAttribute('aria-label'),
+        ).toContain(due.description);
+        expect(dueActions?.querySelectorAll('.recurring-row__delete')).toHaveLength(1);
+        expect(rows[1].classList.contains('recurring-row--due')).toBe(false);
+        expect(futureActions?.querySelector('.recurring-row__status')?.textContent).toContain(
+            'Ожидается',
+        );
+        expect(futureActions?.querySelector('.recurring-row__confirm')).toBeNull();
+        expect(futureActions?.querySelector('.recurring-row__skip')).toBeNull();
+        expect(
+            futureActions?.querySelector('.recurring-row__delete')?.getAttribute('aria-label'),
+        ).toContain(future.description);
+        expect(futureActions?.querySelectorAll('.recurring-row__delete')).toHaveLength(1);
     });
 
-    it('makes an occurrence due on the clock tick and stops the clock after destroy', async () => {
+    it('makes an occurrence actionable on the clock tick and stops the clock after destroy', async () => {
         fixture.destroy();
         vi.useFakeTimers();
         const start = new Date('2026-07-18T12:00:00.000Z');
@@ -273,16 +187,22 @@ describe('PlanningTabComponent', () => {
 
         const confirmButton = () =>
             (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
-                '.recurring-row__actions ms-button',
+                '.recurring-row__confirm',
+            );
+        const passiveStatus = () =>
+            (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
+                '.recurring-row__status',
             );
 
-        expect(confirmButton()?.getAttribute('aria-disabled')).toBe('true');
+        expect(confirmButton()).toBeNull();
+        expect(passiveStatus()?.textContent).toContain('Ожидается');
 
         await vi.advanceTimersByTimeAsync(30_000);
         fixture.detectChanges();
 
         expect(component.currentTime()).toBe(start.getTime() + 30_000);
-        expect(confirmButton()?.getAttribute('aria-disabled')).toBe('false');
+        expect(confirmButton()).not.toBeNull();
+        expect(passiveStatus()).toBeNull();
         expect(confirmButton()?.textContent).toContain('Подтвердить');
 
         const timeAtDestroy = component.currentTime();
@@ -332,44 +252,19 @@ describe('PlanningTabComponent', () => {
         expect(api.skipRecurringTransaction).not.toHaveBeenCalled();
     });
 
-    it('shows budgets without mixing CSV import into the budget view', () => {
+    it('renders the budget view without recurring-operation controls', () => {
         component.budgets.set([budget()]);
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
         expect(host.querySelector('.budget-row--over')).not.toBeNull();
         expect(host.querySelector('.recurring-row')).toBeNull();
-        expect(host.querySelector('.planning-import-dialog')).toBeNull();
-
-        component.openCsvImport();
-        fixture.detectChanges();
-
-        expect(host.querySelector('.planning-import-dialog')).toBeNull();
         expect(
             host.querySelector('.budget-row ms-button.ms-btn-outline.ms-btn-danger'),
         ).not.toBeNull();
         expect(
             host.querySelector('.budget-row ms-button .material-symbols-outlined')?.textContent,
         ).toContain('delete');
-    });
-
-    it('shows CSV import as a compact launcher and opens it in a dialog', () => {
-        fixture.componentRef.setInput('view', 'imports');
-        fixture.detectChanges();
-
-        const host = fixture.nativeElement as HTMLElement;
-        expect(host.querySelector('.planning-launcher')).not.toBeNull();
-        expect(host.textContent).toContain('Импорт CSV');
-        expect(host.querySelector('.budget-row')).toBeNull();
-        expect(host.querySelector('.planning-import-dialog')).toBeNull();
-
-        component.openCsvImport();
-        fixture.detectChanges();
-
-        expect(host.querySelector('.planning-import-dialog')).not.toBeNull();
-        expect(host.querySelector('.planning-import-controls ms-button')?.textContent?.trim()).toBe(
-            'Импортировать',
-        );
     });
 
     it('keeps recurring details behind a compact launcher with one notification toggle', () => {
@@ -392,10 +287,6 @@ describe('PlanningTabComponent', () => {
         expect(host.querySelector('.recurring-row')).not.toBeNull();
         expect(host.querySelectorAll('.planning-notification-toggle__input')).toHaveLength(1);
         expect(host.textContent).not.toContain('Включить уведомления');
-
-        component.openCsvImport();
-        fixture.detectChanges();
-        expect(host.querySelector('.planning-import-dialog')).toBeNull();
     });
 
     it('renders recurring operations inline when embedded in the transactions subtab', () => {
@@ -498,6 +389,21 @@ describe('PlanningTabComponent', () => {
         expect(recurringDialog?.getAttribute('aria-hidden')).toBe('true');
         expect(recurringDialog?.hasAttribute('inert')).toBe(true);
         expect(confirmationDialog?.getAttribute('aria-modal')).toBe('true');
+        const confirmationButtons = Array.from(
+            confirmationDialog?.querySelectorAll<HTMLElement>(
+                '.planning-confirm-dialog__actions ms-button',
+            ) ?? [],
+        );
+
+        expect(confirmationButtons).toHaveLength(2);
+        expect(
+            confirmationButtons.every((button) => button.classList.contains('ms-btn-full-width')),
+        ).toBe(true);
+        expect(confirmationButtons[0].classList.contains('ms-btn-ghost')).toBe(true);
+        expect(confirmationButtons[1].classList.contains('ms-btn-danger')).toBe(true);
+        expect(
+            confirmationDialog?.querySelector('.planning-confirm-dialog__icon--danger'),
+        ).not.toBeNull();
 
         component.closeConfirmation();
         fixture.detectChanges();
@@ -507,47 +413,22 @@ describe('PlanningTabComponent', () => {
         expect(recurringDialog?.hasAttribute('inert')).toBe(false);
     });
 
-    it('exposes only the confirmation as modal while a CSV dialog is underneath', () => {
-        fixture.componentRef.setInput('view', 'imports');
-        component.parsedImportRows.set(
-            parseTransactionsCsv(
-                [
-                    'date,amount,description,category',
-                    '2026-07-01,25,Lunch,Food',
-                    '2026-07-02,invalid,Bad amount,Food',
-                ].join('\n'),
-            ),
-        );
-        component.importBatchId.set('a'.repeat(64));
-        component.setImportAccount('account-id');
-        component.openCsvImport();
-        component.importCsv();
-        fixture.detectChanges();
-
-        const host = fixture.nativeElement as HTMLElement;
-        const importDialog = host.querySelector<HTMLElement>('.planning-import-dialog');
-        const confirmationDialog = host.querySelector<HTMLElement>('.planning-confirm-dialog');
-
-        expect(importDialog?.getAttribute('aria-modal')).toBeNull();
-        expect(importDialog?.getAttribute('aria-hidden')).toBe('true');
-        expect(importDialog?.hasAttribute('inert')).toBe(true);
-        expect(confirmationDialog?.getAttribute('aria-modal')).toBe('true');
-    });
-
     it('loads only the API required by the selected compact view', () => {
         api.getBudgets.mockClear();
         api.getRecurringTransactions.mockClear();
-
-        fixture.componentRef.setInput('view', 'imports');
-        fixture.detectChanges();
-
-        expect(api.getBudgets).not.toHaveBeenCalled();
-        expect(api.getRecurringTransactions).not.toHaveBeenCalled();
 
         fixture.componentRef.setInput('view', 'recurring');
         fixture.detectChanges();
 
         expect(api.getBudgets).not.toHaveBeenCalled();
         expect(api.getRecurringTransactions).toHaveBeenCalledTimes(1);
+
+        api.getBudgets.mockClear();
+        api.getRecurringTransactions.mockClear();
+        fixture.componentRef.setInput('view', 'budgets');
+        fixture.detectChanges();
+
+        expect(api.getBudgets).toHaveBeenCalledTimes(1);
+        expect(api.getRecurringTransactions).not.toHaveBeenCalled();
     });
 });
