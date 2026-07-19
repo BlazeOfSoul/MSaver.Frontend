@@ -1,11 +1,17 @@
 <section class="categories-layout">
-    <nav class="category-subtabs panel panel--wide" aria-label="Разделы категорий">
+    <nav class="category-subtabs panel panel--wide" role="tablist" aria-label="Разделы категорий">
         <button
             type="button"
             class="category-subtab"
+            id="category-tab-items"
+            role="tab"
             data-testid="category-subtab-items"
             [class.category-subtab--active]="activeSubtab() === 'items'"
+            [attr.aria-selected]="activeSubtab() === 'items'"
+            [attr.aria-controls]="'category-panel-items'"
+            [tabindex]="activeSubtab() === 'items' ? 0 : -1"
             (click)="setActiveSubtab('items')"
+            (keydown)="changeSubtabFromKeyboard($event, 'items')"
         >
             <span class="material-symbols-outlined" aria-hidden="true">category</span>
             <span>Категории</span>
@@ -14,93 +20,130 @@
         <button
             type="button"
             class="category-subtab"
+            id="category-tab-order"
+            role="tab"
             data-testid="category-subtab-order"
             [class.category-subtab--active]="activeSubtab() === 'order'"
+            [attr.aria-selected]="activeSubtab() === 'order'"
+            [attr.aria-controls]="'category-panel-order'"
+            [tabindex]="activeSubtab() === 'order' ? 0 : -1"
             (click)="setActiveSubtab('order')"
+            (keydown)="changeSubtabFromKeyboard($event, 'order')"
         >
             <span class="material-symbols-outlined" aria-hidden="true">swap_vert</span>
             <span>Порядок</span>
         </button>
+
+        <button
+            type="button"
+            class="category-subtab"
+            id="category-tab-budgets"
+            role="tab"
+            data-testid="category-subtab-budgets"
+            [class.category-subtab--active]="activeSubtab() === 'budgets'"
+            [attr.aria-selected]="activeSubtab() === 'budgets'"
+            [attr.aria-controls]="'category-panel-budgets'"
+            [tabindex]="activeSubtab() === 'budgets' ? 0 : -1"
+            (click)="setActiveSubtab('budgets')"
+            (keydown)="changeSubtabFromKeyboard($event, 'budgets')"
+        >
+            <span class="material-symbols-outlined" aria-hidden="true">savings</span>
+            <span>Бюджеты</span>
+        </button>
     </nav>
 
     @if (activeSubtab() === 'items') {
-        <div class="categories-search panel panel--wide">
-            <ms-input
-                [formControl]="searchControl()"
-                prefixIcon="search"
-                placeholder="Поиск по категориям и тегам"
-            ></ms-input>
-        </div>
-
-        <ms-category-group-panel
-            title="Доходы"
-            description="Категории поступлений для быстрых операций и отчётов."
-            addButtonTestId="open-income-category-dialog"
-            addButtonAriaLabel="Добавить категорию доходов"
-            railAriaLabel="Категории доходов"
-            emptyText="Категорий доходов пока нет."
-            [categories]="incomeCategories()"
-            [saving]="saving()"
-            (add)="openCategoryDialog('income')"
-            (deleteCategory)="deleteCategory.emit($event)"
-        ></ms-category-group-panel>
-
-        <ms-category-group-panel
-            title="Расходы"
-            description="Статьи затрат для операций, бюджета и аналитики."
-            addButtonTestId="open-expense-category-dialog"
-            addButtonAriaLabel="Добавить категорию расходов"
-            railAriaLabel="Категории расходов"
-            emptyText="Категорий расходов пока нет."
-            [categories]="expenseCategories()"
-            [saving]="saving()"
-            (add)="openCategoryDialog('expense')"
-            (deleteCategory)="deleteCategory.emit($event)"
-        ></ms-category-group-panel>
-
-        <article class="panel panel--wide">
-            <div class="panel__header">
-                <div>
-                    <h2>Теги аналитики</h2>
-                    <p>Группы категорий для понятных срезов расходов и доходов.</p>
-                </div>
-
-                <ms-button
-                    appearance="icon"
-                    variant="primary"
-                    size="lg"
-                    data-testid="open-tag-dialog"
-                    [disabled]="saving()"
-                    (onClick)="openTagDialog()"
-                    aria-label="Добавить тег"
-                >
-                    <span class="material-symbols-outlined">add</span>
-                </ms-button>
+        <div
+            class="category-subtab-panel category-subtab-panel--items"
+            id="category-panel-items"
+            role="tabpanel"
+            aria-labelledby="category-tab-items"
+        >
+            <div class="categories-search panel panel--wide">
+                <ms-input
+                    [formControl]="searchControl()"
+                    prefixIcon="search"
+                    placeholder="Поиск по категориям и тегам"
+                ></ms-input>
             </div>
 
-            @if (tagGroups().length) {
-                <div class="tag-group-list">
-                    @for (group of tagGroups(); track group.id) {
-                        <ms-tag-group-card
-                            [group]="group"
-                            [availableCategoryOptions]="categoryOptionsForTag(group)"
-                            [saving]="saving()"
-                            (deleteTag)="deleteTag.emit($event)"
-                            (assignCategoryToTag)="assignCategoryToTag.emit($event)"
-                            (removeCategoryFromTag)="removeCategoryFromTag.emit($event)"
-                        ></ms-tag-group-card>
-                    }
+            <ms-category-group-panel
+                title="Доходы"
+                description="Категории поступлений для быстрых операций и отчётов."
+                addButtonTestId="open-income-category-dialog"
+                addButtonAriaLabel="Добавить категорию доходов"
+                railAriaLabel="Категории доходов"
+                emptyText="Категорий доходов пока нет."
+                [categories]="incomeCategories()"
+                [saving]="saving()"
+                (add)="openCategoryDialog('income')"
+                (deleteCategory)="deleteCategory.emit($event)"
+            ></ms-category-group-panel>
+
+            <ms-category-group-panel
+                title="Расходы"
+                description="Статьи затрат для операций, бюджета и аналитики."
+                addButtonTestId="open-expense-category-dialog"
+                addButtonAriaLabel="Добавить категорию расходов"
+                railAriaLabel="Категории расходов"
+                emptyText="Категорий расходов пока нет."
+                [categories]="expenseCategories()"
+                [saving]="saving()"
+                (add)="openCategoryDialog('expense')"
+                (deleteCategory)="deleteCategory.emit($event)"
+            ></ms-category-group-panel>
+
+            <article class="panel panel--wide">
+                <div class="panel__header">
+                    <div>
+                        <h2>Теги аналитики</h2>
+                        <p>Группы категорий для понятных срезов расходов и доходов.</p>
+                    </div>
+
+                    <ms-button
+                        appearance="icon"
+                        variant="primary"
+                        size="lg"
+                        data-testid="open-tag-dialog"
+                        [disabled]="saving()"
+                        (onClick)="openTagDialog()"
+                        aria-label="Добавить тег"
+                    >
+                        <span class="material-symbols-outlined">add</span>
+                    </ms-button>
                 </div>
-            } @else {
-                <div class="categories-empty">Тегов пока нет.</div>
-            }
-        </article>
-    } @else {
-        <article class="panel panel--wide category-order-panel">
+
+                @if (tagGroups().length) {
+                    <div class="tag-group-list">
+                        @for (group of tagGroups(); track group.id) {
+                            <ms-tag-group-card
+                                [group]="group"
+                                [availableCategoryOptions]="categoryOptionsForTag(group)"
+                                [saving]="saving()"
+                                (deleteTag)="deleteTag.emit($event)"
+                                (assignCategoryToTag)="assignCategoryToTag.emit($event)"
+                                (removeCategoryFromTag)="removeCategoryFromTag.emit($event)"
+                            ></ms-tag-group-card>
+                        }
+                    </div>
+                } @else {
+                    <div class="categories-empty">Тегов пока нет.</div>
+                }
+            </article>
+        </div>
+    } @else if (activeSubtab() === 'order') {
+        <article
+            class="panel panel--wide category-order-panel"
+            id="category-panel-order"
+            role="tabpanel"
+            aria-labelledby="category-tab-order"
+        >
             <div class="panel__header category-order-panel__header">
                 <div>
                     <h2>Порядок категорий</h2>
-                    <p>Перетащите категорию за ручку, чтобы изменить порядок в выборе транзакции.</p>
+                    <p>
+                        Перетащите категорию за ручку, чтобы изменить порядок в выборе транзакции.
+                    </p>
                 </div>
 
                 <ms-button
@@ -139,7 +182,11 @@
                                 role="table"
                                 [attr.aria-label]="'Порядок категорий: ' + section.title"
                             >
-                                @for (category of section.items; track category.id; let index = $index) {
+                                @for (
+                                    category of section.items;
+                                    track category.id;
+                                    let index = $index
+                                ) {
                                     <div
                                         class="category-order-row"
                                         cdkDrag
@@ -148,10 +195,18 @@
                                         data-testid="category-order-row"
                                         [attr.data-category-id]="category.id"
                                         role="row"
-                                        [class.category-order-row--move-up]="movedClass(category.id) === 'category-order-row--move-up'"
-                                        [class.category-order-row--move-down]="movedClass(category.id) === 'category-order-row--move-down'"
+                                        [class.category-order-row--move-up]="
+                                            movedClass(category.id) ===
+                                            'category-order-row--move-up'
+                                        "
+                                        [class.category-order-row--move-down]="
+                                            movedClass(category.id) ===
+                                            'category-order-row--move-down'
+                                        "
                                     >
-                                        <span class="category-order-row__index">{{ index + 1 }}</span>
+                                        <span class="category-order-row__index">{{
+                                            index + 1
+                                        }}</span>
                                         <span
                                             class="category-order-row__color"
                                             [style.--category-color]="category.color"
@@ -166,10 +221,14 @@
                                             cdkDragHandle
                                             data-testid="drag-category-handle"
                                             [disabled]="saving()"
-                                            (keydown)="reorderCategoryWithKeyboard($event, category)"
+                                            (keydown)="
+                                                reorderCategoryWithKeyboard($event, category)
+                                            "
                                             aria-label="Перетащить категорию"
                                         >
-                                            <span class="material-symbols-outlined">drag_handle</span>
+                                            <span class="material-symbols-outlined"
+                                                >drag_handle</span
+                                            >
                                         </button>
                                     </div>
                                 }
@@ -181,6 +240,21 @@
                 }
             </div>
         </article>
+    } @else {
+        <div
+            class="category-subtab-panel category-subtab-panel--budgets"
+            id="category-panel-budgets"
+            role="tabpanel"
+            aria-labelledby="category-tab-budgets"
+        >
+            <ms-planning-tab
+                view="budgets"
+                [month]="budgetMonth()"
+                [accounts]="budgetAccountOptions()"
+                [expenseCategories]="expenseCategoryOrderItems() ?? expenseCategories()"
+                [incomeCategories]="incomeCategoryOrderItems() ?? incomeCategories()"
+            ></ms-planning-tab>
+        </div>
     }
 </section>
 

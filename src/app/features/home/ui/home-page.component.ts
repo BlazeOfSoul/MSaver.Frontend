@@ -23,11 +23,13 @@ import { AccountsTabComponent } from './tab-panels/accounts-tab/accounts-tab.com
 import { AnalyticsTabComponent } from './tab-panels/analytics-tab/analytics-tab.component';
 import { CategoriesTabComponent } from './tab-panels/categories-tab/categories-tab.component';
 import { OverviewTabComponent } from './tab-panels/overview-tab/overview-tab.component';
+import { PlanningTabComponent } from './tab-panels/planning-tab/planning-tab.component';
 import { SettingsTabComponent } from './tab-panels/settings-tab/settings-tab.component';
 import { CategoryMoveDirection, CategorySortMode } from './home-category-order.utils';
 import { HomeTabId, TransactionDraft, TransactionItem, TransferDraft } from './home-page.models';
 import { CURRENCY_OPTIONS, HOME_TABS } from './home-page.constants';
 import { HomeDashboardStore } from './home-dashboard.store';
+import { PwaPushNotificationService } from '../../../core/push/pwa-push-notification.service';
 
 @Component({
     selector: 'app-home-page',
@@ -38,6 +40,7 @@ import { HomeDashboardStore } from './home-dashboard.store';
         MainEmptyStateComponent,
         MainTabBarComponent,
         OverviewTabComponent,
+        PlanningTabComponent,
         AccountsTabComponent,
         AnalyticsTabComponent,
         CategoriesTabComponent,
@@ -57,6 +60,7 @@ export class HomePageComponent {
     private readonly authService = inject(AuthService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly router = inject(Router);
+    private readonly pushNotifications = inject(PwaPushNotificationService);
 
     readonly searchControl = new FormControl('', { nonNullable: true });
     readonly accountSearchControl = new FormControl('', { nonNullable: true });
@@ -67,6 +71,7 @@ export class HomePageComponent {
 
     readonly activeTab = this.dashboard.activeTab;
     readonly selectedAccountId = this.dashboard.selectedAccountId;
+    readonly selectedMonth = this.dashboard.selectedMonth;
     readonly accountsSelectedAccountId = this.dashboard.accountsSelectedAccountId;
     readonly analyticsSelectedAccountId = this.dashboard.analyticsSelectedAccountId;
     readonly isLoading = this.dashboard.isLoading;
@@ -349,7 +354,13 @@ export class HomePageComponent {
         this.dashboard.removeCategoryFromTag(event.tagId, event.categoryId);
     }
 
-    logout(): void {
+    async logout(): Promise<void> {
+        try {
+            await this.pushNotifications.disable();
+        } catch {
+            // Push cleanup must never keep the user signed in.
+        }
+
         this.authService
             .logout()
             .pipe(

@@ -64,4 +64,15 @@ describe('HomeApiService', () => {
             balanceDisplayAccountId: 'all',
         });
     });
+
+    it('skips the current recurring occurrence through the dedicated action endpoint', () => {
+        service.skipRecurringTransaction('recurring-id').subscribe();
+
+        const request = httpMock.expectOne(
+            `${environment.apiUrl}/recurring-transactions/recurring-id/skip`,
+        );
+        expect(request.request.method).toBe('POST');
+        expect(request.request.body).toEqual({});
+        request.flush(null);
+    });
 });

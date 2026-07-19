@@ -1,0 +1,151 @@
+.planning-notification-toggle {
+    display: flex;
+    min-height: 3.35rem;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.68rem 0.78rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: var(--radius-ms-lg);
+    background: var(--color-ms-white-alpha-03);
+    cursor: pointer;
+    transition:
+        border-color 160ms ease,
+        background 160ms ease;
+}
+
+.planning-notification-toggle:hover {
+    border-color: color-mix(in oklab, var(--color-ms-primary), transparent 55%);
+    background: var(--color-ms-primary-alpha-04);
+}
+
+.planning-notification-toggle__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.planning-notification-toggle__track {
+    position: relative;
+    width: 2.75rem;
+    height: 1.55rem;
+    flex: 0 0 auto;
+    border: 1px solid var(--color-ms-border-strong);
+    border-radius: 999px;
+    background: var(--color-ms-white-alpha-08);
+    transition:
+        border-color 160ms ease,
+        background 160ms ease;
+}
+
+.planning-notification-toggle__track::after {
+    position: absolute;
+    top: 0.17rem;
+    left: 0.18rem;
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 50%;
+    background: var(--color-ms-light-dark);
+    box-shadow: 0 2px 7px var(--color-ms-black-alpha-28);
+    content: '';
+    transition:
+        transform 160ms ease,
+        background 160ms ease;
+}
+
+.planning-notification-toggle__input:checked + .planning-notification-toggle__track {
+    border-color: var(--color-ms-primary);
+    background: var(--color-ms-primary);
+}
+
+.planning-notification-toggle__input:checked + .planning-notification-toggle__track::after {
+    background: var(--color-ms-light);
+    transform: translateX(1.18rem);
+}
+
+.planning-notification-toggle__input:focus-visible + .planning-notification-toggle__track {
+    outline: 2px solid var(--color-ms-primary);
+    outline-offset: 3px;
+}
+
+.planning-notification-toggle__copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.12rem;
+}
+
+.planning-notification-toggle__copy strong {
+    color: var(--color-ms-light);
+    font-size: 0.82rem;
+}
+
+.planning-notification-toggle__copy small {
+    color: var(--color-ms-light-dark);
+    font-size: 0.72rem;
+}
+
+.budget-row--over {
+    border-color: color-mix(in oklab, var(--color-ms-danger), transparent 38%);
+    background:
+        linear-gradient(90deg, var(--color-ms-danger-surface), transparent 72%),
+        var(--color-ms-white-alpha-025);
+    box-shadow: inset 3px 0 0 var(--color-ms-danger);
+}
+
+.budget-row--over .budget-row__value strong {
+    color: var(--color-ms-danger-soft);
+}
+
+.budget-row__remaining {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.budget-row__remaining--negative {
+    padding: 0.32rem 0.48rem;
+    border: 1px solid color-mix(in oklab, var(--color-ms-danger), transparent 62%);
+    border-radius: 999px;
+    background: var(--color-ms-danger-surface);
+    font-weight: 750;
+}
+
+.budget-row__warning {
+    font-size: 1rem;
+}
+
+@media (max-width: 640px) {
+    .recurring-row__amount,
+    .recurring-row__actions {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    .recurring-row__amount {
+        text-align: left;
+    }
+
+    .recurring-row__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+        align-items: center;
+    }
+
+    .recurring-row__confirm,
+    .recurring-row__skip {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .recurring-row__delete {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .recurring-row__actions:not(:has(.recurring-row__skip)) .recurring-row__confirm {
+        grid-column: 1 / 3;
+    }
+}

@@ -4,6 +4,7 @@ import { firstValueFrom, Observable, of, throwError } from 'rxjs';
 import { AuthSessionResponse } from '../models/auth.models';
 import { AuthService } from '../../features/auth/data-access/auth.service';
 import { AuthStore } from '../../features/auth/data-access/auth.store';
+import { LocalPushSubscriptionService } from '../push/local-push-subscription.service';
 import { authGuard } from './auth.guard';
 
 describe('authGuard', () => {
@@ -18,6 +19,9 @@ describe('authGuard', () => {
     let router: {
         createUrlTree: ReturnType<typeof vi.fn>;
     };
+    let localPushSubscription: {
+        unsubscribeCurrent: ReturnType<typeof vi.fn>;
+    };
 
     beforeEach(() => {
         authStore = {
@@ -31,12 +35,16 @@ describe('authGuard', () => {
         router = {
             createUrlTree: vi.fn((commands: unknown[]) => ({ commands }) as unknown as UrlTree),
         };
+        localPushSubscription = {
+            unsubscribeCurrent: vi.fn(() => Promise.resolve()),
+        };
 
         TestBed.configureTestingModule({
             providers: [
                 { provide: AuthStore, useValue: authStore },
                 { provide: AuthService, useValue: authService },
                 { provide: Router, useValue: router },
+                { provide: LocalPushSubscriptionService, useValue: localPushSubscription },
             ],
         });
     });
@@ -75,6 +83,7 @@ describe('authGuard', () => {
             commands: ['/auth'],
         });
         expect(authStore.clearSession).toHaveBeenCalledOnce();
+        expect(localPushSubscription.unsubscribeCurrent).toHaveBeenCalledOnce();
         expect(router.createUrlTree).toHaveBeenCalledWith(['/auth']);
     });
 });

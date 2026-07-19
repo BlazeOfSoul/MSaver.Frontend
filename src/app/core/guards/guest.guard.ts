@@ -1,13 +1,15 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { catchError, map, of, tap } from 'rxjs';
+import { catchError, from, map, tap } from 'rxjs';
 import { AuthService } from '../../features/auth/data-access/auth.service';
 import { AuthStore } from '../../features/auth/data-access/auth.store';
+import { LocalPushSubscriptionService } from '../push/local-push-subscription.service';
 
 export const guestGuard: CanActivateFn = () => {
     const authStore = inject(AuthStore);
     const authService = inject(AuthService);
     const router = inject(Router);
+    const localPushSubscription = inject(LocalPushSubscriptionService);
 
     if (authStore.isAuthenticated()) {
         return router.createUrlTree(['/']);
@@ -18,7 +20,7 @@ export const guestGuard: CanActivateFn = () => {
         map(() => router.createUrlTree(['/'])),
         catchError(() => {
             authStore.clearSession();
-            return of(true);
+            return from(localPushSubscription.unsubscribeCurrent()).pipe(map(() => true));
         }),
     );
 };

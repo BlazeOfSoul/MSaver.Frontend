@@ -38,8 +38,79 @@
     grid-template-columns: minmax(0, 1fr);
 }
 
+.settings-notifications {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.settings-notifications__copy {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.settings-notifications__copy h2 {
+    margin: 0;
+    color: var(--color-ms-light);
+}
+
+.settings-notifications__copy p {
+    margin: 0.25rem 0 0;
+    color: var(--color-ms-light-dark);
+}
+
+.notification-status {
+    display: inline-flex;
+    width: fit-content;
+    max-width: 100%;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: var(--radius-ms-lg);
+    color: var(--color-ms-light-dark);
+    background: var(--color-ms-white-alpha-03);
+}
+
+.notification-status--enabled {
+    border-color: color-mix(in oklab, var(--color-ms-success), transparent 58%);
+    color: var(--color-ms-success);
+    background: color-mix(in oklab, var(--color-ms-success), transparent 91%);
+}
+
+.notification-status--blocked {
+    border-color: color-mix(in oklab, var(--color-ms-danger), transparent 60%);
+    color: var(--color-ms-danger-soft);
+    background: color-mix(in oklab, var(--color-ms-danger), transparent 92%);
+}
+
+.notification-status > span:last-child {
+    display: grid;
+    min-width: 0;
+    gap: 0.1rem;
+}
+
+.notification-status strong {
+    color: currentColor;
+}
+
+.notification-status small,
+.settings-notifications__action small {
+    color: var(--color-ms-light-dark);
+    line-height: 1.45;
+}
+
+.notification-message {
+    font-size: 0.88rem;
+}
+
+.settings-notifications__action {
+    display: grid;
+    align-content: center;
+    gap: 0.6rem;
+}
+
 @media (min-width: 760px) {
-    .settings-hero {
+    .settings-hero,
+    .settings-notifications {
         grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.35fr);
         align-items: center;
     }

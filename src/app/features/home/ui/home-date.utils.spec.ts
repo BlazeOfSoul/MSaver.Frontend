@@ -4,24 +4,31 @@ import {
     toApiDateTime,
     toApiDate,
     toApiDateTimeInputValue,
+    monthKey,
+    toIsoDateTimeLocal,
 } from './home-date.utils';
 
 describe('home date utils', () => {
-    it('preserves datetime-local values for transaction payloads', () => {
-        expect(toApiDate('2026-06-05T14:37')).toBe('2026-06-05T14:37:00');
+    it('converts datetime-local values to UTC transaction payloads', () => {
+        expect(toApiDate('2026-06-05T14:37')).toBe(new Date('2026-06-05T14:37').toISOString());
     });
 
     it('keeps existing date-only values unchanged', () => {
         expect(toApiDate('2026-06-05')).toBe('2026-06-05');
     });
 
-    it('formats api boundary date-times with seconds', () => {
-        expect(toApiDateTime(new Date(2026, 7, 1, 0, 0, 0))).toBe('2026-08-01T00:00:00');
+    it('formats API boundary date-times as UTC ISO-8601', () => {
+        const value = new Date(2026, 7, 1, 0, 0, 0);
+
+        expect(toApiDateTime(value)).toBe(value.toISOString());
     });
 
-    it('reads api date-times as transaction wall-clock values', () => {
-        expect(toApiDateTimeInputValue('2026-06-05T14:37:00+03:00')).toBe('2026-06-05T14:37');
-        expect(apiDateMonthKey('2026-06-30T23:50:00+03:00')).toBe('2026-06');
-        expect(apiDateTimestamp('2026-06-05T14:37:00+03:00')).toBe(Date.UTC(2026, 5, 5, 14, 37, 0));
+    it('converts offset API timestamps to the device local time', () => {
+        const value = '2026-06-05T14:37:00+03:00';
+        const instant = new Date(value);
+
+        expect(toApiDateTimeInputValue(value)).toBe(toIsoDateTimeLocal(instant));
+        expect(apiDateMonthKey(value)).toBe(monthKey(instant));
+        expect(apiDateTimestamp(value)).toBe(instant.getTime());
     });
 });

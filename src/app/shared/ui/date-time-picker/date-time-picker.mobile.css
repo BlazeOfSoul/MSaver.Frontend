@@ -1,0 +1,47 @@
+@media (min-width: 720px) {
+    .ms-date-time-picker__grid {
+        grid-template-columns: minmax(10.5rem, 1fr) minmax(6.75rem, 0.65fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .ms-date-time-picker__dropdown {
+        right: 0;
+        left: 0;
+        width: auto;
+        max-width: none;
+    }
+
+    .ms-date-time-picker__grid {
+        grid-template-columns: minmax(10.25rem, 1fr) minmax(5.75rem, 0.65fr);
+        gap: 0.45rem;
+    }
+
+    .ms-date-time-picker__actions {
+        gap: 0.4rem;
+    }
+
+    .ms-date-time-picker__chip {
+        min-height: 2.25rem;
+        font-size: 0.76rem;
+    }
+
+    .ms-date-time-picker__input-shell {
+        gap: 0.4rem;
+        padding: 0 0.62rem;
+    }
+
+    .ms-date-time-picker__input-shell .material-symbols-outlined {
+        font-size: 1rem;
+    }
+
+    .ms-date-time-picker__date-input {
+        font-size: 0.88rem;
+    }
+}
+
+@media (max-width: 350px) {
+    .ms-date-time-picker__grid {
+        grid-template-columns: 1fr;
+    }
+}

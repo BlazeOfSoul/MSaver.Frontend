@@ -130,10 +130,14 @@
         </div>
     </div>
 } @else {
-    <div class="accounts-empty accounts-empty--compact">
-        <span class="material-symbols-outlined">swap_horiz</span>
-        <strong>Переводы появятся после второго счёта</strong>
-        <p>Создайте минимум два счёта, чтобы переводить деньги между ними.</p>
+    <div class="accounts-empty accounts-empty--compact" role="status">
+        <span class="accounts-empty__icon" aria-hidden="true">
+            <span class="material-symbols-outlined">swap_horiz</span>
+        </span>
+        <div class="accounts-empty__copy">
+            <strong>Переводы появятся после второго счёта</strong>
+            <p>Создайте минимум два счёта, чтобы переводить деньги между ними.</p>
+        </div>
     </div>
 }
 

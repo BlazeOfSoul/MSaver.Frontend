@@ -147,14 +147,83 @@ describe('SelectComponent', () => {
         fixture.detectChanges();
 
         const component = fixture.componentInstance;
+        const host = fixture.nativeElement as HTMLElement;
+        const trigger = host.querySelector<HTMLButtonElement>('.ms-select__trigger')!;
 
         component.searchText.set('eur');
         component.isOpen.set(true);
+        fixture.detectChanges();
 
-        component.onEscape();
+        const escapeEvent = new KeyboardEvent('keydown', {
+            key: 'Escape',
+            bubbles: true,
+            cancelable: true,
+        });
+        trigger.dispatchEvent(escapeEvent);
+        fixture.detectChanges();
 
         expect(component.isOpen()).toBe(false);
         expect(component.searchText()).toBe('');
+        expect(escapeEvent.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(trigger);
+    });
+
+    it('exposes combobox, listbox and option semantics', () => {
+        fixture.componentRef.setInput('label', 'Валюта');
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const trigger = host.querySelector<HTMLButtonElement>('.ms-select__trigger')!;
+
+        trigger.click();
+        fixture.detectChanges();
+
+        const listbox = host.querySelector<HTMLElement>('[role="listbox"]')!;
+        const options = Array.from(host.querySelectorAll<HTMLElement>('[role="option"]'));
+
+        expect(trigger.getAttribute('role')).toBe('combobox');
+        expect(trigger.getAttribute('aria-expanded')).toBe('true');
+        expect(trigger.getAttribute('aria-controls')).toBe(listbox.id);
+        expect(listbox.getAttribute('aria-labelledby')).toBe(
+            host.querySelector<HTMLElement>('.ms-select__label')?.id,
+        );
+        expect(options).toHaveLength(3);
+        expect(options[0].getAttribute('aria-selected')).toBe('true');
+        expect(options[1].getAttribute('aria-selected')).toBe('false');
+        expect(getComputedStyle(trigger).position).toBe('relative');
+    });
+
+    it('supports arrow navigation through the open listbox', () => {
+        vi.useFakeTimers();
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const trigger = host.querySelector<HTMLButtonElement>('.ms-select__trigger')!;
+
+        trigger.dispatchEvent(
+            new KeyboardEvent('keydown', {
+                key: 'ArrowDown',
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        fixture.detectChanges();
+        vi.runOnlyPendingTimers();
+
+        const options = Array.from(host.querySelectorAll<HTMLButtonElement>('.ms-select__option'));
+        expect(document.activeElement).toBe(options[0]);
+
+        options[0].dispatchEvent(
+            new KeyboardEvent('keydown', {
+                key: 'End',
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        vi.runOnlyPendingTimers();
+
+        expect(document.activeElement).toBe(options[options.length - 1]);
+        vi.useRealTimers();
     });
 
     it('allows the selected value to wrap when requested', () => {
@@ -170,6 +239,15 @@ describe('SelectComponent', () => {
         expect(getComputedStyle(value!).whiteSpace).toBe('normal');
         expect(getComputedStyle(value!).overflow).toBe('visible');
         expect(getComputedStyle(value!).textOverflow).toBe('clip');
+    });
+
+    it('marks dropdowns that must stay inside mobile forms', () => {
+        fixture.componentRef.setInput('contained', true);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.classList.contains('ms-select-host--contained')).toBe(true);
     });
 
     it('can place the dropdown above the trigger when requested', () => {

@@ -8,14 +8,20 @@ import {
     CategoryOrderResponse,
     CategoryResponse,
     CreateAccountRequest,
+    CreateRecurringTransactionRequest,
     CreateCategoryRequest,
     CreateTagRequest,
     CreateTransactionRequest,
     CreateTransferResponse,
     CreateTransferRequest,
     CurrentUserResponse,
+    GetBudgetsResponse,
+    ImportTransactionsRequest,
+    ImportTransactionsResponse,
     MonthBalanceResponse,
     PagedResponse,
+    PushSubscriptionRequest,
+    RecurringTransactionResponse,
     TagDetailsResponse,
     TagResponse,
     TransactionResponse,
@@ -24,6 +30,8 @@ import {
     UpdateBalanceDisplaySettingsRequest,
     UpdateCategoryOrderRequest,
     UpdateTransactionRequest,
+    UpsertBudgetRequest,
+    VapidPublicKeyResponse,
 } from './home-api.models';
 
 const LIST_SIZE = 100;
@@ -184,7 +192,10 @@ export class HomeApiService {
         return this.http.post<string>(`${this.baseUrl}/Transactions`, payload);
     }
 
-    updateTransaction(transactionId: string, payload: UpdateTransactionRequest): Observable<string> {
+    updateTransaction(
+        transactionId: string,
+        payload: UpdateTransactionRequest,
+    ): Observable<string> {
         return this.http.put<string>(`${this.baseUrl}/Transactions/${transactionId}`, payload);
     }
 
@@ -207,5 +218,76 @@ export class HomeApiService {
         return this.http.get<TransferRateResponse>(`${this.baseUrl}/Transactions/transfer-rate`, {
             params,
         });
+    }
+
+    getBudgets(year: number, month: number, timeZoneId: string): Observable<GetBudgetsResponse> {
+        const params = new HttpParams()
+            .set('year', year)
+            .set('month', month)
+            .set('timeZoneId', timeZoneId);
+        return this.http.get<GetBudgetsResponse>(`${this.baseUrl}/Budgets`, { params });
+    }
+
+    upsertBudget(payload: UpsertBudgetRequest): Observable<unknown> {
+        return this.http.put(`${this.baseUrl}/Budgets`, payload);
+    }
+
+    deleteBudget(
+        payload: Pick<UpsertBudgetRequest, 'accountId' | 'categoryId' | 'year' | 'month'>,
+    ): Observable<void> {
+        const params = new HttpParams()
+            .set('accountId', payload.accountId)
+            .set('categoryId', payload.categoryId)
+            .set('year', payload.year)
+            .set('month', payload.month);
+        return this.http.delete<void>(`${this.baseUrl}/Budgets`, { params });
+    }
+
+    getRecurringTransactions(): Observable<RecurringTransactionResponse[]> {
+        return this.http.get<RecurringTransactionResponse[]>(
+            `${this.baseUrl}/recurring-transactions`,
+        );
+    }
+
+    createRecurringTransaction(
+        payload: CreateRecurringTransactionRequest,
+    ): Observable<RecurringTransactionResponse> {
+        return this.http.post<RecurringTransactionResponse>(
+            `${this.baseUrl}/recurring-transactions`,
+            payload,
+        );
+    }
+
+    completeRecurringTransaction(id: string): Observable<string> {
+        return this.http.post<string>(`${this.baseUrl}/recurring-transactions/${id}/complete`, {});
+    }
+
+    skipRecurringTransaction(id: string): Observable<void> {
+        return this.http.post<void>(`${this.baseUrl}/recurring-transactions/${id}/skip`, {});
+    }
+
+    deleteRecurringTransaction(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/recurring-transactions/${id}`);
+    }
+
+    importTransactions(payload: ImportTransactionsRequest): Observable<ImportTransactionsResponse> {
+        return this.http.post<ImportTransactionsResponse>(
+            `${this.baseUrl}/Transactions/import`,
+            payload,
+        );
+    }
+
+    getVapidPublicKey(): Observable<VapidPublicKeyResponse> {
+        return this.http.get<VapidPublicKeyResponse>(
+            `${this.baseUrl}/push-subscriptions/vapid-public-key`,
+        );
+    }
+
+    registerPushSubscription(payload: PushSubscriptionRequest): Observable<void> {
+        return this.http.post<void>(`${this.baseUrl}/push-subscriptions`, payload);
+    }
+
+    unregisterPushSubscription(endpoint: string): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/push-subscriptions`, { body: { endpoint } });
     }
 }

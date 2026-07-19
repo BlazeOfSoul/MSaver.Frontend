@@ -1,12 +1,25 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { PwaPushNotificationService } from '../../../../../core/push/pwa-push-notification.service';
 import { SettingsTabComponent } from './settings-tab.component';
 
 describe('SettingsTabComponent', () => {
     let fixture: ComponentFixture<SettingsTabComponent>;
+    let pushNotifications: {
+        getCurrentDeviceStatus: ReturnType<typeof vi.fn>;
+        enable: ReturnType<typeof vi.fn>;
+        disable: ReturnType<typeof vi.fn>;
+    };
 
     beforeEach(async () => {
+        pushNotifications = {
+            getCurrentDeviceStatus: vi.fn(() => Promise.resolve('disabled')),
+            enable: vi.fn(() => Promise.resolve('enabled')),
+            disable: vi.fn(() => Promise.resolve()),
+        };
+
         await TestBed.configureTestingModule({
             imports: [SettingsTabComponent],
+            providers: [{ provide: PwaPushNotificationService, useValue: pushNotifications }],
         }).compileComponents();
 
         fixture = TestBed.createComponent(SettingsTabComponent);
@@ -40,19 +53,69 @@ describe('SettingsTabComponent', () => {
         expect(host.querySelector('.currency-preview')).toBeNull();
     });
 
-    it('separates currency, balance display and category order settings into different blocks', () => {
+    it('separates preferences and notifications into different blocks', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
         const panels = Array.from(host.querySelectorAll<HTMLElement>('.settings-panel'));
 
-        expect(panels).toHaveLength(3);
+        expect(panels).toHaveLength(4);
         expect(panels[0].textContent).toContain('Валюта приложения');
         expect(panels[0].textContent).not.toContain('Баланс на главной');
         expect(panels[0].textContent).not.toContain('Порядок категорий');
         expect(panels[1].textContent).toContain('Баланс на главной');
         expect(panels[1].textContent).not.toContain('Порядок категорий');
         expect(panels[2].textContent).toContain('Порядок категорий');
+        expect(panels[3].textContent).toContain('Уведомления');
+        expect(panels[3].textContent).toContain('Текущее устройство · этот браузер');
+    });
+
+    it('enables notifications for the current browser from settings', async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        await fixture.componentInstance.toggleNotifications();
+        fixture.detectChanges();
+
+        expect(pushNotifications.enable).toHaveBeenCalledOnce();
+        expect(fixture.componentInstance.notificationsEnabled()).toBe(true);
+        expect(fixture.nativeElement.textContent).toContain(
+            'Уведомления включены для этого устройства и браузера.',
+        );
+        expect(fixture.nativeElement.textContent).toContain('Отключить на этом устройстве');
+    });
+
+    it('disables only the current browser subscription', async () => {
+        pushNotifications.getCurrentDeviceStatus.mockResolvedValue('disabled');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.componentInstance.notificationStatus.set('enabled');
+
+        await fixture.componentInstance.toggleNotifications();
+        fixture.detectChanges();
+
+        expect(pushNotifications.disable).toHaveBeenCalledOnce();
+        expect(fixture.componentInstance.notificationsEnabled()).toBe(false);
+        expect(fixture.nativeElement.textContent).toContain(
+            'Уведомления отключены на этом устройстве.',
+        );
+        expect(fixture.nativeElement.textContent).toContain(
+            'Настройки расписаний при этом не изменяются.',
+        );
+    });
+
+    it('explains when browser permission blocks notifications', async () => {
+        pushNotifications.getCurrentDeviceStatus.mockResolvedValue('denied');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.notificationActionDisabled()).toBe(true);
+        expect(fixture.nativeElement.textContent).toContain('Заблокированы браузером');
+        expect(fixture.nativeElement.textContent).toContain(
+            'Измените разрешение для сайта в настройках браузера.',
+        );
     });
 
     it('emits balance display changes from the settings dropdown', () => {

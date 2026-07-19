@@ -212,27 +212,29 @@ describe('AddTransactionDialogComponent', () => {
         const host = fixture.nativeElement as HTMLElement;
 
         expect(host.querySelector('input[type="datetime-local"]')).toBeNull();
-        expect(host.querySelector('.dialog__date-trigger')).not.toBeNull();
-        expect(host.querySelector('.dialog__date-picker')).toBeNull();
+        expect(host.querySelector('.ms-date-time-picker__trigger')).not.toBeNull();
+        expect(host.querySelector('.ms-date-time-picker__dropdown')).toBeNull();
 
-        host.querySelector<HTMLButtonElement>('.dialog__date-trigger')?.click();
+        host.querySelector<HTMLButtonElement>('.ms-date-time-picker__trigger')?.click();
         fixture.detectChanges();
 
-        expect(host.querySelector('.dialog__date-picker')).not.toBeNull();
+        expect(host.querySelector('.ms-date-time-picker__dropdown')).not.toBeNull();
         expect(host.querySelector('input[type="date"]')).toBeNull();
         expect(host.querySelector('input[type="time"]')).toBeNull();
-        expect(host.querySelector('.dialog__date-part-input input')).not.toBeNull();
-        expect(host.querySelector('.dialog__time-part-input input')).not.toBeNull();
+        expect(host.querySelector('.ms-date-time-picker__date-input')).not.toBeNull();
+        expect(host.querySelector('.ms-date-time-picker__time-input')).not.toBeNull();
     });
 
     it('shows the selected date and time in one input line', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
-        const dateTimeInput = host.querySelector<HTMLInputElement>('.dialog__date-trigger-input');
+        const dateTimeValue = host.querySelector<HTMLElement>(
+            '.ms-date-time-picker__trigger-input',
+        );
 
-        expect(dateTimeInput).not.toBeNull();
-        expect(dateTimeInput?.value).toBe('05.06.2026 00:00');
+        expect(dateTimeValue).not.toBeNull();
+        expect(dateTimeValue?.textContent?.trim()).toBe('05.06.2026 00:00');
     });
 
     it('uses app-styled text fields inside the date and time picker', () => {
@@ -241,11 +243,11 @@ describe('AddTransactionDialogComponent', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
-        host.querySelector<HTMLButtonElement>('.dialog__date-trigger')?.click();
+        host.querySelector<HTMLButtonElement>('.ms-date-time-picker__trigger')?.click();
         fixture.detectChanges();
 
-        const dateInput = host.querySelector<HTMLInputElement>('.dialog__date-part-input input');
-        const timeInput = host.querySelector<HTMLInputElement>('.dialog__time-part-input input');
+        const dateInput = host.querySelector<HTMLInputElement>('.ms-date-time-picker__date-input');
+        const timeInput = host.querySelector<HTMLInputElement>('.ms-date-time-picker__time-input');
 
         expect(dateInput).not.toBeNull();
         expect(timeInput).not.toBeNull();
@@ -273,30 +275,75 @@ describe('AddTransactionDialogComponent', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
-        host.querySelector<HTMLButtonElement>('.dialog__date-trigger')?.click();
+        host.querySelector<HTMLButtonElement>('.ms-date-time-picker__trigger')?.click();
         fixture.detectChanges();
 
-        const dateInput = host.querySelector<HTMLInputElement>('.dialog__date-part-input input');
-        const timeInput = host.querySelector<HTMLInputElement>('.dialog__time-part-input input');
+        const dateInput = host.querySelector<HTMLInputElement>('.ms-date-time-picker__date-input');
+        const timeInput = host.querySelector<HTMLInputElement>('.ms-date-time-picker__time-input');
 
         dateInput!.value = '';
         dateInput!.dispatchEvent(new Event('input', { bubbles: true }));
         timeInput!.value = '';
         timeInput!.dispatchEvent(new Event('input', { bubbles: true }));
 
-        expect(component.dateText()).toBe('');
-        expect(component.timeText()).toBe('');
         expect(draftSpy).not.toHaveBeenCalled();
+    });
+
+    it('blocks saving while the visible date or time is incomplete', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        host.querySelector<HTMLButtonElement>('.ms-date-time-picker__trigger')?.click();
+        fixture.detectChanges();
+
+        const dateInput = host.querySelector<HTMLInputElement>('.ms-date-time-picker__date-input')!;
+        dateInput.value = '';
+        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+        fixture.detectChanges();
+
+        expect(component.dateTimeValid()).toBe(false);
+        expect(component.canSave()).toBe(false);
+        expect(
+            host
+                .querySelector<HTMLElement>('.dialog__footer ms-button')
+                ?.getAttribute('aria-disabled'),
+        ).toBe('true');
+
+        dateInput.value = '08.07.2026';
+        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+        fixture.detectChanges();
+
+        expect(component.dateTimeValid()).toBe(true);
+        expect(component.canSave()).toBe(true);
+    });
+
+    it('keeps the transaction dialog open when Escape closes the date-time picker', () => {
+        const closeSpy = vi.fn();
+        component.close.subscribe(closeSpy);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        host.querySelector<HTMLButtonElement>('.ms-date-time-picker__trigger')?.click();
+        fixture.detectChanges();
+
+        host.querySelector<HTMLInputElement>('.ms-date-time-picker__date-input')?.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+        );
+        fixture.detectChanges();
+
+        expect(host.querySelector('.ms-date-time-picker__dropdown')).toBeNull();
+        expect(host.querySelector('.dialog')).not.toBeNull();
+        expect(closeSpy).not.toHaveBeenCalled();
     });
 
     it('limits overlong date input to a four digit year immediately', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
-        host.querySelector<HTMLButtonElement>('.dialog__date-trigger')?.click();
+        host.querySelector<HTMLButtonElement>('.ms-date-time-picker__trigger')?.click();
         fixture.detectChanges();
 
-        const dateInput = host.querySelector<HTMLInputElement>('.dialog__date-part-input input');
+        const dateInput = host.querySelector<HTMLInputElement>('.ms-date-time-picker__date-input');
 
         expect(dateInput).not.toBeNull();
 
@@ -304,17 +351,16 @@ describe('AddTransactionDialogComponent', () => {
         dateInput!.dispatchEvent(new Event('input', { bubbles: true }));
 
         expect(dateInput!.value).toBe('06.07.2026');
-        expect(component.dateText()).toBe('06.07.2026');
     });
 
     it('renders the opened date picker as an overlay so form actions do not shift', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
-        host.querySelector<HTMLButtonElement>('.dialog__date-trigger')?.click();
+        host.querySelector<HTMLButtonElement>('.ms-date-time-picker__trigger')?.click();
         fixture.detectChanges();
 
-        const picker = host.querySelector<HTMLElement>('.dialog__date-picker');
+        const picker = host.querySelector<HTMLElement>('.ms-date-time-picker__dropdown');
 
         expect(picker).not.toBeNull();
         expect(getComputedStyle(picker!).position).toBe('absolute');
@@ -326,11 +372,11 @@ describe('AddTransactionDialogComponent', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
-        host.querySelector<HTMLButtonElement>('.dialog__date-trigger')?.click();
+        host.querySelector<HTMLButtonElement>('.ms-date-time-picker__trigger')?.click();
         fixture.detectChanges();
 
-        const dateInput = host.querySelector<HTMLInputElement>('.dialog__date-part-input input');
-        const timeInput = host.querySelector<HTMLInputElement>('.dialog__time-part-input input');
+        const dateInput = host.querySelector<HTMLInputElement>('.ms-date-time-picker__date-input');
+        const timeInput = host.querySelector<HTMLInputElement>('.ms-date-time-picker__time-input');
 
         expect(dateInput).not.toBeNull();
         expect(timeInput).not.toBeNull();
@@ -349,48 +395,6 @@ describe('AddTransactionDialogComponent', () => {
         timeInput!.value = '09:45';
         timeInput!.dispatchEvent(new Event('input', { bubbles: true }));
 
-        expect(draftSpy).toHaveBeenLastCalledWith({
-            ...draft,
-            date: '2026-07-08T09:45',
-        });
-    });
-
-    it('reads date and time values from text input events', () => {
-        const draftSpy = vi.fn();
-        const eventApi = component as unknown as {
-            onDatePartInputEvent?: (event: Event) => void;
-            onTimePartInputEvent?: (event: Event) => void;
-        };
-        component.draftChange.subscribe(draftSpy);
-        fixture.detectChanges();
-
-        expect(eventApi.onDatePartInputEvent).toBeTypeOf('function');
-        expect(eventApi.onTimePartInputEvent).toBeTypeOf('function');
-
-        const dateInput = document.createElement('input');
-        const dateEvent = new Event('input', { bubbles: true });
-        dateInput.value = '08072026';
-        Object.defineProperty(dateEvent, 'target', { value: dateInput });
-
-        eventApi.onDatePartInputEvent!(dateEvent);
-
-        expect(component.dateText()).toBe('08.07.2026');
-        expect(draftSpy).toHaveBeenLastCalledWith({
-            ...draft,
-            date: '2026-07-08T00:00',
-        });
-
-        fixture.componentRef.setInput('draft', { ...draft, date: '2026-07-08T00:00' });
-        fixture.detectChanges();
-
-        const timeInput = document.createElement('input');
-        const timeEvent = new Event('input', { bubbles: true });
-        timeInput.value = '0945';
-        Object.defineProperty(timeEvent, 'target', { value: timeInput });
-
-        eventApi.onTimePartInputEvent!(timeEvent);
-
-        expect(component.timeText()).toBe('09:45');
         expect(draftSpy).toHaveBeenLastCalledWith({
             ...draft,
             date: '2026-07-08T09:45',

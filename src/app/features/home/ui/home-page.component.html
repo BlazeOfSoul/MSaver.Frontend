@@ -34,7 +34,16 @@
                     ></ms-main-tab-bar>
                 </div>
 
-                <section class="home-page__content">
+                <section
+                    class="home-page__content"
+                    [attr.role]="activeTab() === 'settings' ? 'region' : 'tabpanel'"
+                    [attr.id]="'home-panel-' + activeTab()"
+                    [attr.aria-labelledby]="
+                        activeTab() === 'settings' ? null : 'home-tab-' + activeTab()
+                    "
+                    [attr.aria-label]="activeTab() === 'settings' ? 'Настройки' : null"
+                    tabindex="0"
+                >
                     <header class="content-header">
                         <div>
                             <h1>{{ activeTabTitle() }}</h1>
@@ -75,11 +84,16 @@
                                     [pagination]="transactionPagination()"
                                     [pageSizeOptions]="transactionPageSizeOptions"
                                     [saving]="isSaving()"
+                                    [planningMonth]="selectedMonth()"
+                                    [planningAccountOptions]="accountOptions()"
+                                    [planningExpenseCategories]="expenseCategories()"
+                                    [planningIncomeCategories]="incomeCategories()"
                                     (accountChange)="setAccountFilter($event)"
                                     (pageSizeChange)="setTransactionPageSize($event)"
                                     (pageChange)="goToTransactionPage($event)"
                                     (editTransaction)="startEditingTransaction($event)"
                                     (deleteTransaction)="deleteTransaction($event)"
+                                    (transactionsChanged)="reloadDashboard()"
                                 ></ms-overview-tab>
                             }
 
@@ -117,6 +131,15 @@
                             }
 
                             @case ('analytics') {
+                                <ms-planning-tab
+                                    view="imports"
+                                    [month]="selectedMonth()"
+                                    [accounts]="accountOptions()"
+                                    [expenseCategories]="expenseCategories()"
+                                    [incomeCategories]="incomeCategories()"
+                                    (transactionsChanged)="reloadDashboard()"
+                                ></ms-planning-tab>
+
                                 <ms-analytics-tab
                                     [metrics]="analyticsMetrics()"
                                     [incomeVsExpense]="incomeVsExpense()"
@@ -151,6 +174,8 @@
                                     [newTagGroup]="newTagGroup()"
                                     [newTagGroupColor]="newTagGroupColor()"
                                     [saving]="isSaving()"
+                                    [budgetMonth]="selectedMonth()"
+                                    [budgetAccountOptions]="accountOptions()"
                                     (newIncomeCategoryChange)="setNewIncomeCategory($event)"
                                     (newExpenseCategoryChange)="setNewExpenseCategory($event)"
                                     (newIncomeCategoryColorChange)="
@@ -183,9 +208,7 @@
                                     [currencyOptions]="currencyOptions"
                                     [saving]="isSaving()"
                                     (applicationCurrencyChange)="updateApplicationCurrency($event)"
-                                    (balanceDisplayAccountChange)="
-                                        setBalanceDisplayAccount($event)
-                                    "
+                                    (balanceDisplayAccountChange)="setBalanceDisplayAccount($event)"
                                     (categorySortModeChange)="setCategorySortMode($event)"
                                 ></ms-settings-tab>
                             }

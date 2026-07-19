@@ -1,0 +1,105 @@
+.planning-launcher {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+}
+
+.planning-launcher__icon {
+    display: grid;
+    width: 3.2rem;
+    height: 3.2rem;
+    place-items: center;
+    border: 1px solid color-mix(in oklab, var(--color-ms-primary), transparent 48%);
+    border-radius: var(--radius-ms-lg);
+    color: var(--color-ms-primary);
+    background: var(--color-ms-primary-alpha-08);
+}
+
+.planning-launcher__icon--import {
+    border-color: color-mix(in oklab, var(--color-ms-success), transparent 48%);
+    color: var(--color-ms-success);
+    background: var(--color-ms-success-alpha-08);
+}
+
+.planning-launcher__copy {
+    min-width: 0;
+}
+
+.planning-launcher__copy .planning-card__eyebrow {
+    margin-bottom: 0.2rem;
+}
+
+.planning-launcher__copy p {
+    overflow-wrap: anywhere;
+}
+
+.planning-recurring-dialog {
+    width: min(70rem, calc(100vw - 2rem));
+    max-height: min(56rem, calc(100vh - 2rem));
+    overflow: auto;
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-05), transparent 16rem),
+        var(--color-ms-surface-raised);
+    box-shadow: 0 28px 76px var(--color-ms-black-alpha-35);
+}
+
+.planning-recurring-dialog__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.45rem 1rem;
+}
+
+.planning-recurring-dialog__heading {
+    min-width: 0;
+}
+
+.planning-recurring-dialog__intro {
+    grid-column: 1 / -1;
+    margin-top: 0;
+}
+
+.planning-recurring-dialog__close {
+    grid-column: 2;
+    grid-row: 1;
+    flex: 0 0 auto;
+}
+
+.planning-recurring-embedded .planning-recurring-dialog__header {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 640px) {
+    .planning-launcher {
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.8rem;
+    }
+
+    .planning-launcher > ms-button {
+        width: 100%;
+        grid-column: 1 / -1;
+    }
+
+    .planning-recurring-dialog {
+        width: 100%;
+        max-width: 100%;
+        max-height: calc(100vh - 1rem);
+        gap: 0.9rem;
+        padding: 0.9rem;
+        border-radius: var(--radius-ms-lg);
+    }
+
+    .planning-recurring-dialog .planning-recurring-dialog__close {
+        width: auto;
+        align-self: start;
+    }
+
+    .planning-recurring-dialog__header {
+        gap: 0.4rem 0.65rem;
+    }
+
+    .planning-recurring-dialog__intro {
+        padding-right: 0.25rem;
+        line-height: 1.42;
+    }
+}

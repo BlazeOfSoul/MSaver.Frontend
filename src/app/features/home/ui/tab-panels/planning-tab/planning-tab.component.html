@@ -1,0 +1,566 @@
+<section class="planning-layout">
+    @if (message() && !(view() === 'recurring' && (recurringDialogOpen() || embedded()))) {
+        <p class="planning-notice" role="status">{{ message() }}</p>
+    }
+
+    @if (view() === 'budgets') {
+        <article class="panel planning-card">
+            <header class="planning-card__header">
+                <div>
+                    <span class="planning-card__eyebrow">Контроль трат</span>
+                    <h2>Бюджеты на месяц</h2>
+                    <p>
+                        Лимит действует на выбранный счёт и категорию. Факт считается по операциям
+                        этого месяца.
+                    </p>
+                </div>
+            </header>
+
+            <div class="planning-form planning-form--budget">
+                <ms-select
+                    [contained]="true"
+                    label="Счёт"
+                    [options]="accounts()"
+                    [value]="budgetAccountId()"
+                    placeholder="Выберите счёт"
+                    [searchable]="true"
+                    (valueChange)="setBudgetAccount($event)"
+                ></ms-select>
+
+                <ms-select
+                    [contained]="true"
+                    label="Категория расходов"
+                    [options]="expenseCategoryOptions()"
+                    [value]="budgetCategoryId()"
+                    placeholder="Выберите категорию"
+                    [searchable]="true"
+                    (valueChange)="setBudgetCategory($event)"
+                ></ms-select>
+
+                <label class="planning-field">
+                    <span>Лимит</span>
+                    <ms-input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        [formControl]="budgetAmount"
+                    ></ms-input>
+                </label>
+
+                <ms-button variant="primary" [loading]="saving()" (onClick)="saveBudget()">
+                    <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                    Сохранить лимит
+                </ms-button>
+            </div>
+
+            @if (budgetLoading()) {
+                <div class="planning-empty">Загружаем бюджеты…</div>
+            } @else if (budgets().length) {
+                <div class="budget-list">
+                    @for (budget of budgets(); track budget.accountId + budget.categoryId) {
+                        <article
+                            class="budget-row"
+                            [class.budget-row--over]="budget.remainingAmount < 0"
+                        >
+                            <div class="budget-row__top">
+                                <div class="budget-row__title">
+                                    <span
+                                        class="budget-row__dot"
+                                        [style.background]="budget.categoryColor"
+                                    ></span>
+                                    <div>
+                                        <strong>{{ budget.categoryName }}</strong>
+                                        <span
+                                            >{{ budget.accountName }} ·
+                                            {{ budget.currencyCode }}</span
+                                        >
+                                    </div>
+                                </div>
+                                <div class="budget-row__value">
+                                    <strong>{{
+                                        formatAmount(budget.spentAmount, budget.currencyCode)
+                                    }}</strong>
+                                    <span
+                                        >из
+                                        {{ formatAmount(budget.amount, budget.currencyCode) }}</span
+                                    >
+                                </div>
+                            </div>
+                            <div
+                                class="budget-row__progress"
+                                [class.budget-row__progress--over]="budget.progress > 100"
+                                role="progressbar"
+                                aria-label="Исполнение бюджета"
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                                [attr.aria-valuenow]="Math.min(Math.max(budget.progress, 0), 100)"
+                            >
+                                <span [style.width.%]="Math.min(budget.progress, 100)"></span>
+                            </div>
+                            <footer class="budget-row__footer">
+                                <span
+                                    class="budget-row__remaining"
+                                    [class.budget-row__remaining--negative]="
+                                        budget.remainingAmount < 0
+                                    "
+                                >
+                                    @if (budget.remainingAmount < 0) {
+                                        <span
+                                            class="material-symbols-outlined budget-row__warning"
+                                            aria-hidden="true"
+                                            >warning</span
+                                        >
+                                    }
+                                    {{ budget.remainingAmount >= 0 ? 'Осталось' : 'Превышение' }}:
+                                    {{
+                                        formatAmount(
+                                            Math.abs(budget.remainingAmount),
+                                            budget.currencyCode
+                                        )
+                                    }}
+                                </span>
+                                <ms-button
+                                    appearance="outline"
+                                    variant="danger"
+                                    size="sm"
+                                    (onClick)="deleteBudget(budget)"
+                                >
+                                    <span class="material-symbols-outlined" aria-hidden="true"
+                                        >delete</span
+                                    >
+                                    Удалить
+                                </ms-button>
+                            </footer>
+                        </article>
+                    }
+                </div>
+            } @else {
+                <div class="planning-empty">
+                    <span class="material-symbols-outlined" aria-hidden="true">savings</span>
+                    Лимитов на этот месяц пока нет.
+                </div>
+            }
+        </article>
+    } @else if (view() === 'imports') {
+        <article class="panel planning-card planning-launcher">
+            <div class="planning-launcher__icon planning-launcher__icon--import" aria-hidden="true">
+                <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+            </div>
+            <div class="planning-launcher__copy">
+                <span class="planning-card__eyebrow">Операции</span>
+                <h2>Импорт CSV</h2>
+                <p>Загрузите операции из банковской выгрузки и проверьте их перед добавлением.</p>
+            </div>
+            <ms-button variant="primary" (onClick)="openCsvImport()">
+                <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+                Импортировать
+            </ms-button>
+        </article>
+    } @else {
+        @if (!embedded()) {
+            <article class="panel planning-card planning-launcher">
+                <div class="planning-launcher__icon" aria-hidden="true">
+                    <span class="material-symbols-outlined" aria-hidden="true">event_repeat</span>
+                </div>
+                <div class="planning-launcher__copy">
+                    <span class="planning-card__eyebrow">Планирование</span>
+                    <h2>Плановые операции</h2>
+                    @if (recurringLoading()) {
+                        <p>Загружаем расписания…</p>
+                    } @else if (nextRecurringTransaction(); as next) {
+                        <p>
+                            {{ activeRecurringTransactions().length }}
+                            {{
+                                activeRecurringTransactions().length === 1
+                                    ? 'активная операция'
+                                    : 'активных операций'
+                            }}
+                            · Ближайшая: {{ formatOccurrence(next.nextOccurrenceAt) }}
+                            @if (dueRecurringCount()) {
+                                · Требуют подтверждения: {{ dueRecurringCount() }}
+                            }
+                        </p>
+                    } @else {
+                        <p>Добавьте регулярный платёж или доход и подтвердите его в нужный день.</p>
+                    }
+                </div>
+                <ms-button variant="primary" (onClick)="openRecurringPlanning()">
+                    <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+                    Открыть
+                </ms-button>
+            </article>
+        }
+
+        <ng-template #recurringEditor let-dialog="dialog">
+            <article
+                class="planning-card"
+                [class.planning-recurring-dialog]="dialog"
+                [class.planning-recurring-embedded]="!dialog"
+                [attr.role]="dialog ? 'dialog' : 'region'"
+                [attr.aria-modal]="dialog && !pendingConfirmation() ? 'true' : null"
+                [attr.aria-hidden]="pendingConfirmation() ? 'true' : null"
+                [attr.inert]="pendingConfirmation() ? '' : null"
+                aria-labelledby="planning-recurring-title"
+            >
+                <header class="planning-card__header planning-recurring-dialog__header">
+                    <div class="planning-recurring-dialog__heading">
+                        <span class="planning-card__eyebrow">Плановые операции</span>
+                        <h2 id="planning-recurring-title">Повторяющиеся операции</h2>
+                    </div>
+                    @if (dialog) {
+                        <ms-button
+                            class="planning-recurring-dialog__close"
+                            appearance="icon"
+                            variant="neutral"
+                            size="sm"
+                            aria-label="Закрыть плановые операции"
+                            (onClick)="closeRecurringPlanning()"
+                        >
+                            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                        </ms-button>
+                    }
+                    <p class="planning-recurring-dialog__intro">
+                        В нужный момент придёт push-уведомление. Баланс изменится только после
+                        подтверждения операции.
+                    </p>
+                </header>
+
+                @if (message()) {
+                    <p class="planning-notice" role="status">{{ message() }}</p>
+                }
+
+                <div class="planning-form planning-form--recurring">
+                    <ms-select
+                        [contained]="true"
+                        label="Счёт"
+                        [options]="accounts()"
+                        [value]="recurringAccountId()"
+                        placeholder="Выберите счёт"
+                        [searchable]="true"
+                        (valueChange)="setRecurringAccount($event)"
+                    ></ms-select>
+
+                    <ms-select
+                        [contained]="true"
+                        label="Тип"
+                        [options]="[
+                            { value: 'expense', label: 'Расход' },
+                            { value: 'income', label: 'Доход' },
+                        ]"
+                        [value]="recurringKind()"
+                        (valueChange)="setRecurringKind($event)"
+                    ></ms-select>
+
+                    <ms-select
+                        [contained]="true"
+                        label="Категория"
+                        [options]="recurringCategoryOptions()"
+                        [value]="recurringCategoryId()"
+                        placeholder="Выберите категорию"
+                        [searchable]="true"
+                        (valueChange)="setRecurringCategory($event)"
+                    ></ms-select>
+
+                    <label class="planning-field">
+                        <span>Сумма</span>
+                        <ms-input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="0,00"
+                            [formControl]="recurringAmount"
+                        ></ms-input>
+                    </label>
+
+                    <div class="planning-date-time" role="group" aria-label="Дата и время операции">
+                        <ms-date-time-picker
+                            [value]="recurringDateTime()"
+                            (valueChange)="setRecurringDateTime($event)"
+                            (validityChange)="setRecurringDateTimeValidity($event)"
+                        ></ms-date-time-picker>
+                    </div>
+
+                    <ms-select
+                        [contained]="true"
+                        label="Повтор"
+                        [options]="[
+                            { value: 'Monthly', label: 'Каждый месяц' },
+                            { value: 'Weekly', label: 'Каждую неделю' },
+                        ]"
+                        [value]="recurringFrequency()"
+                        (valueChange)="setRecurringFrequency($event)"
+                    ></ms-select>
+
+                    <label class="planning-field planning-field--wide">
+                        <span>Описание</span>
+                        <ms-input
+                            placeholder="Например, подписка или зарплата"
+                            [formControl]="recurringDescription"
+                        ></ms-input>
+                    </label>
+
+                    <label class="planning-notification-toggle">
+                        <input
+                            class="planning-notification-toggle__input"
+                            type="checkbox"
+                            [checked]="recurringNotificationsEnabled()"
+                            (change)="
+                                recurringNotificationsEnabled.set($any($event.target).checked)
+                            "
+                        />
+                        <span class="planning-notification-toggle__track" aria-hidden="true"></span>
+                        <span class="planning-notification-toggle__copy">
+                            <strong>Уведомить в назначенное время</strong>
+                            <small>Push придёт на это устройство</small>
+                        </span>
+                    </label>
+
+                    <ms-button
+                        variant="primary"
+                        [loading]="saving()"
+                        [disabled]="!recurringDateTimeValid()"
+                        (onClick)="saveRecurringTransaction()"
+                    >
+                        <span class="material-symbols-outlined" aria-hidden="true"
+                            >event_repeat</span
+                        >
+                        Добавить расписание
+                    </ms-button>
+                </div>
+
+                <p class="planning-hint">
+                    Для 29–31 числа операция в коротком месяце назначается на последний доступный
+                    день, а в следующем месяце возвращается к исходному числу.
+                </p>
+
+                @if (recurringLoading()) {
+                    <div class="planning-empty">Загружаем расписания…</div>
+                } @else if (activeRecurringTransactions().length) {
+                    <div class="recurring-list">
+                        @for (item of activeRecurringTransactions(); track item.id) {
+                            <article class="recurring-row" [class.recurring-row--due]="isDue(item)">
+                                <div
+                                    class="recurring-row__icon"
+                                    [style.--recurring-color]="item.categoryColor"
+                                >
+                                    <span class="material-symbols-outlined" aria-hidden="true"
+                                        >event_available</span
+                                    >
+                                </div>
+                                <div class="recurring-row__copy">
+                                    <strong>{{ item.description || item.categoryName }}</strong>
+                                    <span
+                                        >{{ item.accountName }} · {{ item.categoryName }} ·
+                                        {{
+                                            item.frequency === 'Monthly'
+                                                ? 'ежемесячно'
+                                                : 'еженедельно'
+                                        }}</span
+                                    >
+                                    <span
+                                        >Следующее подтверждение:
+                                        {{ formatOccurrence(item.nextOccurrenceAt) }}</span
+                                    >
+                                </div>
+                                <div
+                                    class="recurring-row__amount"
+                                    [class.recurring-row__amount--expense]="item.amount < 0"
+                                >
+                                    {{ formatAmount(item.amount, item.currencyCode) }}
+                                </div>
+                                <div class="recurring-row__actions">
+                                    <ms-button
+                                        class="recurring-row__confirm"
+                                        variant="success"
+                                        size="sm"
+                                        [loading]="saving()"
+                                        [disabled]="!isDue(item)"
+                                        (onClick)="completeRecurringTransaction(item)"
+                                    >
+                                        {{ isDue(item) ? 'Подтвердить' : 'Ожидается' }}
+                                    </ms-button>
+                                    @if (isDue(item)) {
+                                        <ms-button
+                                            class="recurring-row__skip"
+                                            appearance="outline"
+                                            variant="secondary"
+                                            size="sm"
+                                            [loading]="saving()"
+                                            (onClick)="skipRecurringTransaction(item)"
+                                        >
+                                            Пропустить
+                                        </ms-button>
+                                    }
+                                    <ms-button
+                                        class="recurring-row__delete"
+                                        appearance="icon"
+                                        variant="danger"
+                                        size="sm"
+                                        (onClick)="deleteRecurringTransaction(item)"
+                                        aria-label="Удалить расписание"
+                                    >
+                                        <span class="material-symbols-outlined" aria-hidden="true"
+                                            >delete</span
+                                        >
+                                    </ms-button>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                } @else {
+                    <div class="planning-empty">
+                        <span class="material-symbols-outlined" aria-hidden="true">event_note</span>
+                        Нет активных расписаний.
+                    </div>
+                }
+            </article>
+        </ng-template>
+
+        @if (embedded()) {
+            <ng-container
+                [ngTemplateOutlet]="recurringEditor"
+                [ngTemplateOutletContext]="{ dialog: false }"
+            ></ng-container>
+        } @else if (recurringDialogOpen()) {
+            <ms-dialog-shell (closed)="closeRecurringPlanning()">
+                <ng-container
+                    [ngTemplateOutlet]="recurringEditor"
+                    [ngTemplateOutletContext]="{ dialog: true }"
+                ></ng-container>
+            </ms-dialog-shell>
+        }
+    }
+</section>
+
+@if (view() === 'imports' && csvDialogOpen()) {
+    <ms-dialog-shell (closed)="closeCsvImport()">
+        <section
+            class="planning-card planning-import-dialog"
+            role="dialog"
+            [attr.aria-modal]="pendingConfirmation() ? null : 'true'"
+            [attr.aria-hidden]="pendingConfirmation() ? 'true' : null"
+            [attr.inert]="pendingConfirmation() ? '' : null"
+            aria-labelledby="planning-import-title"
+        >
+            <header class="planning-card__header planning-import-dialog__header">
+                <div class="planning-import-dialog__heading">
+                    <span class="planning-card__eyebrow">Загрузка данных</span>
+                    <h2 id="planning-import-title">Импорт из CSV</h2>
+                </div>
+                <ms-button
+                    class="planning-import-dialog__close"
+                    appearance="icon"
+                    variant="neutral"
+                    size="sm"
+                    aria-label="Закрыть импорт CSV"
+                    (onClick)="closeCsvImport()"
+                >
+                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                </ms-button>
+                <p class="planning-import-dialog__intro">
+                    Поддерживаются колонки «Дата», «Сумма», «Категория» и необязательное «Описание».
+                    Повторный импорт того же файла безопасен: уже добавленные строки будут
+                    пропущены.
+                </p>
+            </header>
+
+            <div class="planning-import-controls">
+                <label class="planning-file-input">
+                    <input type="file" accept=".csv,text/csv" (change)="selectImportFile($event)" />
+                    <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+                    <span>{{ importFileName() || 'Выбрать файл' }}</span>
+                </label>
+
+                <ms-select
+                    [contained]="true"
+                    label="Счёт для импорта"
+                    [options]="accounts()"
+                    [value]="importAccountId()"
+                    placeholder="Выберите счёт"
+                    [searchable]="true"
+                    (valueChange)="setImportAccount($event)"
+                ></ms-select>
+
+                <ms-button
+                    variant="primary"
+                    [disabled]="!readyImportRows().length || !importAccountId()"
+                    [loading]="saving()"
+                    (onClick)="importCsv()"
+                >
+                    Импортировать
+                </ms-button>
+            </div>
+
+            @if (importMessage()) {
+                <p class="planning-import-message" role="status">{{ importMessage() }}</p>
+            }
+
+            @if (preparedImportRows().length) {
+                <div
+                    class="import-preview"
+                    role="table"
+                    aria-label="Предпросмотр CSV"
+                    [attr.aria-rowcount]="preparedImportRows().length + 1"
+                    tabindex="0"
+                >
+                    <div class="import-preview__head" role="row">
+                        <span role="columnheader">Строка</span><span role="columnheader">Дата</span
+                        ><span role="columnheader">Категория</span
+                        ><span role="columnheader">Сумма</span
+                        ><span role="columnheader">Статус</span>
+                    </div>
+                    @for (item of preparedImportRows().slice(0, 8); track item.row.sourceRow) {
+                        <div
+                            class="import-preview__row"
+                            [class.import-preview__row--invalid]="item.issue"
+                            role="row"
+                        >
+                            <span role="cell">#{{ item.row.sourceRow }}</span>
+                            <span role="cell">{{ item.row.date }}</span>
+                            <span role="cell">{{ item.row.categoryName }}</span>
+                            <span role="cell">{{ item.row.amount ?? '—' }}</span>
+                            <span role="cell">{{ item.issue || 'Готово' }}</span>
+                        </div>
+                    }
+                </div>
+                @if (preparedImportRows().length > 8) {
+                    <p class="planning-hint">
+                        Показаны первые 8 из {{ preparedImportRows().length }} строк.
+                    </p>
+                }
+            }
+        </section>
+    </ms-dialog-shell>
+}
+
+@if (pendingConfirmation(); as confirmation) {
+    <ms-dialog-shell (closed)="closeConfirmation()">
+        <section
+            class="planning-confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="planning-confirm-title"
+            aria-describedby="planning-confirm-description"
+        >
+            <div class="planning-confirm-dialog__icon" aria-hidden="true">
+                <span class="material-symbols-outlined" aria-hidden="true">
+                    {{ confirmation.danger ? 'delete' : 'help' }}
+                </span>
+            </div>
+            <div class="planning-confirm-dialog__copy">
+                <h2 id="planning-confirm-title">{{ confirmation.title }}</h2>
+                <p id="planning-confirm-description">{{ confirmation.message }}</p>
+            </div>
+            <footer class="planning-confirm-dialog__actions">
+                <ms-button variant="neutral" appearance="outline" (onClick)="closeConfirmation()">
+                    Отмена
+                </ms-button>
+                <ms-button
+                    [variant]="confirmation.danger ? 'danger' : 'primary'"
+                    (onClick)="confirmPendingAction()"
+                >
+                    {{ confirmation.confirmLabel }}
+                </ms-button>
+            </footer>
+        </section>
+    </ms-dialog-shell>
+}

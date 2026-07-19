@@ -272,4 +272,28 @@ describe('AccountTransferPanelComponent', () => {
 
         expect(component.canSubmitTransfer()).toBe(false);
     });
+
+    it('keeps the empty transfer state in separate responsive icon and copy blocks', () => {
+        fixture.componentRef.setInput('accountOptions', [
+            { value: 'account-id', label: 'Основной счёт' },
+        ]);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const emptyState = host.querySelector<HTMLElement>('.accounts-empty');
+        const iconBadge = emptyState?.querySelector<HTMLElement>('.accounts-empty__icon');
+        const copy = emptyState?.querySelector<HTMLElement>('.accounts-empty__copy');
+
+        expect(emptyState).not.toBeNull();
+        expect(iconBadge?.querySelector('.material-symbols-outlined')?.textContent?.trim()).toBe(
+            'swap_horiz',
+        );
+        expect(copy?.querySelector('strong')?.textContent?.trim()).toBe(
+            'Переводы появятся после второго счёта',
+        );
+        expect(getComputedStyle(emptyState!).display).toBe('grid');
+        expect(getComputedStyle(emptyState!).maxWidth).toBe('100%');
+        expect(getComputedStyle(copy!).minWidth).toBe('0px');
+        expect(getComputedStyle(copy!.querySelector('strong')!).overflowWrap).toBe('anywhere');
+    });
 });

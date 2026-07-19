@@ -1,9 +1,4 @@
-import {
-    CdkDrag,
-    CdkDragHandle,
-    CdkDropList,
-    moveItemInArray,
-} from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
     ChangeDetectionStrategy,
     Component,
@@ -22,9 +17,10 @@ import { NameColorDialogComponent } from '../../components/name-color-dialog/nam
 import { TagGroupCardComponent } from '../../components/tag-group-card/tag-group-card.component';
 import { CategoryMoveDirection } from '../../home-category-order.utils';
 import { CategoryBreakdownItem, TagGroupItem } from '../../home-page.models';
+import { PlanningTabComponent } from '../planning-tab/planning-tab.component';
 
 type CategoryDialogType = 'income' | 'expense';
-type CategorySubtab = 'items' | 'order';
+type CategorySubtab = 'items' | 'order' | 'budgets';
 type RecentlyMovedCategory = {
     id: string;
     direction: CategoryMoveDirection;
@@ -50,6 +46,7 @@ type CategoryDropEvent = {
         CategoryGroupPanelComponent,
         NameColorDialogComponent,
         TagGroupCardComponent,
+        PlanningTabComponent,
     ],
     templateUrl: './categories-tab.component.html',
     styleUrls: [
@@ -74,6 +71,8 @@ export class CategoriesTabComponent implements OnDestroy {
     categoryOptions = input.required<ReadonlyArray<MsSelectOption>>();
     searchControl = input.required<FormControl<string>>();
     saving = input(false);
+    budgetMonth = input(new Date());
+    budgetAccountOptions = input<ReadonlyArray<MsSelectOption>>([]);
 
     newIncomeCategoryChange = output<string>();
     newExpenseCategoryChange = output<string>();
@@ -141,6 +140,40 @@ export class CategoriesTabComponent implements OnDestroy {
 
     setActiveSubtab(tab: CategorySubtab): void {
         this.activeSubtab.set(tab);
+    }
+
+    changeSubtabFromKeyboard(event: KeyboardEvent, currentTab: CategorySubtab): void {
+        const tabs: ReadonlyArray<CategorySubtab> = ['items', 'order', 'budgets'];
+        const currentIndex = tabs.indexOf(currentTab);
+        let nextIndex = currentIndex;
+
+        switch (event.key) {
+            case 'ArrowRight':
+            case 'ArrowDown':
+                nextIndex = (currentIndex + 1) % tabs.length;
+                break;
+            case 'ArrowLeft':
+            case 'ArrowUp':
+                nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+                break;
+            case 'Home':
+                nextIndex = 0;
+                break;
+            case 'End':
+                nextIndex = tabs.length - 1;
+                break;
+            default:
+                return;
+        }
+
+        event.preventDefault();
+        const nextTab = tabs[nextIndex];
+        this.setActiveSubtab(nextTab);
+
+        const tabButtons = (
+            event.currentTarget as HTMLElement | null
+        )?.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+        tabButtons?.item(nextIndex).focus();
     }
 
     openCategoryDialog(type: CategoryDialogType): void {
@@ -220,11 +253,7 @@ export class CategoriesTabComponent implements OnDestroy {
         const index = sameTypeCategories.findIndex((item) => item.id === category.id);
         const swapIndex = direction === 'up' ? index - 1 : index + 1;
 
-        if (
-            index < 0 ||
-            swapIndex < 0 ||
-            swapIndex >= sameTypeCategories.length
-        ) {
+        if (index < 0 || swapIndex < 0 || swapIndex >= sameTypeCategories.length) {
             return false;
         }
 
@@ -245,10 +274,7 @@ export class CategoriesTabComponent implements OnDestroy {
         }, 220);
     }
 
-    dropCategoryOrder(
-        event: CategoryDropEvent,
-        items: ReadonlyArray<CategoryBreakdownItem>,
-    ): void {
+    dropCategoryOrder(event: CategoryDropEvent, items: ReadonlyArray<CategoryBreakdownItem>): void {
         if (this.saving()) {
             return;
         }

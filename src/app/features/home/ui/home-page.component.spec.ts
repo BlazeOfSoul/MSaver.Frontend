@@ -1,8 +1,10 @@
 import { signal, WritableSignal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
+import { PwaPushNotificationService } from '../../../core/push/pwa-push-notification.service';
 import { AuthService } from '../../auth/data-access/auth.service';
 import { AuthStore } from '../../auth/data-access/auth.store';
 import {
@@ -18,6 +20,7 @@ import {
 import { HomeApiService } from '../data-access/home-api.service';
 import { HomePageComponent } from './home-page.component';
 import { CATEGORY_SORT_MODE_STORAGE_KEY } from './home-category-order.utils';
+import { PlanningTabComponent } from './tab-panels/planning-tab/planning-tab.component';
 
 function page<T>(items: T[]): PagedResponse<T> {
     return {
@@ -31,6 +34,27 @@ function page<T>(items: T[]): PagedResponse<T> {
     };
 }
 
+function localDateTimeIso(
+    year: number,
+    month: number,
+    day: number,
+    hour = 0,
+    minute = 0,
+    second = 0,
+): string {
+    return new Date(year, month - 1, day, hour, minute, second).toISOString();
+}
+
+function localDateTimeInputValue(value: string): string {
+    const date = new Date(value);
+    const pad = (part: number) => `${part}`.padStart(2, '0');
+
+    return [
+        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+        `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+    ].join('T');
+}
+
 function transaction(
     id: string,
     account: AccountResponse,
@@ -39,7 +63,7 @@ function transaction(
 ): TransactionResponse {
     const date = new Date();
     const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const month = date.getMonth() + 1;
 
     return {
         id,
@@ -57,7 +81,7 @@ function transaction(
             type: category.type,
         },
         amount,
-        date: `${year}-${month}-05T12:00:00`,
+        date: localDateTimeIso(year, month, 5, 12),
         description: category.name,
     };
 }
@@ -104,6 +128,8 @@ describe('HomePageComponent', () => {
         getTagById: ReturnType<typeof vi.fn>;
         getTransactions: ReturnType<typeof vi.fn>;
         getMonthBalance: ReturnType<typeof vi.fn>;
+        getBudgets: ReturnType<typeof vi.fn>;
+        getRecurringTransactions: ReturnType<typeof vi.fn>;
         createAccount: ReturnType<typeof vi.fn>;
         updateAccount: ReturnType<typeof vi.fn>;
         deleteAccount: ReturnType<typeof vi.fn>;
@@ -121,6 +147,11 @@ describe('HomePageComponent', () => {
     let router: {
         navigateByUrl: ReturnType<typeof vi.fn>;
     };
+    let pushNotifications: {
+        getCurrentDeviceStatus: ReturnType<typeof vi.fn>;
+        enable: ReturnType<typeof vi.fn>;
+        disable: ReturnType<typeof vi.fn>;
+    };
 
     beforeEach(async () => {
         window.localStorage.clear();
@@ -137,6 +168,11 @@ describe('HomePageComponent', () => {
         };
         router = {
             navigateByUrl: vi.fn(),
+        };
+        pushNotifications = {
+            getCurrentDeviceStatus: vi.fn(() => Promise.resolve('disabled')),
+            enable: vi.fn(() => Promise.resolve('enabled')),
+            disable: vi.fn(() => Promise.resolve()),
         };
         homeApi = {
             getAccounts: vi.fn(() => of(page<AccountResponse>([]))),
@@ -181,6 +217,8 @@ describe('HomePageComponent', () => {
                 }),
             ),
             getTransactions: vi.fn(() => of(page<TransactionResponse>([]))),
+            getBudgets: vi.fn(() => of({ year: 2026, month: 1, items: [] })),
+            getRecurringTransactions: vi.fn(() => of([])),
             getMonthBalance: vi.fn((accountId: string, year: number, month: number) =>
                 of<MonthBalanceResponse>({
                     accountId,
@@ -231,6 +269,7 @@ describe('HomePageComponent', () => {
                 { provide: AuthService, useValue: authService },
                 { provide: HomeApiService, useValue: homeApi },
                 { provide: Router, useValue: router },
+                { provide: PwaPushNotificationService, useValue: pushNotifications },
             ],
         }).compileComponents();
     });
@@ -260,7 +299,86 @@ describe('HomePageComponent', () => {
         expect(host.querySelector('.period-meta')).toBeNull();
         expect(host.querySelector('ms-main-summary-cards')).not.toBeNull();
         expect(host.querySelector('ms-main-tab-bar')).not.toBeNull();
+        expect(fixture.componentInstance.tabs.map((tab) => tab.id)).toEqual([
+            'overview',
+            'accounts',
+            'analytics',
+            'categories',
+        ]);
         expect(host.textContent ?? '').toContain('Транзакции');
+    });
+
+    it('places planning tools in the existing sections without adding primary tabs', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page<AccountResponse>([
+                    {
+                        id: 'main-account',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        currentBalance: 0,
+                        color: '#23c78b',
+                        isArchived: false,
+                    },
+                ]),
+            ),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.tabs.map((tab) => tab.id)).toEqual([
+            'overview',
+            'accounts',
+            'analytics',
+            'categories',
+        ]);
+
+        const host = fixture.nativeElement as HTMLElement;
+
+        expect(host.querySelector('ms-overview-tab')).not.toBeNull();
+        expect(fixture.debugElement.queryAll(By.directive(PlanningTabComponent))).toHaveLength(0);
+
+        host.querySelector<HTMLButtonElement>(
+            '[data-testid="transaction-subtab-planned"]',
+        )?.click();
+        fixture.detectChanges();
+
+        let planningHosts = fixture.debugElement.queryAll(By.directive(PlanningTabComponent));
+        expect(planningHosts).toHaveLength(1);
+        expect(planningHosts[0].componentInstance.view()).toBe('recurring');
+        expect(planningHosts[0].componentInstance.embedded()).toBe(true);
+
+        fixture.componentInstance.setActiveTab('analytics');
+        fixture.detectChanges();
+
+        planningHosts = fixture.debugElement.queryAll(By.directive(PlanningTabComponent));
+        expect(planningHosts).toHaveLength(1);
+        expect(planningHosts[0].componentInstance.view()).toBe('imports');
+        expect(fixture.componentInstance.activeTabDescription()).toBe(
+            'Импорт CSV и графики по доходам, расходам и годовому движению.',
+        );
+
+        fixture.componentInstance.setActiveTab('categories');
+        fixture.detectChanges();
+
+        expect(host.querySelector('ms-categories-tab')).not.toBeNull();
+        expect(fixture.debugElement.queryAll(By.directive(PlanningTabComponent))).toHaveLength(0);
+
+        host.querySelector<HTMLButtonElement>('[data-testid="category-subtab-budgets"]')?.click();
+        fixture.detectChanges();
+
+        planningHosts = fixture.debugElement.queryAll(By.directive(PlanningTabComponent));
+        expect(planningHosts).toHaveLength(1);
+        expect(planningHosts[0].componentInstance.view()).toBe('budgets');
+        expect(fixture.componentInstance.activeTabDescription()).toBe(
+            'Бюджеты и управление категориями доходов, расходов и тегами аналитики.',
+        );
+
+        fixture.componentInstance.setActiveTab('accounts');
+        fixture.detectChanges();
+
+        expect(fixture.debugElement.queryAll(By.directive(PlanningTabComponent))).toHaveLength(0);
     });
 
     it('redirects to auth without loading dashboard data when the session is missing', () => {
@@ -285,7 +403,7 @@ describe('HomePageComponent', () => {
 
         expect(homeApi.getAccounts).toHaveBeenCalledTimes(1);
         expect(homeApi.getCurrentUser).toHaveBeenCalledTimes(1);
-        expect(homeApi.getCategories).not.toHaveBeenCalled();
+        expect(homeApi.getCategories).toHaveBeenCalledTimes(1);
 
         pendingAccountsPage.next(page<AccountResponse>([]));
         pendingAccountsPage.complete();
@@ -828,11 +946,11 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTagById).not.toHaveBeenCalled();
     });
 
-    it('does not load categories during the initial overview load', () => {
+    it('loads categories during the initial overview load', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
-        expect(homeApi.getCategories).not.toHaveBeenCalled();
+        expect(homeApi.getCategories).toHaveBeenCalledTimes(1);
     });
 
     it('loads transfer rates for the transfer form only after opening accounts', () => {
@@ -868,14 +986,14 @@ describe('HomePageComponent', () => {
         expect(fixture.componentInstance.transferDraft().rate).toBe(0.33);
     });
 
-    it('loads categories when the transaction dialog opens from overview', () => {
+    it('reuses categories loaded for overview when the transaction dialog opens', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
         homeApi.getCategories.mockClear();
 
         fixture.componentInstance.startAddingTransaction();
 
-        expect(homeApi.getCategories).toHaveBeenCalledTimes(1);
+        expect(homeApi.getCategories).not.toHaveBeenCalled();
     });
 
     it('shows the selected transaction account currency in the transaction dialog', () => {
@@ -952,14 +1070,14 @@ describe('HomePageComponent', () => {
         expect(component.transactionDraft().accountId).toBe('primary-account');
     });
 
-    it('loads categories when a category-backed tab is opened', () => {
+    it('reuses categories loaded for overview when a category-backed tab is opened', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
         homeApi.getCategories.mockClear();
 
         fixture.componentInstance.setActiveTab('categories');
 
-        expect(homeApi.getCategories).toHaveBeenCalledTimes(1);
+        expect(homeApi.getCategories).not.toHaveBeenCalled();
     });
 
     it('falls back from unsafe category option colors returned by the backend', () => {
@@ -1355,7 +1473,7 @@ describe('HomePageComponent', () => {
         const year2026Transaction = transaction('year-2026-expense', account, expenseCategory, -20);
         const staleYear2027Transaction = {
             ...transaction('year-2027-expense', account, expenseCategory, -999),
-            date: '2027-06-05T12:00:00',
+            date: localDateTimeIso(2027, 6, 5, 12),
         };
 
         homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account])));
@@ -1367,15 +1485,15 @@ describe('HomePageComponent', () => {
         homeApi.getTransactions.mockImplementation(
             (query: { fromDate: string; toDate: string; page?: number }) => {
                 if (
-                    query.fromDate === '2027-01-01T00:00:00' &&
-                    query.toDate === '2028-01-01T00:00:00'
+                    query.fromDate === localDateTimeIso(2027, 1, 1) &&
+                    query.toDate === localDateTimeIso(2028, 1, 1)
                 ) {
                     return pendingYear2027Transactions.asObservable();
                 }
 
                 if (
-                    query.fromDate === '2026-01-01T00:00:00' &&
-                    query.toDate === '2027-01-01T00:00:00'
+                    query.fromDate === localDateTimeIso(2026, 1, 1) &&
+                    query.toDate === localDateTimeIso(2027, 1, 1)
                 ) {
                     return of(page<TransactionResponse>([year2026Transaction]));
                 }
@@ -2210,8 +2328,8 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions).toHaveBeenCalledTimes(1);
         expect(homeApi.getTransactions).toHaveBeenCalledWith(
             expect.objectContaining({
-                fromDate: '2026-07-01T00:00:00',
-                toDate: '2026-08-01T00:00:00',
+                fromDate: localDateTimeIso(2026, 7, 1),
+                toDate: localDateTimeIso(2026, 8, 1),
                 page: 1,
                 size: 25,
             }),
@@ -2265,16 +2383,16 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions).toHaveBeenCalledTimes(2);
         expect(homeApi.getTransactions).toHaveBeenCalledWith(
             expect.objectContaining({
-                fromDate: '2027-01-01T00:00:00',
-                toDate: '2027-02-01T00:00:00',
+                fromDate: localDateTimeIso(2027, 1, 1),
+                toDate: localDateTimeIso(2027, 2, 1),
                 page: 1,
                 size: 25,
             }),
         );
         expect(homeApi.getTransactions).toHaveBeenCalledWith(
             expect.objectContaining({
-                fromDate: '2027-01-01T00:00:00',
-                toDate: '2028-01-01T00:00:00',
+                fromDate: localDateTimeIso(2027, 1, 1),
+                toDate: localDateTimeIso(2028, 1, 1),
                 page: 1,
             }),
         );
@@ -2461,8 +2579,8 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls + 1);
         expect(homeApi.getTransactions).toHaveBeenLastCalledWith(
             expect.objectContaining({
-                fromDate: '2026-06-01T00:00:00',
-                toDate: '2026-07-01T00:00:00',
+                fromDate: localDateTimeIso(2026, 6, 1),
+                toDate: localDateTimeIso(2026, 7, 1),
                 page: 1,
                 size: 25,
             }),
@@ -2475,8 +2593,8 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTransactions).toHaveBeenCalledTimes(1);
         expect(homeApi.getTransactions).toHaveBeenCalledWith(
             expect.objectContaining({
-                fromDate: '2026-01-01T00:00:00',
-                toDate: '2027-01-01T00:00:00',
+                fromDate: localDateTimeIso(2026, 1, 1),
+                toDate: localDateTimeIso(2027, 1, 1),
                 page: 1,
             }),
         );
@@ -4248,10 +4366,14 @@ describe('HomePageComponent', () => {
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
+        const content = host.querySelector<HTMLElement>('.home-page__content');
 
         expect(host.querySelector('ms-settings-tab')).not.toBeNull();
         expect(host.textContent ?? '').toContain('BYN');
         expect(host.textContent ?? '').not.toContain('USD');
+        expect(content?.getAttribute('role')).toBe('region');
+        expect(content?.getAttribute('aria-label')).toBe('Настройки');
+        expect(content?.getAttribute('aria-labelledby')).toBeNull();
     });
 
     it('shows backend validation details when account creation fails', () => {
@@ -4440,7 +4562,7 @@ describe('HomePageComponent', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
-        fixture.componentInstance.updateTransactionDraft({
+        fixture.componentInstance.transactionDraft.set({
             type: 'expense',
             accountId: 'main-account',
             categoryId: 'missing-category',
@@ -4697,7 +4819,7 @@ describe('HomePageComponent', () => {
 
         expect(homeApi.createTransaction).toHaveBeenCalledWith(
             expect.objectContaining({
-                date: '2026-06-05T14:37:00',
+                date: localDateTimeIso(2026, 6, 5, 14, 37),
             }),
         );
     });
@@ -4748,7 +4870,7 @@ describe('HomePageComponent', () => {
             accountId: 'main-account',
             categoryId: 'expense-category',
             amount: 25,
-            date: component.filteredTransactions()[0].dateValue.slice(0, 16),
+            date: localDateTimeInputValue(component.filteredTransactions()[0].dateValue),
             description: 'Food',
         });
 
@@ -4763,7 +4885,7 @@ describe('HomePageComponent', () => {
         expect(homeApi.updateTransaction).toHaveBeenCalledWith('expense-transaction', {
             categoryId: 'expense-category',
             amount: -30,
-            date: '2026-06-06T14:30:00',
+            date: localDateTimeIso(2026, 6, 6, 14, 30),
             description: 'Updated lunch',
         });
         expect(homeApi.createTransaction).not.toHaveBeenCalled();
@@ -5059,7 +5181,9 @@ describe('HomePageComponent', () => {
             accountId: 'main-account',
             categoryId: 'expense-category',
             amount: 25,
-            date: fixture.componentInstance.filteredTransactions()[0].dateValue.slice(0, 16),
+            date: localDateTimeInputValue(
+                fixture.componentInstance.filteredTransactions()[0].dateValue,
+            ),
             description: 'Food',
         });
     });
@@ -5882,7 +6006,7 @@ describe('HomePageComponent', () => {
         });
     });
 
-    it('clears the session and redirects to auth on logout', () => {
+    it('disables push, clears the session and redirects to auth on logout', async () => {
         homeApi.getAccounts.mockReturnValue(
             of(
                 page<AccountResponse>([
@@ -5907,7 +6031,20 @@ describe('HomePageComponent', () => {
 
         expect(logoutButton).not.toBeNull();
 
-        logoutButton?.click();
+        await fixture.componentInstance.logout();
+
+        expect(pushNotifications.disable).toHaveBeenCalledOnce();
+        expect(authService.logout).toHaveBeenCalledWith();
+        expect(authStore.clearSession).toHaveBeenCalledOnce();
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/auth');
+    });
+
+    it('completes logout when push cleanup fails', async () => {
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        pushNotifications.disable.mockRejectedValueOnce(new Error('push cleanup failed'));
+
+        await expect(fixture.componentInstance.logout()).resolves.toBeUndefined();
 
         expect(authService.logout).toHaveBeenCalledWith();
         expect(authStore.clearSession).toHaveBeenCalledOnce();

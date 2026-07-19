@@ -1,6 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl } from '@angular/forms';
+import { of } from 'rxjs';
+import { PwaPushNotificationService } from '../../../../../core/push/pwa-push-notification.service';
+import { HomeApiService } from '../../../data-access/home-api.service';
 import { TransactionItem } from '../../home-page.models';
+import { PlanningTabComponent } from '../planning-tab/planning-tab.component';
 import { OverviewTabComponent } from './overview-tab.component';
 
 function transaction(overrides: Partial<TransactionItem>): TransactionItem {
@@ -37,6 +41,20 @@ describe('OverviewTabComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [OverviewTabComponent],
+            providers: [
+                {
+                    provide: HomeApiService,
+                    useValue: {
+                        getRecurringTransactions: vi.fn(() => of([])),
+                    },
+                },
+                {
+                    provide: PwaPushNotificationService,
+                    useValue: {
+                        enable: vi.fn(),
+                    },
+                },
+            ],
         }).compileComponents();
 
         fixture = TestBed.createComponent(OverviewTabComponent);
@@ -45,6 +63,57 @@ describe('OverviewTabComponent', () => {
         fixture.componentRef.setInput('accountOptions', [{ value: '', label: 'Все счета' }]);
         fixture.componentRef.setInput('selectedAccountId', '');
         fixture.componentRef.setInput('saving', false);
+    });
+
+    it('switches between current and planned transactions inside the same section', () => {
+        fixture.componentRef.setInput('transactions', []);
+        fixture.componentRef.setInput('planningMonth', new Date(2026, 6, 1));
+        fixture.componentRef.setInput('planningAccountOptions', []);
+        fixture.componentRef.setInput('planningExpenseCategories', []);
+        fixture.componentRef.setInput('planningIncomeCategories', []);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const currentTab = host.querySelector<HTMLButtonElement>(
+            '[data-testid="transaction-subtab-current"]',
+        );
+        const plannedTab = host.querySelector<HTMLButtonElement>(
+            '[data-testid="transaction-subtab-planned"]',
+        );
+
+        expect(currentTab?.getAttribute('aria-selected')).toBe('true');
+        expect(host.querySelector('ms-transaction-journal')).not.toBeNull();
+        expect(host.querySelector('ms-planning-tab')).toBeNull();
+
+        plannedTab?.click();
+        fixture.detectChanges();
+
+        const planning = fixture.debugElement.query(
+            (debugElement) => debugElement.componentInstance instanceof PlanningTabComponent,
+        );
+
+        expect(plannedTab?.getAttribute('aria-selected')).toBe('true');
+        expect(host.querySelector('ms-transaction-journal')).toBeNull();
+        expect(planning?.componentInstance.view()).toBe('recurring');
+        expect(planning?.componentInstance.embedded()).toBe(true);
+    });
+
+    it('supports arrow-key navigation between transaction subtabs', () => {
+        fixture.componentRef.setInput('transactions', []);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const currentTab = host.querySelector<HTMLButtonElement>(
+            '[data-testid="transaction-subtab-current"]',
+        );
+        const plannedTab = host.querySelector<HTMLButtonElement>(
+            '[data-testid="transaction-subtab-planned"]',
+        );
+        currentTab?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.activeSubtab()).toBe('planned');
+        expect(document.activeElement).toBe(plannedTab);
     });
 
     it('renders transactions as a date-sorted table and applies category colors', () => {
@@ -189,9 +258,7 @@ describe('OverviewTabComponent', () => {
             'edit',
         );
         expect(deleteButton?.textContent ?? '').toContain('Удалить');
-        expect(
-            deleteButton?.querySelector('.material-symbols-outlined')?.textContent?.trim(),
-        ).toBe(
+        expect(deleteButton?.querySelector('.material-symbols-outlined')?.textContent?.trim()).toBe(
             'delete',
         );
     });

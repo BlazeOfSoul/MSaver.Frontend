@@ -7,6 +7,7 @@ import { Subject, throwError } from 'rxjs';
 import { AuthSessionResponse } from '../models/auth.models';
 import { AuthService } from '../../features/auth/data-access/auth.service';
 import { AuthStore } from '../../features/auth/data-access/auth.store';
+import { LocalPushSubscriptionService } from '../push/local-push-subscription.service';
 import { authInterceptor } from './auth.interceptor';
 
 describe('authInterceptor', () => {
@@ -22,6 +23,9 @@ describe('authInterceptor', () => {
     let router: {
         navigateByUrl: ReturnType<typeof vi.fn>;
     };
+    let localPushSubscription: {
+        unsubscribeCurrent: ReturnType<typeof vi.fn>;
+    };
 
     beforeEach(() => {
         authStore = {
@@ -34,6 +38,9 @@ describe('authInterceptor', () => {
         router = {
             navigateByUrl: vi.fn(() => Promise.resolve(true)),
         };
+        localPushSubscription = {
+            unsubscribeCurrent: vi.fn(() => Promise.resolve()),
+        };
 
         TestBed.configureTestingModule({
             providers: [
@@ -42,6 +49,7 @@ describe('authInterceptor', () => {
                 { provide: AuthStore, useValue: authStore },
                 { provide: AuthService, useValue: authService },
                 { provide: Router, useValue: router },
+                { provide: LocalPushSubscriptionService, useValue: localPushSubscription },
             ],
         });
 
@@ -162,7 +170,7 @@ describe('authInterceptor', () => {
         expect(secondSpy).toHaveBeenCalledWith({ ok: true });
     });
 
-    it('clears the session and redirects to auth when cookie refresh fails', () => {
+    it('clears the session, revokes local push and redirects when cookie refresh fails', async () => {
         const errorSpy = vi.fn();
         authService.refresh.mockReturnValue(
             throwError(
@@ -180,8 +188,11 @@ describe('authInterceptor', () => {
         request.flush({ message: 'Unauthorized' }, { status: 401, statusText: 'Unauthorized' });
 
         expect(authService.refresh).toHaveBeenCalledWith();
-        expect(authStore.clearSession).toHaveBeenCalledOnce();
-        expect(router.navigateByUrl).toHaveBeenCalledWith('/auth');
-        expect(errorSpy).toHaveBeenCalledOnce();
+        await vi.waitFor(() => {
+            expect(authStore.clearSession).toHaveBeenCalledOnce();
+            expect(localPushSubscription.unsubscribeCurrent).toHaveBeenCalledOnce();
+            expect(router.navigateByUrl).toHaveBeenCalledWith('/auth');
+            expect(errorSpy).toHaveBeenCalledOnce();
+        });
     });
 });

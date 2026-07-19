@@ -24,7 +24,9 @@ describe('Button design-system styles', () => {
 
         expect(primaryRule).toContain('--bg-color: var(--color-ms-primary)');
         expect(primaryRule).toContain('--glow-color: var(--color-ms-primary-alpha-28)');
+        expect(primaryRule).toContain('--text-color: var(--color-ms-text-on-primary)');
         expect(successRule).toContain('--glow-color: var(--color-ms-success-alpha-24)');
+        expect(successRule).toContain('--text-color: var(--color-ms-text-on-primary)');
         expect(greenHoverRule).toContain('var(--green-hover-bg)');
         expect(greenHoverRule).toContain('0 20px 38px');
     });

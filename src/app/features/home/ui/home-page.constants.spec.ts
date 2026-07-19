@@ -1,5 +1,10 @@
 import { MS_ACCOUNT_COLORS, MS_CATEGORY_COLORS } from '../../../shared/theme/theme-colors';
-import { ACCOUNT_COLORS, CATEGORY_COLORS, CURRENCY_OPTIONS } from './home-page.constants';
+import {
+    ACCOUNT_COLORS,
+    CATEGORY_COLORS,
+    CURRENCY_OPTIONS,
+    HOME_TABS,
+} from './home-page.constants';
 
 describe('home-page constants', () => {
     it('reuses the shared account fallback palette', () => {
@@ -17,8 +22,15 @@ describe('home-page constants', () => {
     });
 
     it('includes Polish zloty in the shared currency options', () => {
-        expect(CURRENCY_OPTIONS).toContainEqual(
-            expect.objectContaining({ value: 'PLN' }),
-        );
+        expect(CURRENCY_OPTIONS).toContainEqual(expect.objectContaining({ value: 'PLN' }));
+    });
+
+    it('keeps the mobile navigation limited to four primary tabs', () => {
+        expect(HOME_TABS.map((tab) => tab.id)).toEqual([
+            'overview',
+            'accounts',
+            'analytics',
+            'categories',
+        ]);
     });
 });

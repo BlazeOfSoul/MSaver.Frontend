@@ -1,14 +1,26 @@
-.dialog__date-control {
+:host {
+    display: grid;
+    min-width: 0;
+    gap: 0.45rem;
+}
+
+.ms-date-time-picker__label {
+    color: var(--color-ms-light-dark);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.ms-date-time-picker__control {
     position: relative;
     display: block;
     min-width: 0;
 }
 
-.dialog__date-control--open {
+.ms-date-time-picker__control--open {
     z-index: 35;
 }
 
-.dialog__date-trigger {
+.ms-date-time-picker__trigger {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     width: 100%;
@@ -34,97 +46,68 @@
         transform 0.2s ease;
 }
 
-.dialog__date-trigger:hover,
-.dialog__date-trigger--open {
+.ms-date-time-picker__trigger:hover,
+.ms-date-time-picker__trigger--open {
     border-color: color-mix(in oklab, var(--color-ms-primary), white 14%);
     background:
         linear-gradient(180deg, var(--color-ms-white-alpha-07), var(--color-ms-white-alpha-02)),
         color-mix(in oklab, var(--color-ms-surface-elevated), transparent 14%);
 }
 
-.dialog__date-trigger--open {
+.ms-date-time-picker__trigger--open {
     box-shadow:
         0 0 0 4px var(--color-ms-primary-alpha-11),
         0 18px 42px var(--color-ms-black-alpha-22);
     transform: translateY(-1px);
 }
 
-.dialog__date-trigger .material-symbols-outlined {
+.ms-date-time-picker__trigger[aria-invalid='true'] {
+    border-color: color-mix(in oklab, var(--color-ms-danger), transparent 28%);
+    box-shadow: 0 0 0 3px var(--color-ms-danger-alpha-12-soft);
+}
+
+.ms-date-time-picker__trigger:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.ms-date-time-picker__trigger .material-symbols-outlined {
     color: var(--color-ms-white-alpha-55);
 }
 
-.dialog__date-trigger-icon {
+.ms-date-time-picker__trigger-icon {
     transition: transform 0.2s ease;
 }
 
-.dialog__date-trigger--open .dialog__date-trigger-icon {
+.ms-date-time-picker__trigger--open .ms-date-time-picker__trigger-icon {
     transform: rotate(180deg);
 }
 
-.dialog__date-trigger-copy {
-    display: grid;
-    min-width: 0;
-    gap: 0.15rem;
-}
-
-.dialog__date-trigger-input {
+.ms-date-time-picker__trigger-input {
+    display: block;
     width: 100%;
     min-width: 0;
-    border: 0;
-    outline: 0;
+    overflow: hidden;
     color: var(--color-ms-light);
-    background: transparent;
     font: inherit;
     font-size: 0.95rem;
     font-weight: 800;
-    overflow: hidden;
     pointer-events: none;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.dialog__date-picker {
-    position: absolute;
-    top: calc(100% + 0.5rem);
-    left: auto;
-    right: 0;
-    z-index: 40;
-    display: grid;
-    width: min(24rem, calc(100vw - 2rem));
-    max-width: calc(100vw - 2rem);
-    gap: 0.75rem;
-    padding: 0.75rem;
-    border: 1px solid var(--color-ms-border-strong);
-    border-radius: 0.5rem;
-    background:
-        linear-gradient(
-            180deg,
-            color-mix(in oklab, var(--color-ms-surface-raised), transparent 2%),
-            color-mix(in oklab, var(--color-ms-surface-raised), transparent 4%)
-        ),
-        color-mix(in oklab, var(--color-ms-surface-raised), transparent 4%);
-    box-shadow:
-        0 20px 42px var(--color-ms-black-alpha-24),
-        inset 0 1px 0 var(--color-ms-white-alpha-04);
-    animation: dialog-date-picker-in 0.16s ease-out both;
-}
-
-@keyframes dialog-date-picker-in {
-    from {
-        opacity: 0;
-        transform: translateY(-0.25rem) scale(0.985);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+.ms-date-time-picker__error {
+    color: var(--color-ms-danger-soft);
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.35;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .dialog__date-trigger,
-    .dialog__date-chip,
-    .dialog__date-picker {
+    .ms-date-time-picker__trigger,
+    .ms-date-time-picker__chip,
+    .ms-date-time-picker__dropdown {
         animation: none;
         transition: none;
     }

@@ -1,0 +1,12 @@
+.angular
+.env
+.env.*
+.git
+.github
+.tmp
+.vscode
+dist
+node_modules
+coverage
+MSaver.UnitTests
+*.log

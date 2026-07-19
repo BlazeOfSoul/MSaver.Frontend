@@ -1,0 +1,180 @@
+:host {
+    display: block;
+    min-width: 0;
+}
+
+.planning-layout {
+    display: grid;
+    gap: 1rem;
+}
+
+.planning-card {
+    display: grid;
+    gap: 1.15rem;
+    min-width: 0;
+    padding: 1.1rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: var(--radius-ms-xl);
+    background:
+        linear-gradient(180deg, var(--color-ms-white-alpha-05), var(--color-ms-white-alpha-015)),
+        color-mix(in oklab, var(--color-ms-surface-raised), transparent 10%);
+    box-shadow:
+        var(--shadow-ms-soft),
+        inset 0 1px 0 var(--color-ms-white-alpha-05);
+}
+
+.planning-card__header,
+.planning-card__header > div {
+    min-width: 0;
+}
+
+.planning-card__header--split {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.planning-card__eyebrow {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--color-ms-primary);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.planning-card h2 {
+    margin: 0;
+    color: var(--color-ms-light);
+    font-size: 1.2rem;
+}
+
+.planning-card p {
+    margin: 0.35rem 0 0;
+    max-width: 50rem;
+    color: var(--color-ms-light-dark);
+    line-height: 1.48;
+}
+
+.planning-form {
+    display: grid;
+    align-items: end;
+    gap: 0.85rem;
+}
+
+.planning-form--budget {
+    grid-template-columns: minmax(10rem, 1fr) minmax(11rem, 1fr) minmax(8rem, 0.65fr) auto;
+}
+
+.planning-form--recurring {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.planning-field {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.planning-field > span {
+    color: var(--color-ms-light-dark);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.planning-field--wide {
+    grid-column: span 2;
+}
+
+.budget-list,
+.recurring-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.budget-row,
+.recurring-row {
+    min-width: 0;
+    padding: 0.9rem;
+    border: 1px solid var(--color-ms-white-alpha-08);
+    border-radius: var(--radius-ms-lg);
+    background: var(--color-ms-white-alpha-025);
+}
+
+.budget-row__top,
+.budget-row__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.budget-row__title {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.budget-row__title > div,
+.budget-row__value {
+    display: grid;
+    min-width: 0;
+    gap: 0.18rem;
+}
+
+.budget-row__title strong {
+    overflow: hidden;
+    color: var(--color-ms-light);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.budget-row__title span,
+.budget-row__value span,
+.budget-row__footer {
+    color: var(--color-ms-light-dark);
+    font-size: 0.8rem;
+}
+
+.budget-row__dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    box-shadow: 0 0 12px color-mix(in oklab, currentColor, transparent 35%);
+}
+
+.budget-row__value {
+    text-align: right;
+}
+
+.budget-row__value strong {
+    color: var(--color-ms-light);
+}
+
+.budget-row__progress {
+    height: 0.48rem;
+    margin: 0.85rem 0 0.65rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-ms-white-alpha-08);
+}
+
+.budget-row__progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--color-ms-primary), var(--color-ms-success));
+    box-shadow: 0 0 14px var(--color-ms-success-alpha-24);
+}
+
+.budget-row__progress--over span {
+    background: linear-gradient(90deg, var(--color-ms-warning), var(--color-ms-danger));
+}
+
+.budget-row__remaining--negative {
+    color: var(--color-ms-danger-soft);
+}

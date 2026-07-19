@@ -103,6 +103,7 @@
     --color-ms-black-alpha-34: rgba(0, 0, 0, 0.34);
     --color-ms-black-alpha-42: rgba(0, 0, 0, 0.42);
 
+    --color-ms-primary-alpha-04: rgba(35, 199, 139, 0.04);
     --color-ms-primary-alpha-07: rgba(35, 199, 139, 0.07);
     --color-ms-primary-alpha-08: rgba(35, 199, 139, 0.08);
     --color-ms-primary-alpha-09: rgba(35, 199, 139, 0.09);
@@ -158,7 +159,8 @@
     --radius-ms-xl: 8px;
 
     --shadow-ms-soft: 0 12px 34px var(--color-ms-black-alpha-24);
-    --shadow-ms-surface: 0 18px 44px var(--color-ms-black-alpha-26), inset 0 1px 0 var(--color-ms-white-alpha-045);
+    --shadow-ms-surface:
+        0 18px 44px var(--color-ms-black-alpha-26), inset 0 1px 0 var(--color-ms-white-alpha-045);
     --shadow-ms-surface-hover:
         0 22px 52px var(--color-ms-black-alpha-32), 0 0 20px var(--color-ms-primary-alpha-08),
         inset 0 1px 0 var(--color-ms-white-alpha-055);
@@ -184,10 +186,23 @@ html {
     color: var(--color-ms-text-primary);
     min-height: 100%;
     background:
-        linear-gradient(120deg, var(--color-ms-page-glow-primary), var(--color-ms-page-glow-info), var(--color-ms-page-glow-accent)),
+        linear-gradient(
+            120deg,
+            var(--color-ms-page-glow-primary),
+            var(--color-ms-page-glow-info),
+            var(--color-ms-page-glow-accent)
+        ),
         linear-gradient(180deg, var(--color-ms-page-sheen) 0%, transparent 18rem),
-        linear-gradient(145deg, var(--color-ms-page-bg-start) 0%, var(--color-ms-page-bg-mid) 46%, var(--color-ms-page-bg-end) 100%);
-    background-size: 220% 220%, 100% 100%, 100% 100%;
+        linear-gradient(
+            145deg,
+            var(--color-ms-page-bg-start) 0%,
+            var(--color-ms-page-bg-mid) 46%,
+            var(--color-ms-page-bg-end) 100%
+        );
+    background-size:
+        220% 220%,
+        100% 100%,
+        100% 100%;
     background-color: var(--color-ms-dark);
     animation: ms-page-background 18s ease-in-out infinite;
 }
@@ -350,11 +365,17 @@ ms-button.ms-btn .ms-btn__spinner {
 @keyframes ms-page-background {
     0%,
     100% {
-        background-position: 0% 50%, 0 0, 0 0;
+        background-position:
+            0% 50%,
+            0 0,
+            0 0;
     }
 
     50% {
-        background-position: 100% 50%, 0 0, 0 0;
+        background-position:
+            100% 50%,
+            0 0,
+            0 0;
     }
 }
 
@@ -548,7 +569,7 @@ ms-button.ms-btn.ms-btn-neutral {
 
 ms-button.ms-btn.ms-btn-success {
     --bg-color: var(--color-ms-success);
-    --text-color: var(--color-ms-text-inverse);
+    --text-color: var(--color-ms-text-on-primary);
     --border-color: color-mix(in oklab, var(--color-ms-success), white 20%);
     --accent-color: var(--color-ms-primary-soft);
     --glow-color: var(--color-ms-success-alpha-24);

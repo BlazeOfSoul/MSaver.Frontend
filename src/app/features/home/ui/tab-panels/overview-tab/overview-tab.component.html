@@ -1,24 +1,86 @@
-<section class="panel">
-    <div class="panel__header">
-        <div>
-            <h2>Журнал операций</h2>
-            <p>Доходы, расходы и переводы в отсортированной таблице выбранного месяца.</p>
-        </div>
-    </div>
+<section class="overview-layout">
+    <nav class="transaction-subtabs panel" role="tablist" aria-label="Разделы транзакций">
+        <button
+            type="button"
+            class="transaction-subtab"
+            id="transaction-tab-current"
+            role="tab"
+            data-testid="transaction-subtab-current"
+            [class.transaction-subtab--active]="activeSubtab() === 'current'"
+            [attr.aria-selected]="activeSubtab() === 'current'"
+            aria-controls="transaction-panel-current"
+            [tabindex]="activeSubtab() === 'current' ? 0 : -1"
+            (click)="setActiveSubtab('current')"
+            (keydown)="changeSubtabFromKeyboard($event, 'current')"
+        >
+            <span class="material-symbols-outlined" aria-hidden="true">receipt_long</span>
+            <span>Текущие</span>
+        </button>
 
-    <ms-transaction-journal
-        [transactions]="transactions()"
-        [searchControl]="searchControl()"
-        [accountOptions]="accountOptions()"
-        [selectedAccountId]="selectedAccountId()"
-        [pageSize]="pageSize()"
-        [pagination]="pagination()"
-        [pageSizeOptions]="pageSizeOptions()"
-        [saving]="saving()"
-        (accountChange)="accountChange.emit($event)"
-        (pageSizeChange)="pageSizeChange.emit($event)"
-        (pageChange)="pageChange.emit($event)"
-        (editTransaction)="editTransaction.emit($event)"
-        (deleteTransaction)="deleteTransaction.emit($event)"
-    ></ms-transaction-journal>
+        <button
+            type="button"
+            class="transaction-subtab"
+            id="transaction-tab-planned"
+            role="tab"
+            data-testid="transaction-subtab-planned"
+            [class.transaction-subtab--active]="activeSubtab() === 'planned'"
+            [attr.aria-selected]="activeSubtab() === 'planned'"
+            aria-controls="transaction-panel-planned"
+            [tabindex]="activeSubtab() === 'planned' ? 0 : -1"
+            (click)="setActiveSubtab('planned')"
+            (keydown)="changeSubtabFromKeyboard($event, 'planned')"
+        >
+            <span class="material-symbols-outlined" aria-hidden="true">event_repeat</span>
+            <span>Плановые</span>
+        </button>
+    </nav>
+
+    @if (activeSubtab() === 'current') {
+        <section
+            class="panel transaction-panel"
+            id="transaction-panel-current"
+            role="tabpanel"
+            aria-labelledby="transaction-tab-current"
+        >
+            <div class="panel__header">
+                <div>
+                    <h2>Журнал операций</h2>
+                    <p>Доходы, расходы и переводы в выбранном месяце.</p>
+                </div>
+            </div>
+
+            <ms-transaction-journal
+                [transactions]="transactions()"
+                [searchControl]="searchControl()"
+                [accountOptions]="accountOptions()"
+                [selectedAccountId]="selectedAccountId()"
+                [pageSize]="pageSize()"
+                [pagination]="pagination()"
+                [pageSizeOptions]="pageSizeOptions()"
+                [saving]="saving()"
+                (accountChange)="accountChange.emit($event)"
+                (pageSizeChange)="pageSizeChange.emit($event)"
+                (pageChange)="pageChange.emit($event)"
+                (editTransaction)="editTransaction.emit($event)"
+                (deleteTransaction)="deleteTransaction.emit($event)"
+            ></ms-transaction-journal>
+        </section>
+    } @else {
+        <section
+            class="transaction-panel transaction-panel--planned"
+            id="transaction-panel-planned"
+            role="tabpanel"
+            aria-labelledby="transaction-tab-planned"
+        >
+            <ms-planning-tab
+                view="recurring"
+                [embedded]="true"
+                [month]="planningMonth()"
+                [accounts]="planningAccountOptions()"
+                [expenseCategories]="planningExpenseCategories()"
+                [incomeCategories]="planningIncomeCategories()"
+                (transactionsChanged)="transactionsChanged.emit()"
+            ></ms-planning-tab>
+        </section>
+    }
 </section>

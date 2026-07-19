@@ -1,6 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl } from '@angular/forms';
+import { of } from 'rxjs';
+import { PwaPushNotificationService } from '../../../../../core/push/pwa-push-notification.service';
+import { HomeApiService } from '../../../data-access/home-api.service';
 import { CategoryBreakdownItem, TagGroupItem } from '../../home-page.models';
+import { PlanningTabComponent } from '../planning-tab/planning-tab.component';
 import { CategoriesTabComponent } from './categories-tab.component';
 
 function category(overrides: Partial<CategoryBreakdownItem>): CategoryBreakdownItem {
@@ -25,6 +29,20 @@ describe('CategoriesTabComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [CategoriesTabComponent],
+            providers: [
+                {
+                    provide: HomeApiService,
+                    useValue: {
+                        getBudgets: vi.fn(() => of({ items: [] })),
+                    },
+                },
+                {
+                    provide: PwaPushNotificationService,
+                    useValue: {
+                        enable: vi.fn(),
+                    },
+                },
+            ],
         }).compileComponents();
 
         fixture = TestBed.createComponent(CategoriesTabComponent);
@@ -41,6 +59,73 @@ describe('CategoriesTabComponent', () => {
         fixture.componentRef.setInput('categoryOptions', []);
         fixture.componentRef.setInput('searchControl', new FormControl('', { nonNullable: true }));
         fixture.componentRef.setInput('saving', false);
+    });
+
+    it('keeps categories, order and budgets in three internal subtabs', () => {
+        fixture.componentRef.setInput('budgetMonth', new Date(2026, 6, 1));
+        fixture.componentRef.setInput('budgetAccountOptions', []);
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const tabs = Array.from(
+            host.querySelectorAll<HTMLButtonElement>('.category-subtab[role="tab"]'),
+        );
+        const budgetTab = host.querySelector<HTMLButtonElement>(
+            '[data-testid="category-subtab-budgets"]',
+        );
+
+        expect(tabs.map((tab) => tab.textContent?.trim())).toEqual([
+            expect.stringContaining('Категории'),
+            expect.stringContaining('Порядок'),
+            expect.stringContaining('Бюджеты'),
+        ]);
+        expect(host.querySelector('ms-planning-tab')).toBeNull();
+
+        budgetTab?.click();
+        fixture.detectChanges();
+
+        const planning = fixture.debugElement.query(
+            (debugElement) => debugElement.componentInstance instanceof PlanningTabComponent,
+        );
+
+        expect(component.activeSubtab()).toBe('budgets');
+        expect(budgetTab?.getAttribute('aria-selected')).toBe('true');
+        expect(planning?.componentInstance.view()).toBe('budgets');
+        expect(host.querySelector('ms-category-group-panel')).toBeNull();
+        expect(host.querySelector('.category-order-table')).toBeNull();
+    });
+
+    it('supports arrow and edge-key navigation across category subtabs', () => {
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const itemTab = host.querySelector<HTMLButtonElement>(
+            '[data-testid="category-subtab-items"]',
+        );
+        const orderTab = host.querySelector<HTMLButtonElement>(
+            '[data-testid="category-subtab-order"]',
+        );
+        const budgetTab = host.querySelector<HTMLButtonElement>(
+            '[data-testid="category-subtab-budgets"]',
+        );
+
+        itemTab?.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
+        fixture.detectChanges();
+
+        expect(component.activeSubtab()).toBe('budgets');
+        expect(document.activeElement).toBe(budgetTab);
+
+        budgetTab?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+        fixture.detectChanges();
+
+        expect(component.activeSubtab()).toBe('items');
+        expect(document.activeElement).toBe(itemTab);
+
+        itemTab?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+        fixture.detectChanges();
+
+        expect(component.activeSubtab()).toBe('order');
+        expect(document.activeElement).toBe(orderTab);
     });
 
     it('uses saved category colors in category and tag rails', () => {
@@ -228,12 +313,16 @@ describe('CategoriesTabComponent', () => {
         const sections = Array.from(
             host.querySelectorAll<HTMLElement>('[data-testid="category-order-section"]'),
         );
-        const expenseSection = sections.find((section) => section.dataset['categoryType'] === 'expense');
+        const expenseSection = sections.find(
+            (section) => section.dataset['categoryType'] === 'expense',
+        );
         const rows = Array.from(
-            expenseSection?.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]') ?? [],
+            expenseSection?.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]') ??
+                [],
         );
         const handles = Array.from(
-            expenseSection?.querySelectorAll<HTMLElement>('[data-testid="drag-category-handle"]') ?? [],
+            expenseSection?.querySelectorAll<HTMLElement>('[data-testid="drag-category-handle"]') ??
+                [],
         );
 
         expect(sections.map((section) => section.dataset['categoryType'])).toEqual([
@@ -265,12 +354,7 @@ describe('CategoriesTabComponent', () => {
         fixture.detectChanges();
 
         expect(reorderSpy).toHaveBeenCalledOnce();
-        expect(reorderSpy).toHaveBeenCalledWith([
-            'salary-id',
-            'taxi-id',
-            'food-id',
-            'rent-id',
-        ]);
+        expect(reorderSpy).toHaveBeenCalledWith(['salary-id', 'taxi-id', 'food-id', 'rent-id']);
     });
 
     it('ignores dropped category order when the item stays in place', () => {
@@ -309,7 +393,9 @@ describe('CategoriesTabComponent', () => {
         host.querySelector<HTMLButtonElement>('[data-testid="category-subtab-order"]')?.click();
         fixture.detectChanges();
 
-        const rows = Array.from(host.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]'));
+        const rows = Array.from(
+            host.querySelectorAll<HTMLElement>('[data-testid="category-order-row"]'),
+        );
         const visibleRow = rows.find((row) => row.textContent?.includes('Visible'));
         const visibleHandle = visibleRow?.querySelector<HTMLElement>(
             '[data-testid="drag-category-handle"]',

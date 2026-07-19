@@ -1,0 +1,104 @@
+<span class="ms-date-time-picker__label" [id]="labelId">{{ label() }}</span>
+<div
+    class="ms-date-time-picker__control"
+    [class.ms-date-time-picker__control--open]="open()"
+    (click)="$event.stopPropagation()"
+    (keydown)="onControlKeydown($event)"
+>
+    <button
+        #trigger
+        [id]="triggerId"
+        type="button"
+        class="ms-date-time-picker__trigger"
+        [class.ms-date-time-picker__trigger--open]="open()"
+        [attr.aria-expanded]="open()"
+        [attr.aria-labelledby]="labelId + ' ' + valueId"
+        [attr.aria-controls]="popupId"
+        [attr.aria-describedby]="showError() ? errorId : null"
+        [attr.aria-invalid]="showError() ? 'true' : null"
+        [disabled]="disabled()"
+        aria-haspopup="dialog"
+        (click)="toggle()"
+    >
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+        <span [id]="valueId" class="ms-date-time-picker__trigger-input">
+            {{ displayValue() }}
+        </span>
+        <span
+            class="material-symbols-outlined ms-date-time-picker__trigger-icon"
+            aria-hidden="true"
+        >
+            expand_more
+        </span>
+    </button>
+
+    @if (open()) {
+    <div
+        [id]="popupId"
+        class="ms-date-time-picker__dropdown"
+        role="dialog"
+        [attr.aria-labelledby]="labelId"
+    >
+        <div class="ms-date-time-picker__actions">
+            <button type="button" class="ms-date-time-picker__chip" (click)="setDateOffset(0)">
+                Сегодня
+            </button>
+            <button type="button" class="ms-date-time-picker__chip" (click)="setDateOffset(-1)">
+                Вчера
+            </button>
+            <button type="button" class="ms-date-time-picker__chip" (click)="setTimeToNow()">
+                Сейчас
+            </button>
+        </div>
+
+        <div class="ms-date-time-picker__grid">
+            <label class="ms-date-time-picker__part">
+                <span>Дата</span>
+                <span class="ms-date-time-picker__input-shell">
+                    <span class="material-symbols-outlined" aria-hidden="true">
+                        calendar_month
+                    </span>
+                    <input
+                        #dateInput
+                        class="ms-date-time-picker__date-input"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        maxlength="10"
+                        placeholder="ДД.ММ.ГГГГ"
+                        [value]="dateText()"
+                        [attr.aria-describedby]="showError() ? errorId : null"
+                        [attr.aria-invalid]="showError() ? 'true' : null"
+                        (input)="onDateInput($event)"
+                    />
+                </span>
+            </label>
+
+            <label class="ms-date-time-picker__part">
+                <span>Время</span>
+                <span class="ms-date-time-picker__input-shell">
+                    <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
+                    <input
+                        class="ms-date-time-picker__time-input"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        maxlength="5"
+                        placeholder="ЧЧ:ММ"
+                        [value]="timeText()"
+                        [attr.aria-describedby]="showError() ? errorId : null"
+                        [attr.aria-invalid]="showError() ? 'true' : null"
+                        (input)="onTimeInput($event)"
+                    />
+                </span>
+            </label>
+        </div>
+    </div>
+    }
+</div>
+
+@if (showError()) {
+<span [id]="errorId" class="ms-date-time-picker__error" role="alert">
+    Укажите существующие дату и время.
+</span>
+}

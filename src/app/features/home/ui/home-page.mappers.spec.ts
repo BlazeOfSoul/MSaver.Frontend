@@ -17,7 +17,7 @@ describe('home page mappers', () => {
 
         expect(item.date).toBe('05.06.2026');
         expect(item.dateTimeLabel).toContain('14:37');
-        expect(item.timestamp).toBe(Date.UTC(2026, 5, 5, 14, 37, 0));
+        expect(item.timestamp).toBe(new Date(2026, 5, 5, 14, 37, 0).getTime());
         expect(item.description).toBe('Lunch');
     });
 
@@ -38,17 +38,23 @@ describe('home page mappers', () => {
         expect(item.description).toBe('Coffee with team');
     });
 
-    it('keeps api timezone offsets from shifting transaction display time', () => {
+    it('converts API timezone offsets to the device local time', () => {
+        const source = '2026-06-05T14:37:00+03:00';
         const transaction = createTransaction({
-            date: '2026-06-05T14:37:00+03:00',
+            date: source,
             description: 'Lunch',
         });
+        const instant = new Date(source);
 
         const item = mapTransaction(transaction);
 
-        expect(item.date).toBe('05.06.2026');
-        expect(item.dateTimeLabel).toContain('14:37');
-        expect(item.timestamp).toBe(Date.UTC(2026, 5, 5, 14, 37, 0));
+        expect(item.date).toBe(
+            `${`${instant.getDate()}`.padStart(2, '0')}.${`${instant.getMonth() + 1}`.padStart(2, '0')}.${instant.getFullYear()}`,
+        );
+        expect(item.dateTimeLabel).toContain(
+            `${`${instant.getHours()}`.padStart(2, '0')}:${`${instant.getMinutes()}`.padStart(2, '0')}`,
+        );
+        expect(item.timestamp).toBe(instant.getTime());
     });
 
     it('preserves category system flags for UI delete guards', () => {

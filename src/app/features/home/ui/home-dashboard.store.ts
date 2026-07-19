@@ -215,7 +215,7 @@ export class HomeDashboardStore {
         TRANSACTION_PAGE_SIZE_OPTIONS.map((size) => ({
             value: size.toString(),
             label: size.toString(),
-    }));
+        }));
     readonly newAccountName = signal('');
     readonly newAccountCurrency = signal('BYN');
     readonly newAccountInitialBalance = signal(0);
@@ -336,7 +336,9 @@ export class HomeDashboardStore {
         }
 
         return this.transactionResponses()
-            .filter((transaction) => this.transactionMonthKey(transaction.date) === selectedMonthKey)
+            .filter(
+                (transaction) => this.transactionMonthKey(transaction.date) === selectedMonthKey,
+            )
             .map((transaction) => mapTransaction(transaction));
     });
     readonly selectedYearTransactions = computed(() => {
@@ -797,13 +799,13 @@ export class HomeDashboardStore {
             case 'accounts':
                 return 'Баланс выбранного месяца, счета и переводы между ними.';
             case 'analytics':
-                return 'Графики по доходам, расходам, категориям, тегам и годовому движению.';
+                return 'Импорт CSV и графики по доходам, расходам и годовому движению.';
             case 'categories':
-                return 'Управление категориями доходов, расходов и тегами аналитики.';
+                return 'Бюджеты и управление категориями доходов, расходов и тегами аналитики.';
             case 'settings':
                 return 'Основная валюта, стартовые значения и параметры рабочего кабинета.';
             default:
-                return 'Главная вкладка показывает транзакции выбранного месяца.';
+                return 'Плановые операции и журнал транзакций выбранного месяца.';
         }
     });
 
@@ -824,6 +826,7 @@ export class HomeDashboardStore {
         }
 
         this.errorMessage.set('');
+        this.loadCategoriesForTab(this.activeTab());
         const requestId = ++this.dashboardLoadRequestId;
 
         this.loadDashboardPayload()
@@ -1900,7 +1903,7 @@ export class HomeDashboardStore {
     }
 
     private loadCategoriesForTab(tab: HomeTabId): void {
-        if (tab !== 'analytics' && tab !== 'categories') {
+        if (tab !== 'overview' && tab !== 'analytics' && tab !== 'categories') {
             return;
         }
 
@@ -2655,9 +2658,7 @@ export class HomeDashboardStore {
         categoryIds: ReadonlyArray<string>,
     ): boolean {
         const actualIds = new Set(
-            tag.categories
-                .filter((category) => !category.isDeleted)
-                .map((category) => category.id),
+            tag.categories.filter((category) => !category.isDeleted).map((category) => category.id),
         );
         const expectedIds = new Set(categoryIds);
 

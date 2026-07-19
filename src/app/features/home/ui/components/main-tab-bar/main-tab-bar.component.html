@@ -1,12 +1,16 @@
-<nav class="tab-bar" aria-label="Основные разделы">
-    @for (tab of tabs(); track tab.id) {
+<nav class="tab-bar" role="tablist" aria-label="Основные разделы">
+    @for (tab of tabs(); track tab.id; let tabIndex = $index) {
         <ms-button
             appearance="tab"
             variant="neutral"
             role="tab"
             [active]="tab.id === activeTab()"
+            [tabindex]="tab.id === activeTab() ? 0 : -1"
+            [attr.id]="'home-tab-' + tab.id"
+            [attr.aria-controls]="'home-panel-' + tab.id"
             [attr.aria-selected]="tab.id === activeTab()"
             (onClick)="tabChange.emit(tab.id)"
+            (keydown)="onTabKeydown($event, tabIndex)"
         >
             <span class="material-symbols-outlined">{{ tab.icon }}</span>
             <span class="tab-bar__label">{{ tab.label }}</span>

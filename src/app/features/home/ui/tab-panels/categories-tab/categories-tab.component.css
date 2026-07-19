@@ -7,6 +7,12 @@
     gap: 1rem;
 }
 
+.category-subtab-panel {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+}
+
 .panel {
     display: grid;
     gap: 1rem;
@@ -28,7 +34,7 @@
 
 .category-subtabs {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.35rem;
     padding: 0.25rem;
     background: var(--color-ms-white-alpha-045);
@@ -63,6 +69,11 @@
     box-shadow:
         0 10px 24px var(--color-ms-black-alpha-18),
         inset 0 1px 0 var(--color-ms-white-alpha-08);
+}
+
+.category-subtab:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-ms-primary), white 18%);
+    outline-offset: 2px;
 }
 
 .category-subtab .material-symbols-outlined {

@@ -171,3 +171,97 @@ export interface TransferRateResponse {
     fromCurrencyCode: string;
     toCurrencyCode: string;
 }
+
+export interface BudgetItemResponse {
+    accountId: string;
+    accountName: string;
+    currencyCode: string;
+    categoryId: string;
+    categoryName: string;
+    categoryColor: string;
+    amount: number;
+    spentAmount: number;
+    remainingAmount: number;
+    progress: number;
+}
+
+export interface GetBudgetsResponse {
+    year: number;
+    month: number;
+    items: BudgetItemResponse[];
+}
+
+export interface UpsertBudgetRequest {
+    accountId: string;
+    categoryId: string;
+    year: number;
+    month: number;
+    amount: number;
+    timeZoneId: string;
+}
+
+export type RecurrenceFrequency = 'Weekly' | 'Monthly';
+
+export interface RecurringTransactionResponse {
+    id: string;
+    accountId: string;
+    accountName: string;
+    currencyCode: string;
+    categoryId: string;
+    categoryName: string;
+    categoryColor: string;
+    amount: number;
+    description: string;
+    frequency: RecurrenceFrequency;
+    dayOfMonth: number;
+    nextOccurrenceAt: string;
+    timeZoneId: string;
+    notificationsEnabled: boolean;
+    isActive: boolean;
+}
+
+export interface CreateRecurringTransactionRequest {
+    accountId: string;
+    categoryId: string;
+    amount: number;
+    description: string;
+    frequency: RecurrenceFrequency;
+    nextOccurrenceAt: string;
+    timeZoneId: string;
+    notificationsEnabled: boolean;
+}
+
+export interface ImportTransactionRowRequest {
+    sourceRow: number;
+    categoryId: string;
+    amount: number;
+    date: string;
+    description: string;
+}
+
+export interface ImportTransactionsRequest {
+    accountId: string;
+    importBatchId: string;
+    rows: ImportTransactionRowRequest[];
+}
+
+export interface ImportTransactionIssue {
+    sourceRow: number;
+    message: string;
+}
+
+export interface ImportTransactionsResponse {
+    importedCount: number;
+    skippedDuplicateCount: number;
+    issues: ImportTransactionIssue[];
+}
+
+export interface VapidPublicKeyResponse {
+    publicKey: string;
+}
+
+export interface PushSubscriptionRequest {
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+}

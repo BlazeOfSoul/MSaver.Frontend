@@ -1,11 +1,21 @@
 import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, finalize, Observable, shareReplay, switchMap, tap, throwError } from 'rxjs';
+import {
+    catchError,
+    finalize,
+    from,
+    Observable,
+    shareReplay,
+    switchMap,
+    tap,
+    throwError,
+} from 'rxjs';
 import { AuthSessionResponse } from '../models/auth.models';
 import { AuthStore } from '../../features/auth/data-access/auth.store';
 import { AuthService } from '../../features/auth/data-access/auth.service';
 import { currentOrigin, isApiRequestUrl } from '../http/api-url.utils';
+import { LocalPushSubscriptionService } from '../push/local-push-subscription.service';
 
 const AUTH_PATHS = new Set(['/api/Auth/login', '/api/Auth/register', '/api/Auth/refresh']);
 let refreshSession$: Observable<AuthSessionResponse> | null = null;
@@ -14,13 +24,17 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const authStore = inject(AuthStore);
     const authService = inject(AuthService);
     const router = inject(Router);
+    const localPushSubscription = inject(LocalPushSubscriptionService);
 
     const isAuthRequest = isAuthEndpoint(req.url);
     const isApiRequest = isApiRequestUrl(req.url);
     const request = isApiRequest ? withCookieCredentials(req) : req;
-    const clearSessionAndRedirect = () => {
+    const clearSessionAndRedirect = (refreshError: unknown): Observable<never> => {
         authStore.clearSession();
-        void router.navigateByUrl('/auth');
+        return from(localPushSubscription.unsubscribeCurrent()).pipe(
+            tap(() => void router.navigateByUrl('/auth')),
+            switchMap(() => throwError(() => refreshError)),
+        );
     };
 
     return next(request).pipe(
@@ -32,10 +46,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             if (!refreshSession$) {
                 refreshSession$ = authService.refresh().pipe(
                     tap((response) => authStore.setSession(response)),
-                    catchError((refreshError) => {
-                        clearSessionAndRedirect();
-                        return throwError(() => refreshError);
-                    }),
+                    catchError((refreshError) => clearSessionAndRedirect(refreshError)),
                     finalize(() => {
                         refreshSession$ = null;
                     }),

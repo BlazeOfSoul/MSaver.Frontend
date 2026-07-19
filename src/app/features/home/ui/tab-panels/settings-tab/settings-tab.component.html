@@ -19,9 +19,7 @@
     <article class="panel settings-panel settings-hero">
         <div>
             <h2>Баланс на главной</h2>
-            <p>
-                Выберите один счёт для верхней карточки или показывайте сумму всех счетов.
-            </p>
+            <p>Выберите один счёт для верхней карточки или показывайте сумму всех счетов.</p>
         </div>
 
         <ms-select
@@ -39,9 +37,7 @@
     <article class="panel settings-panel settings-hero">
         <div>
             <h2>Порядок категорий</h2>
-            <p>
-                Как сортировать категории в списках и выборе транзакций.
-            </p>
+            <p>Как сортировать категории в списках и выборе транзакций.</p>
         </div>
 
         <ms-select
@@ -51,5 +47,65 @@
             [disabled]="saving()"
             (valueChange)="updateCategorySortMode($event)"
         ></ms-select>
+    </article>
+
+    <article class="panel settings-panel settings-notifications">
+        <div class="settings-notifications__copy">
+            <div>
+                <h2>Уведомления</h2>
+                <p>
+                    Подписка действует только в текущем браузере на этом устройстве. Чтобы получать
+                    уведомления на телефоне и компьютере, включите их отдельно на каждом устройстве.
+                </p>
+            </div>
+
+            <div
+                class="notification-status"
+                [class.notification-status--enabled]="notificationsEnabled()"
+                [class.notification-status--blocked]="notificationStatus() === 'denied'"
+            >
+                <span class="material-symbols-outlined" aria-hidden="true">
+                    {{ notificationStatusIcon() }}
+                </span>
+                <span>
+                    <strong>{{ notificationStatusLabel() }}</strong>
+                    <small>Текущее устройство · этот браузер</small>
+                </span>
+            </div>
+
+            @if (notificationMessage()) {
+                <p class="notification-message" role="status" aria-live="polite">
+                    {{ notificationMessage() }}
+                </p>
+            }
+        </div>
+
+        <div class="settings-notifications__action">
+            <ms-button
+                [variant]="notificationsEnabled() ? 'danger' : 'primary'"
+                [appearance]="notificationsEnabled() ? 'outline' : 'solid'"
+                [loading]="notificationLoading()"
+                [disabled]="notificationActionDisabled()"
+                [fullWidth]="true"
+                (onClick)="toggleNotifications()"
+            >
+                <span class="material-symbols-outlined" aria-hidden="true">
+                    {{ notificationsEnabled() ? 'notifications_off' : 'notifications_active' }}
+                </span>
+                {{
+                    notificationsEnabled()
+                        ? 'Отключить на этом устройстве'
+                        : 'Включить на этом устройстве'
+                }}
+            </ms-button>
+
+            @if (notificationStatus() === 'denied') {
+                <small>Измените разрешение для сайта в настройках браузера.</small>
+            } @else if (notificationStatus() === 'unsupported') {
+                <small>Откройте приложение в браузере с поддержкой PWA.</small>
+            } @else {
+                <small>Настройки расписаний при этом не изменяются.</small>
+            }
+        </div>
     </article>
 </section>

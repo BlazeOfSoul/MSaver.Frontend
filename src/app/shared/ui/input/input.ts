@@ -35,7 +35,7 @@ export class InputComponent implements ControlValueAccessor {
     autocomplete = input<string>('');
     placeholder = input<string>('');
     inputMode = input<string>('');
-    type = input<'text' | 'email' | 'password'>('text');
+    type = input<'text' | 'email' | 'password' | 'number' | 'datetime-local'>('text');
     disabled = input<boolean>(false);
     readonly = input<boolean>(false);
     hidden = input<boolean>(false);

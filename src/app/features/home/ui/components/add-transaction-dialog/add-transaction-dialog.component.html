@@ -95,111 +95,11 @@
                         ></ms-select>
 
                         <div class="dialog__field dialog__date-field">
-                            <span class="dialog__field-label">Дата и время</span>
-                            <div
-                                class="dialog__date-control"
-                                [class.dialog__date-control--open]="datePickerOpen()"
-                                (click)="$event.stopPropagation()"
-                            >
-                                <button
-                                    type="button"
-                                    class="dialog__date-trigger"
-                                    [class.dialog__date-trigger--open]="datePickerOpen()"
-                                    [attr.aria-expanded]="datePickerOpen()"
-                                    aria-haspopup="dialog"
-                                    (click)="toggleDatePicker()"
-                                >
-                                    <span class="material-symbols-outlined" aria-hidden="true">
-                                        calendar_month
-                                    </span>
-                                    <span class="dialog__date-trigger-copy">
-                                        <input
-                                            class="dialog__date-trigger-input"
-                                            type="text"
-                                            [value]="dateTimeInputValue()"
-                                            readonly
-                                            tabindex="-1"
-                                            aria-label="Дата и время"
-                                        />
-                                    </span>
-                                    <span
-                                        class="material-symbols-outlined dialog__date-trigger-icon"
-                                        aria-hidden="true"
-                                    >
-                                        expand_more
-                                    </span>
-                                </button>
-
-                                @if (datePickerOpen()) {
-                                    <div class="dialog__date-picker" role="group">
-                                        <div class="dialog__date-picker-actions">
-                                            <button
-                                                type="button"
-                                                class="dialog__date-chip"
-                                                (click)="setDateOffset(0)"
-                                            >
-                                                Сегодня
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="dialog__date-chip"
-                                                (click)="setDateOffset(-1)"
-                                            >
-                                                Вчера
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="dialog__date-chip"
-                                                (click)="setTimeToNow()"
-                                            >
-                                                Сейчас
-                                            </button>
-                                        </div>
-
-                                        <div class="dialog__date-picker-grid">
-                                            <label class="dialog__date-part-input">
-                                                <span>Дата</span>
-                                                <span class="dialog__picker-input-shell">
-                                                    <span class="material-symbols-outlined" aria-hidden="true">
-                                                        calendar_month
-                                                    </span>
-                                                    <input
-                                                        type="text"
-                                                        inputmode="numeric"
-                                                        autocomplete="off"
-                                                        maxlength="10"
-                                                        placeholder="ДД.ММ.ГГГГ"
-                                                        [value]="dateText()"
-                                                        (input)="
-                                                            onDatePartInputEvent($event)
-                                                        "
-                                                    />
-                                                </span>
-                                            </label>
-
-                                            <label class="dialog__time-part-input">
-                                                <span>Время</span>
-                                                <span class="dialog__picker-input-shell">
-                                                    <span class="material-symbols-outlined" aria-hidden="true">
-                                                        schedule
-                                                    </span>
-                                                    <input
-                                                        type="text"
-                                                        inputmode="numeric"
-                                                        autocomplete="off"
-                                                        maxlength="5"
-                                                        placeholder="ЧЧ:ММ"
-                                                        [value]="timeText()"
-                                                        (input)="
-                                                            onTimePartInputEvent($event)
-                                                        "
-                                                    />
-                                                </span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
+                            <ms-date-time-picker
+                                [value]="draft().date"
+                                (valueChange)="onDateTimeChange($event)"
+                                (validityChange)="onDateTimeValidityChange($event)"
+                            ></ms-date-time-picker>
                         </div>
 
                         <div class="dialog__field dialog__field--wide">

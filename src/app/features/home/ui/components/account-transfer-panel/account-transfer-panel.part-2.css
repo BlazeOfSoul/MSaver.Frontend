@@ -87,16 +87,55 @@
 }
 
 .accounts-empty {
+    display: grid;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     justify-items: center;
-    padding: 1rem;
+    padding: 1rem 0.75rem;
     border-radius: 0.5rem;
     text-align: center;
     background: var(--color-ms-white-alpha-025);
 }
 
-.accounts-empty p {
+.accounts-empty__icon {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    border: 1px solid color-mix(in oklab, var(--color-ms-primary), transparent 68%);
+    border-radius: 0.65rem;
+    color: color-mix(in oklab, var(--color-ms-primary), white 18%);
+    background: color-mix(in oklab, var(--color-ms-primary), transparent 88%);
+}
+
+.accounts-empty__icon .material-symbols-outlined {
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.accounts-empty__copy {
+    display: grid;
+    width: 100%;
     max-width: 24rem;
+    min-width: 0;
+    gap: 0.3rem;
+    justify-items: center;
+}
+
+.accounts-empty__copy strong {
+    max-width: 20rem;
+    font-size: 0.86rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+}
+
+.accounts-empty p {
+    width: 100%;
     margin: 0;
+    overflow-wrap: anywhere;
 }
 
 @media (min-width: 900px) {

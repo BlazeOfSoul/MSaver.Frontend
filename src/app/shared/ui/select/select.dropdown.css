@@ -55,6 +55,11 @@
         transform 0.16s ease;
 }
 
+.ms-select__options {
+    display: grid;
+    gap: 0.35rem;
+}
+
 .ms-select__option-label {
     display: inline-flex;
     flex: 1 1 auto;
@@ -99,6 +104,17 @@
     .ms-select__dropdown {
         max-height: 13rem;
     }
+
+    :host(.ms-select-host--contained) .ms-select__shell--open {
+        overflow: hidden;
+    }
+
+    :host(.ms-select-host--contained) .ms-select__dropdown {
+        position: static;
+        max-height: 12rem;
+        margin: 0.35rem;
+        animation-name: ms-select-dropdown-contained-in;
+    }
 }
 
 @keyframes ms-select-dropdown-in {
@@ -122,6 +138,18 @@
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes ms-select-dropdown-contained-in {
+    from {
+        opacity: 0;
+        transform: translateY(-0.2rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
