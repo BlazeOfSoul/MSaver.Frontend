@@ -1,18 +1,30 @@
 <div class="overview-toolbar">
     <ms-select
+        class="overview-toolbar__account"
+        label="Счёт"
         [options]="accountOptions()"
         [value]="selectedAccountId()"
+        [searchable]="true"
+        searchPlaceholder="Найти счёт"
+        emptyText="Счёт не найден"
         (valueChange)="accountChange.emit($event)"
     ></ms-select>
 
-    <ms-input
-        [formControl]="searchControl()"
-        prefixIcon="search"
-        placeholder="Поиск по описанию, категории или счёту"
-    ></ms-input>
+    <div class="overview-toolbar__search">
+        <label class="overview-toolbar__label" for="transaction-search">Поиск</label>
+        <ms-input
+            id="transaction-search"
+            autocomplete="off"
+            [formControl]="searchControl()"
+            prefixIcon="search"
+            placeholder="Поиск по описанию"
+            clearAriaLabel="Очистить поиск по операциям"
+        ></ms-input>
+    </div>
 
     <ms-select
-        label="Показывать"
+        class="overview-toolbar__page-size"
+        label="На странице"
         [options]="pageSizeOptions()"
         [value]="pageSize().toString()"
         (valueChange)="onPageSizeChange($event)"
@@ -41,9 +53,7 @@
                             (onClick)="changeSort('title')"
                         >
                             Операция
-                            <span class="material-symbols-outlined">{{
-                                sortIcon('title')
-                            }}</span>
+                            <span class="material-symbols-outlined">{{ sortIcon('title') }}</span>
                         </ms-button>
                     </th>
                     <th scope="col">
@@ -95,32 +105,70 @@
         </table>
     </div>
 
-    @if (totalPages() > 1) {
-        <nav class="pagination" aria-label="Страницы транзакций">
-            <ms-button
-                appearance="icon"
-                variant="neutral"
-                size="sm"
-                [disabled]="!canGoToPreviousPage()"
-                (onClick)="goToPreviousPage()"
-                data-testid="previous-transactions-page"
-                aria-label="Предыдущая страница"
-            >
-                <span class="material-symbols-outlined">chevron_left</span>
-            </ms-button>
-            <span class="pagination__meta">{{ pageLabel() }}</span>
-            <ms-button
-                appearance="icon"
-                variant="neutral"
-                size="sm"
-                [disabled]="!canGoToNextPage()"
-                (onClick)="goToNextPage()"
-                data-testid="next-transactions-page"
-                aria-label="Следующая страница"
-            >
-                <span class="material-symbols-outlined">chevron_right</span>
-            </ms-button>
-        </nav>
+    @if (showPagination()) {
+        <div class="pagination">
+            <p class="pagination__range" aria-live="polite">{{ rangeLabel() }}</p>
+
+            @if (totalPages() > 1) {
+                <nav class="pagination__controls" aria-label="Страницы транзакций">
+                    <ms-button
+                        class="pagination__direction"
+                        appearance="icon"
+                        variant="neutral"
+                        size="sm"
+                        [disabled]="!canGoToPreviousPage()"
+                        (onClick)="goToPreviousPage()"
+                        data-testid="previous-transactions-page"
+                        aria-label="Предыдущая страница"
+                    >
+                        <span class="material-symbols-outlined" aria-hidden="true">
+                            chevron_left
+                        </span>
+                    </ms-button>
+
+                    <div class="pagination__pages" aria-label="Номера страниц">
+                        @for (page of paginationItems(); track $index) {
+                            @if (page !== null) {
+                                <ms-button
+                                    class="pagination__page"
+                                    appearance="icon"
+                                    variant="neutral"
+                                    size="sm"
+                                    [active]="page === currentPageIndex() + 1"
+                                    [attr.aria-current]="
+                                        page === currentPageIndex() + 1 ? 'page' : null
+                                    "
+                                    [attr.aria-label]="'Страница ' + page"
+                                    [attr.data-testid]="'transactions-page-' + page"
+                                    (onClick)="goToPage(page)"
+                                >
+                                    {{ page }}
+                                </ms-button>
+                            } @else {
+                                <span class="pagination__ellipsis" aria-hidden="true">…</span>
+                            }
+                        }
+                    </div>
+
+                    <span class="pagination__meta" aria-live="polite">{{ pageLabel() }}</span>
+
+                    <ms-button
+                        class="pagination__direction"
+                        appearance="icon"
+                        variant="neutral"
+                        size="sm"
+                        [disabled]="!canGoToNextPage()"
+                        (onClick)="goToNextPage()"
+                        data-testid="next-transactions-page"
+                        aria-label="Следующая страница"
+                    >
+                        <span class="material-symbols-outlined" aria-hidden="true">
+                            chevron_right
+                        </span>
+                    </ms-button>
+                </nav>
+            }
+        </div>
     }
 } @else {
     <div class="transactions-empty">
@@ -131,9 +179,7 @@
         } @else {
             <span class="material-symbols-outlined">receipt_long</span>
             <strong>Операций за этот период нет</strong>
-            <p>
-                Добавьте доход или расход, и они появятся здесь в хронологическом журнале.
-            </p>
+            <p>Добавьте доход или расход, и они появятся здесь в хронологическом журнале.</p>
         }
     </div>
 }

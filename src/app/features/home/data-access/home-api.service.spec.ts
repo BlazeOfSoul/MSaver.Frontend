@@ -65,6 +65,42 @@ describe('HomeApiService', () => {
         });
     });
 
+    it('sends trimmed server-side transaction filters with pagination', () => {
+        service
+            .getTransactions({
+                accountId: 'account-id',
+                fromDate: '2026-08-01T00:00:00.000Z',
+                toDate: '2026-09-01T00:00:00.000Z',
+                search: '  salary  ',
+                page: 2,
+                size: 25,
+            })
+            .subscribe();
+
+        const request = httpMock.expectOne(
+            (candidate) => candidate.url === `${environment.apiUrl}/Transactions`,
+        );
+
+        expect(request.request.method).toBe('GET');
+        expect(request.request.params.get('accountId')).toBe('account-id');
+        expect(request.request.params.get('fromDate')).toBe('2026-08-01T00:00:00.000Z');
+        expect(request.request.params.get('toDate')).toBe('2026-09-01T00:00:00.000Z');
+        expect(request.request.params.get('search')).toBe('salary');
+        expect(request.request.params.get('page')).toBe('2');
+        expect(request.request.params.get('size')).toBe('25');
+        expect(request.request.params.get('sortBy')).toBe('date');
+        expect(request.request.params.get('sortDirection')).toBe('desc');
+        request.flush({
+            items: [],
+            page: 2,
+            size: 25,
+            totalCount: 0,
+            totalPages: 1,
+            hasPreviousPage: false,
+            hasNextPage: false,
+        });
+    });
+
     it('skips the current recurring occurrence through the dedicated action endpoint', () => {
         service.skipRecurringTransaction('recurring-id').subscribe();
 

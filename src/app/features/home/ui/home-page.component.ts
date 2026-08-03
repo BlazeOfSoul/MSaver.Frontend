@@ -9,7 +9,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl } from '@angular/forms';
 import { Router } from '@angular/router';
-import { finalize } from 'rxjs';
+import { debounceTime, distinctUntilChanged, finalize, map } from 'rxjs';
 import { AuthService } from '../../auth/data-access/auth.service';
 import { AuthStore } from '../../auth/data-access/auth.store';
 import { AddTransactionDialogComponent } from './components/add-transaction-dialog/add-transaction-dialog.component';
@@ -29,6 +29,9 @@ import { HomeTabId, TransactionDraft, TransactionItem, TransferDraft } from './h
 import { CURRENCY_OPTIONS, HOME_TABS } from './home-page.constants';
 import { HomeDashboardStore } from './home-dashboard.store';
 import { PwaPushNotificationService } from '../../../core/push/pwa-push-notification.service';
+
+const TRANSACTION_SEARCH_DEBOUNCE_MS = 300;
+const TRANSACTION_SEARCH_MAX_LENGTH = 100;
 
 @Component({
     selector: 'app-home-page',
@@ -145,8 +148,13 @@ export class HomePageComponent {
 
     constructor() {
         this.searchControl.valueChanges
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe((value) => this.dashboard.setSearchQuery(value ?? ''));
+            .pipe(
+                map((value) => (value ?? '').trim().slice(0, TRANSACTION_SEARCH_MAX_LENGTH)),
+                debounceTime(TRANSACTION_SEARCH_DEBOUNCE_MS),
+                distinctUntilChanged(),
+                takeUntilDestroyed(this.destroyRef),
+            )
+            .subscribe((value) => this.dashboard.setSearchQuery(value));
         this.accountSearchControl.valueChanges
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((value) => this.dashboard.setAccountSearchQuery(value ?? ''));

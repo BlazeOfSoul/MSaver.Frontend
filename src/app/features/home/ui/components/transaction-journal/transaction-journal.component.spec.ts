@@ -141,7 +141,9 @@ describe('TransactionJournalComponent', () => {
         host.querySelector<HTMLButtonElement>('[data-testid="next-transactions-page"]')?.click();
         fixture.detectChanges();
 
-        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain('2 / 2');
+        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain(
+            'Страница 2 из 2',
+        );
 
         fixture.componentInstance.onPageSizeChange('10');
         fixture.componentRef.setInput('pageSize', 10);
@@ -150,6 +152,43 @@ describe('TransactionJournalComponent', () => {
         expect(pageSizeSpy).toHaveBeenCalledWith(10);
         expect(host.querySelector('.pagination__meta')).toBeNull();
         expect(Array.from(host.querySelectorAll<HTMLTableRowElement>('tbody tr'))).toHaveLength(7);
+    });
+
+    it('renders server totals and emits direct numbered-page navigation', () => {
+        const pageSpy = vi.fn();
+        fixture.componentRef.setInput(
+            'transactions',
+            Array.from({ length: 25 }, (_, index) =>
+                transaction({
+                    id: `operation-${index + 1}`,
+                    title: `Operation ${index + 1}`,
+                    dateValue: `2026-06-${String(index + 1).padStart(2, '0')}`,
+                }),
+            ),
+        );
+        fixture.componentRef.setInput('pagination', {
+            page: 3,
+            size: 25,
+            totalCount: 137,
+            totalPages: 6,
+            hasPreviousPage: true,
+            hasNextPage: true,
+        });
+        fixture.componentInstance.pageChange.subscribe(pageSpy);
+
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const currentPage = host.querySelector<HTMLElement>('[data-testid="transactions-page-3"]');
+
+        expect(host.querySelector('.pagination__range')?.textContent ?? '').toContain(
+            'Показано 51–75 из 137',
+        );
+        expect(currentPage?.getAttribute('aria-current')).toBe('page');
+
+        host.querySelector<HTMLElement>('[data-testid="transactions-page-4"]')?.click();
+
+        expect(pageSpy).toHaveBeenCalledWith(4);
     });
 
     it('uses different empty messages for no transactions and filtered results', () => {

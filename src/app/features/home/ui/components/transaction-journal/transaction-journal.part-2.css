@@ -11,15 +11,42 @@
 .pagination {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 0.5rem;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 0.15rem;
+}
+
+.pagination__range {
+    margin: 0;
+    color: var(--color-ms-light-dark);
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.pagination__controls,
+.pagination__pages {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.pagination__page {
+    font-variant-numeric: tabular-nums;
+}
+
+.pagination__ellipsis {
+    min-width: 1.25rem;
+    color: var(--color-ms-white-alpha-55);
+    text-align: center;
 }
 
 .pagination__meta {
-    min-width: 3.5rem;
+    display: none;
+    min-width: 8.5rem;
     color: var(--color-ms-light-dark);
     font-weight: 700;
     text-align: center;
+    white-space: nowrap;
 }
 
 .transactions-empty {
@@ -61,6 +88,7 @@
 @media (min-width: 720px) {
     .overview-toolbar {
         grid-template-columns: minmax(12rem, 0.28fr) minmax(0, 1fr) minmax(8rem, 0.18fr);
+        grid-template-areas: 'account search page-size';
         align-items: end;
     }
 

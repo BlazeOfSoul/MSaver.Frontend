@@ -17,8 +17,37 @@
         display: block;
         width: 100%;
     }
+}
 
+@media (max-width: 600px) {
     .pagination {
-        justify-content: center;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .pagination__range {
+        text-align: center;
+    }
+
+    .pagination__controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .pagination__pages {
+        display: none;
+    }
+
+    .pagination__meta {
+        display: block;
+        flex: 1 1 auto;
+    }
+
+    ms-button.pagination__direction.ms-btn.ms-btn-icon.ms-btn-sm {
+        width: 2.75rem;
+        min-width: 2.75rem;
+        height: 2.75rem;
+        min-height: 2.75rem;
     }
 }

@@ -366,12 +366,7 @@ export class HomeDashboardStore {
             (transaction) => this.transactionMonthKey(transaction.date) === key,
         );
     });
-    readonly filteredTransactions = computed(() =>
-        this.filterByQuery(
-            this.transactions(),
-            (item) => `${item.title} ${item.category} ${item.description} ${item.accountName}`,
-        ),
-    );
+    readonly filteredTransactions = computed(() => this.transactions());
     readonly analyticsCurrencyCode = computed(() => {
         const selectedAccountId = this.analyticsSelectedAccountId();
 
@@ -868,7 +863,14 @@ export class HomeDashboardStore {
     }
 
     setSearchQuery(value: string): void {
-        this.searchQuery.set(value);
+        const nextQuery = value.trim().slice(0, 100);
+
+        if (nextQuery === this.searchQuery()) {
+            return;
+        }
+
+        this.searchQuery.set(nextQuery);
+        this.reloadCurrentTransactionPage();
     }
 
     setAccountSearchQuery(value: string): void {
@@ -1584,14 +1586,19 @@ export class HomeDashboardStore {
         );
     }
 
-    private loadTransactions(query: { accountId?: string; fromDate: string; toDate: string }) {
+    private loadTransactions(query: {
+        accountId?: string;
+        fromDate: string;
+        toDate: string;
+        search?: string;
+    }) {
         return this.loadAllPages<TransactionResponse>((page) =>
             this.homeApi.getTransactions({ ...query, page }),
         );
     }
 
     private loadTransactionPage(
-        query: { accountId?: string; fromDate: string; toDate: string },
+        query: { accountId?: string; fromDate: string; toDate: string; search?: string },
         size: number,
         page = 1,
     ): Observable<PagedResponse<TransactionResponse>> {
@@ -2965,14 +2972,17 @@ export class HomeDashboardStore {
         accountId?: string;
         fromDate: string;
         toDate: string;
+        search?: string;
     } {
         const monthStart = this.selectedMonth();
         const nextMonthStart = addMonths(monthStart, 1);
+        const search = this.searchQuery();
 
         return {
             accountId: selectedAccountId === 'all' ? undefined : selectedAccountId,
             fromDate: toApiDateTime(monthStart),
             toDate: toApiDateTime(nextMonthStart),
+            search: search || undefined,
         };
     }
 

@@ -833,7 +833,9 @@ describe('HomePageComponent', () => {
 
         const host = fixture.nativeElement as HTMLElement;
 
-        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain('1 / 2');
+        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain(
+            'Страница 1 из 2',
+        );
 
         host.querySelector<HTMLButtonElement>('[data-testid="next-transactions-page"]')?.click();
         fixture.detectChanges();
@@ -843,7 +845,9 @@ describe('HomePageComponent', () => {
         );
         expect(host.textContent ?? '').toContain('Second page transaction');
         expect(host.textContent ?? '').not.toContain('First page transaction');
-        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain('2 / 2');
+        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain(
+            'Страница 2 из 2',
+        );
 
         host.querySelector<HTMLButtonElement>(
             '[data-testid="previous-transactions-page"]',
@@ -855,7 +859,75 @@ describe('HomePageComponent', () => {
         );
         expect(host.textContent ?? '').toContain('First page transaction');
         expect(host.textContent ?? '').not.toContain('Second page transaction');
-        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain('1 / 2');
+        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain(
+            'Страница 1 из 2',
+        );
+    });
+
+    it('searches all backend pages, resets to page one, and keeps the query while paging', () => {
+        vi.useFakeTimers();
+
+        try {
+            homeApi.getAccounts.mockReturnValue(of(page<AccountResponse>([account()])));
+            homeApi.getTransactions.mockImplementation(
+                (query: { page?: number; size?: number; search?: string }) => {
+                    if (query.size === undefined) {
+                        return of(page<TransactionResponse>([]));
+                    }
+
+                    const currentPage = query.page ?? 1;
+                    const totalPages = query.search ? 2 : 3;
+
+                    return of<PagedResponse<TransactionResponse>>({
+                        items: [],
+                        page: currentPage,
+                        size: query.size,
+                        totalCount: query.search ? 30 : 75,
+                        totalPages,
+                        hasPreviousPage: currentPage > 1,
+                        hasNextPage: currentPage < totalPages,
+                    });
+                },
+            );
+
+            fixture = TestBed.createComponent(HomePageComponent);
+            fixture.detectChanges();
+            fixture.componentInstance.goToTransactionPage(2);
+            homeApi.getTransactions.mockClear();
+
+            fixture.componentInstance.searchControl.setValue('  salary  ');
+            vi.advanceTimersByTime(299);
+
+            expect(homeApi.getTransactions).not.toHaveBeenCalled();
+
+            vi.advanceTimersByTime(1);
+
+            expect(homeApi.getTransactions).toHaveBeenCalledWith(
+                expect.objectContaining({ search: 'salary', page: 1, size: 25 }),
+            );
+            expect(fixture.componentInstance.transactionPagination().page).toBe(1);
+            expect(fixture.componentInstance.transactionPagination().totalPages).toBe(2);
+
+            homeApi.getTransactions.mockClear();
+            fixture.componentInstance.goToTransactionPage(2);
+
+            expect(homeApi.getTransactions).toHaveBeenCalledWith(
+                expect.objectContaining({ search: 'salary', page: 2, size: 25 }),
+            );
+
+            homeApi.getTransactions.mockClear();
+            fixture.componentInstance.searchControl.setValue('   ');
+            vi.advanceTimersByTime(300);
+
+            expect(homeApi.getTransactions).toHaveBeenCalledWith(
+                expect.objectContaining({ page: 1, size: 25 }),
+            );
+            expect(
+                (homeApi.getTransactions.mock.calls.at(-1)?.[0] as { search?: string }).search,
+            ).toBeUndefined();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('loads additional paged transaction data sequentially', () => {

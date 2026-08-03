@@ -177,8 +177,10 @@ export class HomeApiService {
             httpParams = httpParams.set('accountId', params.accountId);
         }
 
-        if (params.search) {
-            httpParams = httpParams.set('search', params.search);
+        const search = params.search?.trim();
+
+        if (search) {
+            httpParams = httpParams.set('search', search);
         }
 
         return this.http.get<PagedResponse<TransactionResponse>>(`${this.baseUrl}/Transactions`, {

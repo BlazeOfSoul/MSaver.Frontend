@@ -19,6 +19,7 @@ import { TransactionJournalRowsComponent } from './transaction-journal-rows/tran
 
 type TransactionSortKey = 'date' | 'title' | 'account' | 'category' | 'amount';
 type SortDirection = 'asc' | 'desc';
+type PaginationItem = number | null;
 
 @Component({
     selector: 'ms-transaction-journal',
@@ -106,7 +107,34 @@ export class TransactionJournalComponent implements OnInit {
 
         return this.sortedTransactions().slice(start, start + pageSize);
     });
-    readonly pageLabel = computed(() => `${this.currentPageIndex() + 1} / ${this.totalPages()}`);
+    readonly totalItems = computed(
+        () => this.pagination()?.totalCount ?? this.sortedTransactions().length,
+    );
+    readonly pageLabel = computed(
+        () => `Страница ${this.currentPageIndex() + 1} из ${this.totalPages()}`,
+    );
+    readonly paginationItems = computed<ReadonlyArray<PaginationItem>>(() =>
+        createPaginationItems(this.currentPageIndex() + 1, this.totalPages()),
+    );
+    readonly rangeLabel = computed(() => {
+        const totalItems = this.totalItems();
+
+        if (!totalItems) {
+            return 'Нет операций';
+        }
+
+        const pageSize = Math.max(1, this.pagination()?.size ?? this.pageSize());
+        const firstItem = this.currentPageIndex() * pageSize + 1;
+        const visibleItems = Math.max(1, this.pagedTransactions().length);
+        const lastItem = Math.min(firstItem + visibleItems - 1, totalItems);
+
+        return firstItem === lastItem
+            ? `Показано ${firstItem} из ${totalItems}`
+            : `Показано ${firstItem}–${lastItem} из ${totalItems}`;
+    });
+    readonly showPagination = computed(
+        () => this.totalPages() > 1 || (this.isServerPaginated() && this.totalItems() > 0),
+    );
     readonly canGoToPreviousPage = computed(() => this.currentPageIndex() > 0);
     readonly canGoToNextPage = computed(() => this.currentPageIndex() < this.totalPages() - 1);
 
@@ -135,12 +163,7 @@ export class TransactionJournalComponent implements OnInit {
             return;
         }
 
-        if (this.isServerPaginated()) {
-            this.pageChange.emit(this.currentPageIndex());
-            return;
-        }
-
-        this.pageIndex.update((page) => Math.max(0, page - 1));
+        this.goToPage(this.currentPageIndex());
     }
 
     goToNextPage(): void {
@@ -148,12 +171,26 @@ export class TransactionJournalComponent implements OnInit {
             return;
         }
 
-        if (this.isServerPaginated()) {
-            this.pageChange.emit(this.currentPageIndex() + 2);
+        this.goToPage(this.currentPageIndex() + 2);
+    }
+
+    goToPage(page: number): void {
+        if (!Number.isFinite(page)) {
             return;
         }
 
-        this.pageIndex.update((page) => Math.min(this.totalPages() - 1, page + 1));
+        const nextPage = Math.min(Math.max(1, Math.trunc(page)), this.totalPages());
+
+        if (nextPage === this.currentPageIndex() + 1) {
+            return;
+        }
+
+        if (this.isServerPaginated()) {
+            this.pageChange.emit(nextPage);
+            return;
+        }
+
+        this.pageIndex.set(nextPage - 1);
     }
 
     onPageSizeChange(value: string): void {
@@ -180,6 +217,30 @@ export class TransactionJournalComponent implements OnInit {
 
         return !!this.searchQuery().trim() || (!!selectedAccountId && selectedAccountId !== 'all');
     }
+}
+
+function createPaginationItems(currentPage: number, totalPages: number): PaginationItem[] {
+    if (totalPages <= 7) {
+        return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    if (currentPage <= 4) {
+        return [1, 2, 3, 4, 5, null, totalPages];
+    }
+
+    if (currentPage >= totalPages - 3) {
+        return [
+            1,
+            null,
+            totalPages - 4,
+            totalPages - 3,
+            totalPages - 2,
+            totalPages - 1,
+            totalPages,
+        ];
+    }
+
+    return [1, null, currentPage - 1, currentPage, currentPage + 1, null, totalPages];
 }
 
 function compareTransactions(

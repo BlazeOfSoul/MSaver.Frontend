@@ -5,7 +5,35 @@
 
 .overview-toolbar {
     display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(7rem, 0.36fr);
+    grid-template-areas:
+        'search search'
+        'account page-size';
+    align-items: end;
     gap: 0.75rem;
+}
+
+.overview-toolbar__account {
+    grid-area: account;
+    min-width: 0;
+}
+
+.overview-toolbar__search {
+    display: grid;
+    grid-area: search;
+    min-width: 0;
+    gap: 0.4rem;
+}
+
+.overview-toolbar__page-size {
+    grid-area: page-size;
+    min-width: 0;
+}
+
+.overview-toolbar__label {
+    color: var(--color-ms-white-alpha-62);
+    font-size: 0.78rem;
+    font-weight: 600;
 }
 
 .transactions-table-shell {

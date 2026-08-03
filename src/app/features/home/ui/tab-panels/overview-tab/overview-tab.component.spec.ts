@@ -368,7 +368,9 @@ describe('OverviewTabComponent', () => {
 
         expect(rows).toHaveLength(5);
         expect(rows[0].textContent ?? '').toContain('Operation 7');
-        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain('1 / 2');
+        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain(
+            'Страница 1 из 2',
+        );
 
         host.querySelector<HTMLButtonElement>('[data-testid="next-transactions-page"]')?.click();
         fixture.detectChanges();
@@ -377,7 +379,9 @@ describe('OverviewTabComponent', () => {
 
         expect(rows).toHaveLength(2);
         expect(rows[0].textContent ?? '').toContain('Operation 2');
-        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain('2 / 2');
+        expect(host.querySelector('.pagination__meta')?.textContent ?? '').toContain(
+            'Страница 2 из 2',
+        );
     });
 
     it('uses different empty messages for no transactions and no search results', () => {
