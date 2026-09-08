@@ -89,6 +89,19 @@ describe('authInterceptor', () => {
         expect(responseSpy).toHaveBeenCalledWith({ ok: true });
     });
 
+    it('does not refresh or send credentials for a protocol-relative external API URL', () => {
+        const errorSpy = vi.fn();
+        http.get('//external.example/api/Accounts').subscribe({ error: errorSpy });
+
+        const request = httpMock.expectOne('//external.example/api/Accounts');
+        expect(request.request.withCredentials).toBe(false);
+        request.flush({}, { status: 401, statusText: 'Unauthorized' });
+
+        expect(errorSpy).toHaveBeenCalledOnce();
+        expect(authService.refresh).not.toHaveBeenCalled();
+        expect(authStore.clearSession).not.toHaveBeenCalled();
+    });
+
     it('refreshes from cookies and retries protected requests after unauthorized responses', () => {
         const responseSpy = vi.fn();
         const refreshResponse: AuthSessionResponse = {

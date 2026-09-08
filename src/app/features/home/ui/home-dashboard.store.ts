@@ -11,6 +11,7 @@ import {
     of,
     range,
     reduce,
+    shareReplay,
     switchMap,
 } from 'rxjs';
 import {
@@ -83,6 +84,8 @@ import {
     DebtSummary,
     calculateDebtSummary,
     calculateDebtTotalsUntilMonth,
+    calculateOutstandingDebt,
+    isDebtCategoryName,
 } from './home-debt.utils';
 import {
     CategoryMoveDirection,
@@ -173,11 +176,15 @@ function writeStoredApplicationCurrencyCode(
     }
 }
 
-interface DashboardPayload {
+interface TransactionHistoryPayload {
+    yearTransactions: TransactionResponse[];
+    priorDebtTransactions: TransactionResponse[];
+}
+
+interface DashboardPayload extends TransactionHistoryPayload {
     accounts: AccountResponse[];
     currentUser: CurrentUserResponse & { applicationCurrencyCode: string };
     transactionPage: PagedResponse<TransactionResponse>;
-    yearTransactions: TransactionResponse[];
     yearBalances: MonthBalanceResponse[];
     exchangeRatesByAccountId: Map<string, number>;
 }
@@ -241,6 +248,11 @@ export class HomeDashboardStore {
     private readonly tagDetailsResponses = signal<TagDetailsResponse[]>([]);
     private readonly transactionResponses = signal<TransactionResponse[]>([]);
     private readonly yearTransactionResponses = signal<TransactionResponse[]>([]);
+    private readonly priorDebtTransactionResponses = signal<TransactionResponse[]>([]);
+    private readonly debtTransactionResponses = computed(() => [
+        ...this.priorDebtTransactionResponses(),
+        ...this.yearTransactionResponses(),
+    ]);
     private readonly yearBalanceResponses = signal<MonthBalanceResponse[]>([]);
     private readonly transactionPageMonthKey = signal<string | null>(null);
     private readonly exchangeRatesByAccountId = signal(new Map<string, number>());
@@ -248,6 +260,7 @@ export class HomeDashboardStore {
     private readonly hasLoadedTagDetails = signal(false);
     private hasLoadedCategories = false;
     private isCategoryDataLoading = false;
+    private categoryListRequest: Observable<CategoryResponse[]> | null = null;
     private isTagDetailsLoading = false;
     readonly isYearTransactionsLoading = signal(false);
     private shouldRefreshTagDetailsAfterLoad = false;
@@ -538,7 +551,7 @@ export class HomeDashboardStore {
             ? this.convertAccountAmount(primaryAccount.id, primaryAccount.balanceValue)
             : 0;
         const selectedMonthKey = monthKey(this.selectedMonth());
-        const debtTransactions = this.yearTransactionResponses().filter(
+        const debtTransactions = this.debtTransactionResponses().filter(
             (transaction) => this.transactionMonthKey(transaction.date) <= selectedMonthKey,
         );
 
@@ -1513,6 +1526,7 @@ export class HomeDashboardStore {
                         },
                         transactionPage: createEmptyTransactionPage(this.transactionPageSize()),
                         yearTransactions: [],
+                        priorDebtTransactions: [],
                         yearBalances: [],
                         exchangeRatesByAccountId: new Map<string, number>(),
                     });
@@ -1527,14 +1541,14 @@ export class HomeDashboardStore {
                         this.transactionQuery(),
                         this.transactionPageSize(),
                     ),
-                    yearTransactions: this.loadTransactions(this.yearTransactionQuery()),
+                    transactionHistory: this.loadTransactionHistory(),
                     yearBalances: this.loadMonthBalances(accounts, [selectedMonth]),
                 }).pipe(
                     map(
                         ({
                             exchangeRatesByAccountId,
                             transactions,
-                            yearTransactions,
+                            transactionHistory,
                             yearBalances,
                         }): DashboardPayload => ({
                             accounts,
@@ -1543,7 +1557,7 @@ export class HomeDashboardStore {
                                 applicationCurrencyCode,
                             },
                             transactionPage: transactions,
-                            yearTransactions,
+                            ...transactionHistory,
                             yearBalances,
                             exchangeRatesByAccountId,
                         }),
@@ -1557,13 +1571,30 @@ export class HomeDashboardStore {
         return this.loadAllPages<AccountResponse>((page) => this.homeApi.getAccounts({ page }));
     }
 
-    private loadCategories() {
-        return this.loadAllPages<CategoryResponse>((page) => this.homeApi.getCategories({ page }));
+    private loadCategories(forceReload = false): Observable<CategoryResponse[]> {
+        if (this.categoryListRequest && !forceReload) {
+            return this.categoryListRequest;
+        }
+
+        // Category UI and debt history need the same list during initial loading.
+        const request = this.loadAllPages<CategoryResponse>((page) =>
+            this.homeApi.getCategories({ page }),
+        ).pipe(
+            finalize(() => {
+                if (this.categoryListRequest === request) {
+                    this.categoryListRequest = null;
+                }
+            }),
+            shareReplay({ bufferSize: 1, refCount: true }),
+        );
+        this.categoryListRequest = request;
+
+        return request;
     }
 
     private loadCategoryData() {
         return forkJoin({
-            categories: this.loadCategories(),
+            categories: this.loadCategories(true),
             order: this.homeApi.getCategoryOrder(),
         });
     }
@@ -1588,13 +1619,57 @@ export class HomeDashboardStore {
 
     private loadTransactions(query: {
         accountId?: string;
-        fromDate: string;
+        categoryId?: string;
+        fromDate?: string;
         toDate: string;
         search?: string;
     }) {
         return this.loadAllPages<TransactionResponse>((page) =>
             this.homeApi.getTransactions({ ...query, page }),
         );
+    }
+
+    private loadTransactionHistory(): Observable<TransactionHistoryPayload> {
+        const query = this.yearTransactionQuery();
+        const yearStartKey = monthKey(startOfYear(this.selectedMonth()));
+        const categories = this.hasLoadedCategories
+            ? of(this.categoryResponses())
+            : this.loadCategories();
+
+        return forkJoin({
+            yearTransactions: this.loadTransactions(query),
+            priorDebtTransactions: categories.pipe(
+                switchMap((items) => {
+                    const debtCategories = items.filter((item) => isDebtCategoryName(item.name));
+
+                    if (!debtCategories.length) {
+                        return of<TransactionResponse[]>([]);
+                    }
+
+                    // Fetch only debt categories before the year, keeping ordinary analytics
+                    // within the selected year and retaining existing server-side pagination.
+                    return from(debtCategories).pipe(
+                        concatMap((category) =>
+                            this.loadTransactions({
+                                categoryId: category.id,
+                                toDate: query.fromDate,
+                            }),
+                        ),
+                        reduce(
+                            (transactions, page) => [...transactions, ...page],
+                            [] as TransactionResponse[],
+                        ),
+                        map((transactions) =>
+                            transactions.filter(
+                                (transaction) =>
+                                    isDebtCategoryName(transaction.category.name) &&
+                                    this.transactionMonthKey(transaction.date) < yearStartKey,
+                            ),
+                        ),
+                    );
+                }),
+            ),
+        });
     }
 
     private loadTransactionPage(
@@ -1688,6 +1763,7 @@ export class HomeDashboardStore {
         this.exchangeRatesByAccountId.set(payload.exchangeRatesByAccountId);
         this.setTransactionPage(payload.transactionPage);
         this.yearTransactionResponses.set(payload.yearTransactions);
+        this.priorDebtTransactionResponses.set(payload.priorDebtTransactions);
         this.areYearTransactionsStale = false;
         this.yearBalanceResponses.set(payload.yearBalances);
         this.loadedFullBalanceYear = null;
@@ -1712,6 +1788,7 @@ export class HomeDashboardStore {
         this.areYearTransactionsStale = false;
         this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()), null);
         this.yearTransactionResponses.set([]);
+        this.priorDebtTransactionResponses.set([]);
         this.yearBalanceResponses.set([]);
         this.exchangeRatesByAccountId.set(new Map<string, number>());
         this.loadedFullBalanceYear = null;
@@ -1836,13 +1913,14 @@ export class HomeDashboardStore {
 
         if (!this.accountResponses().length) {
             this.yearTransactionResponses.set([]);
+            this.priorDebtTransactionResponses.set([]);
             this.areYearTransactionsStale = false;
             return;
         }
 
         this.isYearTransactionsLoading.set(true);
 
-        this.loadTransactions(this.yearTransactionQuery())
+        this.loadTransactionHistory()
             .pipe(
                 finalize(() => {
                     if (requestId === this.selectedYearTransactionsRequestId) {
@@ -1852,12 +1930,13 @@ export class HomeDashboardStore {
                 takeUntilDestroyed(this.destroyRef),
             )
             .subscribe({
-                next: (transactions) => {
+                next: ({ yearTransactions, priorDebtTransactions }) => {
                     if (requestId !== this.selectedYearTransactionsRequestId) {
                         return;
                     }
 
-                    this.yearTransactionResponses.set(transactions);
+                    this.yearTransactionResponses.set(yearTransactions);
+                    this.priorDebtTransactionResponses.set(priorDebtTransactions);
                     this.areYearTransactionsStale = false;
                 },
                 error: (error) => {
@@ -1965,6 +2044,7 @@ export class HomeDashboardStore {
         if (!this.accountResponses().length) {
             this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()));
             this.yearTransactionResponses.set([]);
+            this.priorDebtTransactionResponses.set([]);
             this.yearBalanceResponses.set([]);
             this.loadedFullBalanceYear = null;
             return;
@@ -2062,6 +2142,7 @@ export class HomeDashboardStore {
                             exchangeRatesByAccountId: new Map<string, number>(),
                             transactionPage: createEmptyTransactionPage(this.transactionPageSize()),
                             yearTransactions: [],
+                            priorDebtTransactions: [],
                             yearBalances: [],
                         });
                     }
@@ -2080,16 +2161,19 @@ export class HomeDashboardStore {
                             this.transactionQuery(selectedAccountId),
                             this.transactionPageSize(),
                         ),
-                        yearTransactions: reloadYearTransactions
-                            ? this.loadTransactions(this.yearTransactionQuery())
-                            : of(this.yearTransactionResponses()),
+                        transactionHistory: reloadYearTransactions
+                            ? this.loadTransactionHistory()
+                            : of<TransactionHistoryPayload>({
+                                  yearTransactions: this.yearTransactionResponses(),
+                                  priorDebtTransactions: this.priorDebtTransactionResponses(),
+                              }),
                         yearBalances: this.loadMonthBalances(accounts, balanceMonths),
                     }).pipe(
                         map(
                             ({
                                 exchangeRatesByAccountId,
                                 transactions,
-                                yearTransactions,
+                                transactionHistory,
                                 yearBalances,
                             }) => ({
                                 accounts,
@@ -2099,7 +2183,7 @@ export class HomeDashboardStore {
                                 applicationCurrencyCode,
                                 exchangeRatesByAccountId,
                                 transactionPage: transactions,
-                                yearTransactions,
+                                ...transactionHistory,
                                 yearBalances,
                             }),
                         ),
@@ -2117,6 +2201,7 @@ export class HomeDashboardStore {
                     exchangeRatesByAccountId,
                     transactionPage,
                     yearTransactions,
+                    priorDebtTransactions,
                     yearBalances,
                 }) => {
                     if (requestId !== this.accountDataRequestId) {
@@ -2131,6 +2216,7 @@ export class HomeDashboardStore {
                     this.exchangeRatesByAccountId.set(exchangeRatesByAccountId);
                     this.setTransactionPage(transactionPage);
                     this.yearTransactionResponses.set(yearTransactions);
+                    this.priorDebtTransactionResponses.set(priorDebtTransactions);
                     this.areYearTransactionsStale = accounts.length > 0 && !reloadYearTransactions;
                     this.yearBalanceResponses.set(yearBalances);
                     this.hasLoaded.set(true);
@@ -2867,20 +2953,25 @@ export class HomeDashboardStore {
     }
 
     private buildDebtMonthRows(months: Date[]): AnalyticsCategoryMonthRow[] {
+        const selectedAccountId = this.analyticsSelectedAccountId();
+        const transactions = this.debtTransactionResponses().filter(
+            (transaction) =>
+                selectedAccountId === 'all' || transaction.account.id === selectedAccountId,
+        );
         const debtRows = [
             {
                 id: 'owed-by-me',
                 name: 'Я должен',
                 color: CATEGORY_COLORS[2] ?? CATEGORY_COLORS[0],
                 readValue: (totals: Map<DebtCategoryKind, number>) =>
-                    Math.max(0, (totals.get('taken') ?? 0) - (totals.get('returned') ?? 0)),
+                    calculateOutstandingDebt(totals.get('taken') ?? 0, totals.get('returned') ?? 0),
             },
             {
                 id: 'owed-to-me',
                 name: 'Мне должны',
                 color: CATEGORY_COLORS[0],
                 readValue: (totals: Map<DebtCategoryKind, number>) =>
-                    Math.max(0, (totals.get('given') ?? 0) - (totals.get('received') ?? 0)),
+                    calculateOutstandingDebt(totals.get('given') ?? 0, totals.get('received') ?? 0),
             },
         ];
 
@@ -2888,7 +2979,7 @@ export class HomeDashboardStore {
             .map((row) => {
                 const cells = months.map((month) => {
                     const totals = calculateDebtTotalsUntilMonth(
-                        this.selectedYearTransactions(),
+                        transactions,
                         month,
                         (transaction) => this.convertAnalyticsTransactionAmount(transaction),
                     );
@@ -2912,9 +3003,7 @@ export class HomeDashboardStore {
                     type: 'debt' as const,
                     cells,
                     totalValue,
-                    formattedTotal: totalValue
-                        ? formatMoney(totalValue, this.analyticsCurrencyCode())
-                        : '—',
+                    formattedTotal: formatMoney(totalValue, this.analyticsCurrencyCode()),
                     averageValue,
                     formattedAverage: averageValue
                         ? formatMoney(averageValue, this.analyticsCurrencyCode())
@@ -2946,9 +3035,10 @@ export class HomeDashboardStore {
         return {
             cells,
             totalValue,
-            formattedTotal: totalValue
-                ? formatMoney(totalValue, this.analyticsCurrencyCode())
-                : '—',
+            formattedTotal:
+                totalValue || (options.totalFromLastCell && rows.length > 0)
+                    ? formatMoney(totalValue, this.analyticsCurrencyCode())
+                    : '—',
             averageValue,
             formattedAverage: averageValue
                 ? formatMoney(averageValue, this.analyticsCurrencyCode())

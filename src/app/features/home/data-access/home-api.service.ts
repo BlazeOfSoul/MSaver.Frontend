@@ -159,7 +159,8 @@ export class HomeApiService {
 
     getTransactions(params: {
         accountId?: string;
-        fromDate: string;
+        categoryId?: string;
+        fromDate?: string;
         toDate: string;
         search?: string;
         page?: number;
@@ -168,10 +169,17 @@ export class HomeApiService {
         let httpParams = new HttpParams()
             .set('page', params.page ?? 1)
             .set('size', params.size ?? LIST_SIZE)
-            .set('fromDate', params.fromDate)
             .set('toDate', params.toDate)
             .set('sortBy', 'date')
             .set('sortDirection', 'desc');
+
+        if (params.fromDate) {
+            httpParams = httpParams.set('fromDate', params.fromDate);
+        }
+
+        if (params.categoryId) {
+            httpParams = httpParams.set('categoryId', params.categoryId);
+        }
 
         if (params.accountId) {
             httpParams = httpParams.set('accountId', params.accountId);

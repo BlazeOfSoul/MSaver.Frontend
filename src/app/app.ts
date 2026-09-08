@@ -1,10 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { GlobalLoadingService } from './core/loading/global-loading.service';
+import { PwaUpdateBanner } from './core/pwa/pwa-update-banner';
 
 @Component({
     selector: 'app-root',
-    imports: [RouterOutlet],
+    imports: [RouterOutlet, PwaUpdateBanner],
     templateUrl: './app.html',
     styleUrl: './app.css',
 })

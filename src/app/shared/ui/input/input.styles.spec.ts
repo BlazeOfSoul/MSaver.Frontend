@@ -41,7 +41,7 @@ describe('Input and select mobile text sizing', () => {
         expect(searchRule).not.toContain('backdrop-filter');
     });
 
-    it('keeps the sticky select search fade sharp instead of blurring options', () => {
+    it('keeps the select search fade sharp instead of blurring options', () => {
         const stickyFadeRule = extractRule(selectSearchStyles, '.ms-select__search::after');
 
         expect(stickyFadeRule).not.toContain('backdrop-filter');
@@ -50,11 +50,13 @@ describe('Input and select mobile text sizing', () => {
 
     it('prevents horizontal dropdown scrollbars while preserving vertical option scroll', () => {
         const dropdownRule = extractRule(selectDropdownStyles, '.ms-select__dropdown');
+        const optionsRule = extractRule(selectDropdownStyles, '.ms-select__options');
         const hoverRule = extractRule(selectDropdownStyles, '.ms-select__option:hover');
 
-        expect(dropdownRule).toContain('overflow-x: hidden');
-        expect(dropdownRule).toContain('overflow-y: auto');
-        expect(dropdownRule).not.toContain('overflow: auto');
+        expect(dropdownRule).toContain('overflow: hidden');
+        expect(optionsRule).toContain('overflow-x: hidden');
+        expect(optionsRule).toContain('overflow-y: auto');
+        expect(optionsRule).toContain('grid-template-columns: minmax(0, 1fr)');
         expect(hoverRule).not.toContain('transform');
     });
 
