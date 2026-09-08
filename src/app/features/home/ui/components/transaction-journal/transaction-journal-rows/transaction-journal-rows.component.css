@@ -71,12 +71,15 @@
 
 .transaction-category {
     display: inline-flex;
+    min-width: 0;
     max-width: 100%;
     align-items: center;
     gap: 0.35rem;
     padding: 0.28rem 0.55rem;
     border: 1px solid color-mix(in oklab, var(--category-color), transparent 76%);
-    border-radius: 999px;
+    border-radius: 0.6rem;
+    box-sizing: border-box;
+    line-height: 1.4;
     color: color-mix(in oklab, var(--color-ms-light-dark), var(--category-color) 34%);
     background:
         linear-gradient(180deg, var(--color-ms-white-alpha-035), transparent),
@@ -84,6 +87,16 @@
     font-size: 0.82rem;
     font-weight: 700;
     overflow-wrap: anywhere;
+}
+
+.transaction-category > span:first-child {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.transaction-category__badge {
+    flex-shrink: 0;
 }
 
 .transaction-category__badge {

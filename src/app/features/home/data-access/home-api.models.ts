@@ -167,6 +167,8 @@ export interface CreateTransferResponse {
 }
 
 export interface TransferRateResponse {
+    updatedAtUtc?: string;
+    isStale?: boolean;
     rate: number;
     fromCurrencyCode: string;
     toCurrencyCode: string;

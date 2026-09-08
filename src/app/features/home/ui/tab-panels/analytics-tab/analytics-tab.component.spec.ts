@@ -204,7 +204,7 @@ describe('AnalyticsTabComponent', () => {
             title.textContent?.trim(),
         );
 
-        expect(chartTitles).toContain('Переводы на счёт');
+        expect(chartTitles).toContain('Переводы между счетами');
         expect(component.transferIncomeLabels()).toEqual(['Jan', 'Feb']);
         expect(component.transferIncomeDatasets()[0].data).toEqual([150, 0]);
     });

@@ -44,6 +44,11 @@ import {
     selectLimitedBreakdownItems,
 } from './analytics-tab.helpers';
 import { createTransactionsCsvExport } from './analytics-csv-export.utils';
+import {
+    DebtDetailItem,
+    DebtDetailSelection,
+    DebtDetailsComponent,
+} from '../../components/debt-details/debt-details.component';
 
 @Component({
     selector: 'ms-analytics-tab',
@@ -53,6 +58,7 @@ import { createTransactionsCsvExport } from './analytics-csv-export.utils';
         AnalyticsMonthTableComponent,
         AnalyticsOverviewPanelComponent,
         SelectComponent,
+        DebtDetailsComponent,
     ],
     templateUrl: './analytics-tab.component.html',
     styleUrls: [
@@ -73,6 +79,8 @@ export class AnalyticsTabComponent {
     monthlyExpenses = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     balanceDynamics = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     transferIncome = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
+    transferExpense = input<ReadonlyArray<AnalyticsSeriesPoint>>([]);
+    currencyCode = input('');
     savingsRate = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     tagExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     topExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
@@ -81,6 +89,8 @@ export class AnalyticsTabComponent {
     selectedMonth = input.required<Date>();
     transactions = input.required<ReadonlyArray<TransactionResponse>>();
     transactionsLoading = input(false);
+    debtDetails = input<ReadonlyArray<DebtDetailItem>>([]);
+    readonly selectedDebtDetail = signal<DebtDetailSelection | null>(null);
 
     accountChange = output<string>();
     readonly activeView = signal<AnalyticsViewId>('monthly');
@@ -224,6 +234,28 @@ export class AnalyticsTabComponent {
     );
 
     readonly netCashFlowLabels = computed(() => chartLabels(this.incomeVsExpense()));
+    readonly transferComparisonDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
+        ...buildValueDataset('Поступило', this.transferIncome(), MS_ANALYTICS_CHART_COLORS.balance),
+        ...buildValueDataset(
+            'Отправлено',
+            this.transferExpense(),
+            MS_ANALYTICS_CHART_COLORS.expense,
+        ),
+    ]);
+    readonly detailedSavingsDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
+        {
+            label: 'Осталось от дохода',
+            data: this.incomeVsExpense().map((item) =>
+                item.income > 0 ? ((item.income - item.expense) / item.income) * 100 : NaN,
+            ),
+            color: MS_ANALYTICS_CHART_COLORS.balance,
+            colors: this.incomeVsExpense().map((item) =>
+                item.income < item.expense
+                    ? MS_ANALYTICS_CHART_COLORS.expense
+                    : MS_ANALYTICS_CHART_COLORS.balance,
+            ),
+        },
+    ]);
     readonly netCashFlowDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
         buildNetCashFlowDataset(
             this.incomeVsExpense(),

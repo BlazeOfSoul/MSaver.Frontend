@@ -1,17 +1,11 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import {
-    AnalyticsCategoryMonthRow,
-    AnalyticsCategoryMonthSummary,
-} from '../../home-page.models';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { AnalyticsCategoryMonthRow, AnalyticsCategoryMonthSummary } from '../../home-page.models';
 
 @Component({
     selector: 'ms-analytics-month-table',
     standalone: true,
     templateUrl: './analytics-month-table.component.html',
-    styleUrls: [
-        './analytics-month-table.component.css',
-        './analytics-month-table.part-2.css',
-    ],
+    styleUrls: ['./analytics-month-table.component.css', './analytics-month-table.part-2.css'],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AnalyticsMonthTableComponent {
@@ -22,4 +16,6 @@ export class AnalyticsMonthTableComponent {
     summary = input<AnalyticsCategoryMonthSummary | undefined>();
     emptyText = input.required<string>();
     showWhenEmpty = input(false);
+    detailsEnabled = input(false);
+    detailRequested = output<{ rowId: string; monthIndex: number }>();
 }

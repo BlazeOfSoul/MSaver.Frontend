@@ -19,6 +19,8 @@ export interface ChartThemeColors {
 }
 
 interface BuildChartConfigurationParams {
+    horizontal?: boolean;
+    unit?: string;
     type: HomeChartType;
     labels: ReadonlyArray<string>;
     datasets: ReadonlyArray<HomeChartDataset>;
@@ -30,6 +32,8 @@ export function buildChartConfiguration({
     labels,
     datasets,
     themeColors,
+    horizontal = false,
+    unit = '',
 }: BuildChartConfigurationParams): ChartConfiguration<HomeChartType, number[], string> {
     const chartDatasets = datasets.map((dataset) => ({
         label: dataset.label,
@@ -43,7 +47,7 @@ export function buildChartConfiguration({
                     dataset.data.map((_, index) => resolveChartLegendColor(index, datasets)))
                   : type === 'bar'
                     ? (dataset.colors ?? dataset.color)
-                  : dataset.color,
+                    : dataset.color,
         pointBackgroundColor: dataset.color,
         pointBorderColor: dataset.color,
         tension: 0.34,
@@ -60,6 +64,8 @@ export function buildChartConfiguration({
             datasets: chartDatasets,
         },
         options: {
+            indexAxis: horizontal ? 'y' : 'x',
+            animation: false,
             responsive: true,
             maintainAspectRatio: false,
             interaction: {
@@ -68,7 +74,7 @@ export function buildChartConfiguration({
             },
             plugins: {
                 legend: {
-                    display: type === 'line',
+                    display: type === 'line' || datasets.length > 1,
                     labels: {
                         color: themeColors.legendText,
                         usePointStyle: true,
@@ -82,6 +88,10 @@ export function buildChartConfiguration({
                     bodyColor: themeColors.tooltipBody,
                     borderColor: themeColors.tooltipBorder,
                     borderWidth: 1,
+                    callbacks: {
+                        label: (context) =>
+                            `${context.dataset.label ?? ''}: ${formatChartValue(Number(context.raw), unit)}`,
+                    },
                 },
             },
             scales:
@@ -89,15 +99,20 @@ export function buildChartConfiguration({
                     ? undefined
                     : {
                           x: {
+                              beginAtZero: horizontal,
                               ticks: {
                                   color: themeColors.axisText,
                                   autoSkip: true,
                                   maxRotation: 0,
                                   minRotation: 0,
-                                  callback: (value) => truncateChartAxisLabel(labels, Number(value)),
+                                  callback: (value) =>
+                                      horizontal
+                                          ? formatChartValue(Number(value), unit)
+                                          : truncateChartAxisLabel(labels, Number(value)),
                               },
                               grid: {
-                                  display: false,
+                                  display: horizontal,
+                                  color: themeColors.gridLine,
                               },
                               border: {
                                   display: false,
@@ -107,9 +122,15 @@ export function buildChartConfiguration({
                               beginAtZero: true,
                               ticks: {
                                   color: themeColors.axisSubtleText,
-                                  maxTicksLimit: 6,
+                                  autoSkip: !horizontal,
+                                  maxTicksLimit: horizontal ? labels.length : 6,
+                                  callback: (value) =>
+                                      horizontal
+                                          ? truncateChartAxisLabel(labels, Number(value))
+                                          : formatChartValue(Number(value), unit),
                               },
                               grid: {
+                                  display: !horizontal,
                                   color: themeColors.gridLine,
                               },
                               border: {
@@ -119,6 +140,14 @@ export function buildChartConfiguration({
                       },
         },
     };
+}
+
+export function formatChartValue(value: number, unit: string): string {
+    if (!Number.isFinite(value)) return '—';
+    return (
+        new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(value) +
+        (unit ? ` ${unit}` : '')
+    );
 }
 
 export function resolveChartLegendColor(

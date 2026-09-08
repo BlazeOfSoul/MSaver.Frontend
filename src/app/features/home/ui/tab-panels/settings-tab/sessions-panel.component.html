@@ -1,0 +1,40 @@
+<section aria-labelledby="sessions-title">
+    <div class="heading">
+        <div>
+            <h2 id="sessions-title">Активные сеансы</h2>
+            <p>Завершение сеанса сразу закрывает доступ с него. Новый вход потребует пароль.</p>
+        </div>
+        <ms-button variant="neutral" appearance="outline" [disabled]="busy()" (onClick)="reload()"
+            >Обновить</ms-button
+        >
+    </div>
+    @if (error()) {
+        <p role="alert">{{ error() }}</p>
+    }
+    @if (busy() && !loaded()) {
+        <p role="status">Загружаем сеансы…</p>
+    }
+    @for (session of sessions(); track session.clientId) {
+        <div class="session">
+            <div>
+                <strong>{{ session.isCurrent ? 'Текущий сеанс' : 'Другой сеанс' }}</strong>
+                <small>Вход: {{ session.createdAt | date: 'dd.MM.yyyy HH:mm' }}</small>
+            </div>
+            <ms-button
+                variant="danger"
+                appearance="outline"
+                [disabled]="busy()"
+                (onClick)="revoke(session)"
+                >Завершить</ms-button
+            >
+        </div>
+    }
+    @if (loaded() && sessions().length === 0) {
+        <p>Активных сеансов нет.</p>
+    }
+    @if (sessions().length) {
+        <ms-button variant="danger" appearance="outline" [disabled]="busy()" (onClick)="revoke()"
+            >Выйти на всех устройствах</ms-button
+        >
+    }
+</section>

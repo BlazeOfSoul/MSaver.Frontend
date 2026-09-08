@@ -228,6 +228,16 @@ export class HomeApiService {
         });
     }
 
+    getExchangeRate(
+        fromCurrencyCode: string,
+        toCurrencyCode: string,
+    ): Observable<TransferRateResponse> {
+        const params = new HttpParams()
+            .set('fromCurrencyCode', fromCurrencyCode)
+            .set('toCurrencyCode', toCurrencyCode);
+        return this.http.get<TransferRateResponse>(`${this.baseUrl}/exchange-rates`, { params });
+    }
+
     getBudgets(year: number, month: number, timeZoneId: string): Observable<GetBudgetsResponse> {
         const params = new HttpParams()
             .set('year', year)

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { SwPush } from '@angular/service-worker';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, throwError, firstValueFrom } from 'rxjs';
 import { PwaPushNotificationService } from './pwa-push-notification.service';
 
 function pushSubscription(overrides: Partial<PushSubscription> = {}): PushSubscription {
@@ -48,6 +48,21 @@ describe('PwaPushNotificationService', () => {
             post: vi.fn(() => of(undefined)),
             delete: vi.fn(() => of(undefined)),
         };
+
+        vi.stubGlobal(
+            'navigator',
+            Object.create(navigator, {
+                serviceWorker: {
+                    value: {
+                        getRegistration: vi.fn(async () => ({
+                            pushManager: {
+                                getSubscription: () => firstValueFrom(swPush.subscription),
+                            },
+                        })),
+                    },
+                },
+            }),
+        );
 
         vi.stubGlobal('Notification', { permission: 'default' });
 

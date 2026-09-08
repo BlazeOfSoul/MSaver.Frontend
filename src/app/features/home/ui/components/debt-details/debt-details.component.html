@@ -1,0 +1,56 @@
+<ms-dialog-shell (closed)="closed.emit()">
+    <section
+        class="debt-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="debt-detail-title"
+    >
+        <header>
+            <div>
+                <h2 id="debt-detail-title">{{ title() }}</h2>
+                <p>Остаток на конец {{ until() }} · {{ currency() }}</p>
+            </div>
+            <ms-button variant="neutral" appearance="outline" (onClick)="closed.emit()"
+                >Закрыть</ms-button
+            >
+        </header>
+        <p>
+            Учтены операции выбранного счёта, включая предыдущие годы. Для всех счетов суммы
+            пересчитаны по текущему курсу.
+        </p>
+        <div class="formula" aria-label="Расчёт остатка">
+            <span
+                >Возникло <strong>{{ money(increased()) }}</strong></span
+            >
+            <span
+                >Возвращено <strong>{{ money(decreased()) }}</strong></span
+            >
+            <span
+                >Осталось <strong>{{ money(balance()) }}</strong></span
+            >
+        </div>
+        @if (decreased() > increased()) {
+            <p>Возвратов больше выдач. Остаток ограничен нулём; проверьте полноту истории.</p>
+        }
+        <div class="operations">
+            @for (item of visibleItems(); track item.id) {
+                <article>
+                    <div>
+                        <strong>{{ item.category }}</strong
+                        ><small
+                            >{{ item.date | date: 'dd.MM.yyyy HH:mm' }} · {{ item.account }}</small
+                        >
+                        @if (item.description) {
+                            <small>{{ item.description }}</small>
+                        }
+                    </div>
+                    <b [class.repayment]="item.kind === decreaseKind()"
+                        >{{ item.kind === increaseKind() ? '+' : '−' }}{{ item.amountLabel }}</b
+                    >
+                </article>
+            } @empty {
+                <p>Операций до конца этого месяца нет.</p>
+            }
+        </div>
+    </section>
+</ms-dialog-shell>

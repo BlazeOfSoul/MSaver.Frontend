@@ -1,6 +1,7 @@
 import { PLATFORM_ID, computed, inject, Injectable, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { AuthSessionResponse } from '../../../core/models/auth.models';
+import { clearPrivateDataCache } from '../../../core/cache/private-data-cache';
 
 const LEGACY_SESSION_KEYS = [
     'access_token',
@@ -34,6 +35,7 @@ export class AuthStore {
     }
 
     setSession(response: AuthSessionResponse): void {
+        if (this.isBrowser) clearPrivateDataCache(response.id);
         this.clientIdSignal.set(response.clientId);
         this.userIdSignal.set(response.id);
         this.userNameSignal.set(this.resolveSessionUserName(response));
@@ -42,6 +44,7 @@ export class AuthStore {
     }
 
     clearSession(): void {
+        if (this.isBrowser) clearPrivateDataCache();
         this.clientIdSignal.set(null);
         this.userIdSignal.set(null);
         this.userNameSignal.set(null);

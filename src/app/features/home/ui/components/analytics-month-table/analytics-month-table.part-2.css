@@ -95,3 +95,22 @@
         background: var(--color-ms-primary-alpha-07);
     }
 }
+
+.debt-explanation {
+    color: var(--color-ms-light-dark);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+.debt-value {
+    padding: 0.25rem;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-bottom: 1px dotted currentColor;
+    cursor: pointer;
+    font: inherit;
+}
+.debt-value:focus-visible {
+    outline: 2px solid var(--color-ms-primary);
+    outline-offset: 2px;
+}

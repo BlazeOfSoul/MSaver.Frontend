@@ -1,6 +1,18 @@
 <section class="settings-layout">
     <article class="panel settings-panel settings-hero">
         <div>
+            <h2>Оформление</h2>
+            <p>Тема сохраняется на этом устройстве.</p>
+        </div>
+        <ms-select
+            label="Тема приложения"
+            [options]="themeOptions"
+            [value]="theme.selected()"
+            (valueChange)="theme.setPreference($event)"
+        />
+    </article>
+    <article class="panel settings-panel settings-hero">
+        <div>
             <h2>Валюта приложения</h2>
             <p>
                 Основная валюта используется для баланса, аналитики, переводов и сводных графиков.
@@ -108,4 +120,5 @@
             }
         </div>
     </article>
+    <ms-sessions-panel />
 </section>

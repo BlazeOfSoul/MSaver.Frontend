@@ -34,7 +34,7 @@
         </button>
 
         @if (isOpen()) {
-        <div class="ms-select__dropdown">
+        <div class="ms-select__dropdown" [style.max-height.px]="dropdownMaxHeight()">
             @if (searchable()) {
             <div class="ms-select__search" (click)="$event.stopPropagation()">
                 <span class="material-symbols-outlined ms-select__search-icon" aria-hidden="true">

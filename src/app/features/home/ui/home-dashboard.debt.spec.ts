@@ -258,7 +258,8 @@ describe('HomeDashboardStore debt history', () => {
         store.loadDashboard();
 
         expect(api.getCategories).toHaveBeenCalledTimes(1);
-        expect(store.isLoading()).toBe(true);
+        expect(store.isLoading()).toBe(false);
+        expect(store.historyReady()).toBe(false);
         pendingCategories.next(page(categories));
         pendingCategories.complete();
         expect(store.isLoading()).toBe(false);

@@ -80,6 +80,10 @@ export class Button {
     onClickEvent = output<Event>({ alias: 'onClick' });
 
     onAction(event: Event) {
+        if (event instanceof KeyboardEvent) {
+            event.preventDefault();
+            if (event.repeat) return;
+        }
         event.stopPropagation();
 
         if (this.disabled() || this.loading()) return;

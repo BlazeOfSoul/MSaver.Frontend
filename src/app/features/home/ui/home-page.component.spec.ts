@@ -114,6 +114,7 @@ describe('HomePageComponent', () => {
     };
     let authService: {
         logout: ReturnType<typeof vi.fn>;
+        sessions: ReturnType<typeof vi.fn>;
     };
     let homeApi: {
         getAccounts: ReturnType<typeof vi.fn>;
@@ -142,6 +143,7 @@ describe('HomePageComponent', () => {
         deleteTransaction: ReturnType<typeof vi.fn>;
         createTransfer: ReturnType<typeof vi.fn>;
         getTransferRate: ReturnType<typeof vi.fn>;
+        getExchangeRate: ReturnType<typeof vi.fn>;
         assignTagCategories: ReturnType<typeof vi.fn>;
     };
     let router: {
@@ -165,6 +167,7 @@ describe('HomePageComponent', () => {
         };
         authService = {
             logout: vi.fn(() => of(undefined)),
+            sessions: vi.fn(() => of([])),
         };
         router = {
             navigateByUrl: vi.fn(),
@@ -175,6 +178,9 @@ describe('HomePageComponent', () => {
             disable: vi.fn(() => Promise.resolve()),
         };
         homeApi = {
+            getExchangeRate: vi.fn((fromCurrencyCode: string, toCurrencyCode: string) =>
+                of({ rate: 0.8, fromCurrencyCode, toCurrencyCode }),
+            ),
             getAccounts: vi.fn(() => of(page<AccountResponse>([]))),
             getCurrentUser: vi.fn(() =>
                 of<CurrentUserResponse>({
@@ -308,7 +314,7 @@ describe('HomePageComponent', () => {
         expect(host.textContent ?? '').toContain('Транзакции');
     });
 
-    it('places planning tools in the existing sections without adding primary tabs', () => {
+    it('places planning tools in the existing sections without adding primary tabs', async () => {
         homeApi.getAccounts.mockReturnValue(
             of(
                 page<AccountResponse>([
@@ -325,6 +331,8 @@ describe('HomePageComponent', () => {
         );
 
         fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        await fixture.whenStable();
         fixture.detectChanges();
 
         expect(fixture.componentInstance.tabs.map((tab) => tab.id)).toEqual([
@@ -343,6 +351,8 @@ describe('HomePageComponent', () => {
             '[data-testid="transaction-subtab-planned"]',
         )?.click();
         fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
 
         let planningHosts = fixture.debugElement.queryAll(By.directive(PlanningTabComponent));
         expect(planningHosts).toHaveLength(1);
@@ -350,6 +360,8 @@ describe('HomePageComponent', () => {
         expect(planningHosts[0].componentInstance.embedded()).toBe(true);
 
         fixture.componentInstance.setActiveTab('analytics');
+        fixture.detectChanges();
+        await fixture.whenStable();
         fixture.detectChanges();
 
         planningHosts = fixture.debugElement.queryAll(By.directive(PlanningTabComponent));
@@ -361,11 +373,15 @@ describe('HomePageComponent', () => {
 
         fixture.componentInstance.setActiveTab('categories');
         fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
 
         expect(host.querySelector('ms-categories-tab')).not.toBeNull();
         expect(fixture.debugElement.queryAll(By.directive(PlanningTabComponent))).toHaveLength(0);
 
         host.querySelector<HTMLButtonElement>('[data-testid="category-subtab-budgets"]')?.click();
+        fixture.detectChanges();
+        await fixture.whenStable();
         fixture.detectChanges();
 
         planningHosts = fixture.debugElement.queryAll(By.directive(PlanningTabComponent));
@@ -376,6 +392,8 @@ describe('HomePageComponent', () => {
         );
 
         fixture.componentInstance.setActiveTab('accounts');
+        fixture.detectChanges();
+        await fixture.whenStable();
         fixture.detectChanges();
 
         expect(fixture.debugElement.queryAll(By.directive(PlanningTabComponent))).toHaveLength(0);
@@ -500,7 +518,7 @@ describe('HomePageComponent', () => {
         vi.useRealTimers();
     });
 
-    it('refreshes account data after first-login account creation without reloading current user', () => {
+    it('refreshes account data after first-login account creation without reloading current user', async () => {
         const primaryAccount: AccountResponse = {
             id: 'primary-account',
             name: 'Основной счёт',
@@ -516,6 +534,8 @@ describe('HomePageComponent', () => {
             .mockReturnValueOnce(of(page<AccountResponse>([primaryAccount])));
 
         fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        await fixture.whenStable();
         fixture.detectChanges();
 
         const component = fixture.componentInstance;
@@ -537,6 +557,8 @@ describe('HomePageComponent', () => {
         expect(component.applicationCurrencyCode()).toBe('USD');
 
         component.setActiveTab('settings');
+        fixture.detectChanges();
+        await fixture.whenStable();
         fixture.detectChanges();
 
         expect((fixture.nativeElement as HTMLElement).textContent ?? '').toContain('USD');
@@ -930,7 +952,7 @@ describe('HomePageComponent', () => {
         }
     });
 
-    it('loads additional paged transaction data sequentially', () => {
+    it('loads additional history pages concurrently while displaying the journal', () => {
         const pendingSecondYearPage = new Subject<PagedResponse<TransactionResponse>>();
         const pendingThirdYearPage = new Subject<PagedResponse<TransactionResponse>>();
         const wasYearPageRequested = (pageNumber: number) =>
@@ -972,7 +994,9 @@ describe('HomePageComponent', () => {
         fixture.detectChanges();
 
         expect(wasYearPageRequested(2)).toBe(true);
-        expect(wasYearPageRequested(3)).toBe(false);
+        expect(wasYearPageRequested(3)).toBe(true);
+        expect(fixture.componentInstance.isLoading()).toBe(false);
+        expect(fixture.componentInstance.dashboard.historyReady()).toBe(false);
 
         pendingSecondYearPage.next(page<TransactionResponse>([]));
         pendingSecondYearPage.complete();
@@ -1312,7 +1336,7 @@ describe('HomePageComponent', () => {
         vi.useRealTimers();
     });
 
-    it('loads selected month balances sequentially during the initial overview load', () => {
+    it('loads selected month balances with bounded concurrency during the initial overview load', () => {
         const firstBalance$ = new Subject<MonthBalanceResponse>();
         const accounts: AccountResponse[] = [
             {
@@ -1358,7 +1382,7 @@ describe('HomePageComponent', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
-        expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(1);
+        expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(2);
         expect(homeApi.getMonthBalance).toHaveBeenCalledWith(
             'main-account',
             expect.any(Number),
@@ -2480,7 +2504,7 @@ describe('HomePageComponent', () => {
         vi.useRealTimers();
     });
 
-    it('hides the delete action for the primary account and refreshes accounts after deleting another account', () => {
+    it('hides the delete action for the primary account and refreshes accounts after deleting another account', async () => {
         homeApi.getAccounts.mockReturnValue(
             of(
                 page([
@@ -2508,8 +2532,12 @@ describe('HomePageComponent', () => {
 
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
 
         fixture.componentInstance.setActiveTab('accounts');
+        fixture.detectChanges();
+        await fixture.whenStable();
         fixture.detectChanges();
 
         const host = fixture.nativeElement as HTMLElement;
@@ -3823,7 +3851,7 @@ describe('HomePageComponent', () => {
         expect(fixture.componentInstance.accountSummaryBalanceLabel()).toContain('€');
     });
 
-    it('loads application exchange rates sequentially instead of starting every rate request at once', () => {
+    it('loads application exchange rates with bounded concurrency', () => {
         const bynRate$ = new Subject<{
             rate: number;
             fromCurrencyCode: string;
@@ -3914,7 +3942,7 @@ describe('HomePageComponent', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
-        expect(homeApi.getTransferRate).toHaveBeenCalledTimes(1);
+        expect(homeApi.getTransferRate).toHaveBeenCalledTimes(2);
         expect(homeApi.getTransferRate).toHaveBeenCalledWith('byn-account', 'eur-account');
 
         bynRate$.next({

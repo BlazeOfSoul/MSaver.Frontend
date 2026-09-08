@@ -1,0 +1,57 @@
+:host {
+    display: block;
+    min-width: 0;
+}
+section {
+    display: grid;
+    gap: 1rem;
+    padding: 1.2rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background: var(--color-ms-surface-raised);
+}
+h2 {
+    margin: 0;
+    color: var(--color-ms-light);
+    font-size: 1.05rem;
+}
+p {
+    margin: 0.25rem 0 0;
+    color: var(--color-ms-light-dark);
+    line-height: 1.5;
+}
+.heading,
+.session {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+}
+.session {
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--color-ms-border);
+}
+.session > div {
+    min-width: 0;
+}
+strong {
+    color: var(--color-ms-light);
+}
+small {
+    display: block;
+    color: var(--color-ms-light-dark);
+    margin-top: 0.25rem;
+}
+ms-button {
+    justify-self: start;
+    flex-shrink: 0;
+}
+@media (max-width: 500px) {
+    .heading {
+        flex-wrap: wrap;
+    }
+    .session {
+        gap: 0.5rem;
+    }
+}

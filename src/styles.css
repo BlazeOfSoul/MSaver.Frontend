@@ -583,6 +583,15 @@ ms-button.ms-btn.ms-btn-danger {
     --glow-color: var(--color-ms-danger-alpha-2);
 }
 
+ms-button.ms-btn.ms-btn-danger:is(.ms-btn-ghost, .ms-btn-outline, .ms-btn-icon, .ms-btn-chip) {
+    --text-color: var(--color-ms-danger-soft);
+}
+
+ms-button.ms-btn.ms-btn-primary:is(.ms-btn-ghost, .ms-btn-icon, .ms-btn-chip),
+ms-button.ms-btn.ms-btn-success:is(.ms-btn-ghost, .ms-btn-outline, .ms-btn-icon, .ms-btn-chip) {
+    --text-color: var(--color-ms-primary-soft);
+}
+
 ms-button.ms-btn.ms-btn-secondary {
     --bg-color: var(--color-ms-surface-raised);
     --text-color: var(--color-ms-light);

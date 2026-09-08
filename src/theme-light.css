@@ -1,0 +1,92 @@
+:root[data-theme='light'] {
+    color-scheme: light;
+    --color-ms-primary: #087a53;
+    --color-ms-primary-soft: #096746;
+    --color-ms-primary-deep: #07583f;
+    --color-ms-secondary: #f0f5f2;
+    --color-ms-accent: #e3ede6;
+    --color-ms-accent-dark: #d7e5dc;
+    --color-ms-dark: #f4f7f5;
+    --color-ms-dark-light: #edf3ef;
+    --color-ms-light: #172d23;
+    --color-ms-light-dark: #51675a;
+    --color-ms-surface: #ffffff;
+    --color-ms-surface-raised: #f9fcfa;
+    --color-ms-surface-elevated: #ffffff;
+    --color-ms-border: rgb(43 78 57 / 16%);
+    --color-ms-border-strong: rgb(43 78 57 / 30%);
+    --color-ms-text-subtle: #526859;
+    --color-ms-text-faint: #64796b;
+    --color-ms-text-inverse: #ffffff;
+    --color-ms-info: #226f94;
+    --color-ms-success: #087a53;
+    --color-ms-warning: #966013;
+    --color-ms-danger: #bb294c;
+    --color-ms-danger-soft: #a71f40;
+    --color-ms-text-danger-soft: #a71f40;
+    --color-ms-text-success-soft: #087a53;
+    --color-ms-page-bg-start: #f4f7f5;
+    --color-ms-page-bg-mid: #eef5f0;
+    --color-ms-page-bg-end: #f8faf9;
+    --color-ms-page-overlay-start: transparent;
+    --color-ms-page-overlay-end: transparent;
+    --color-ms-loader-bg: #f9fcfa;
+    --color-ms-chart-tooltip-bg: #ffffff;
+    --color-ms-chart-tooltip-title: #172d23;
+    --color-ms-chart-tooltip-body: #425a4b;
+    --color-ms-chart-tooltip-border: #c8d9ce;
+    --color-ms-chart-legend-text: #314d3d;
+    --color-ms-chart-axis-text: #526859;
+    --color-ms-chart-axis-subtle-text: #526859;
+    --color-ms-chart-grid-line: rgb(43 78 57 / 10%);
+    --color-ms-black-alpha-18: rgb(43 78 57 / 4%);
+    --color-ms-black-alpha-24: rgb(43 78 57 / 6%);
+    --color-ms-black-alpha-26: rgb(43 78 57 / 7%);
+    --color-ms-black-alpha-28: rgb(43 78 57 / 8%);
+    --color-ms-black-alpha-32: rgb(43 78 57 / 10%);
+}
+
+@media (max-width: 760px), (prefers-reduced-motion: reduce) {
+    html {
+        animation: none;
+    }
+    ms-button.ms-btn {
+        backdrop-filter: none;
+    }
+}
+
+:root[data-theme='light'] {
+    --color-ms-white-alpha-01: rgba(23, 45, 35, 0.01);
+    --color-ms-white-alpha-015: rgba(23, 45, 35, 0.015);
+    --color-ms-white-alpha-02: rgba(23, 45, 35, 0.02);
+    --color-ms-white-alpha-025: rgba(23, 45, 35, 0.025);
+    --color-ms-white-alpha-03: rgba(23, 45, 35, 0.03);
+    --color-ms-white-alpha-035: rgba(23, 45, 35, 0.035);
+    --color-ms-white-alpha-04: rgba(23, 45, 35, 0.04);
+    --color-ms-white-alpha-045: rgba(23, 45, 35, 0.045);
+    --color-ms-white-alpha-05: rgba(23, 45, 35, 0.05);
+    --color-ms-white-alpha-055: rgba(23, 45, 35, 0.055);
+    --color-ms-white-alpha-06: rgba(23, 45, 35, 0.06);
+    --color-ms-white-alpha-07: rgba(23, 45, 35, 0.07);
+    --color-ms-white-alpha-08: rgba(23, 45, 35, 0.08);
+    --color-ms-white-alpha-09: rgba(23, 45, 35, 0.09);
+    --color-ms-white-alpha-1: rgba(23, 45, 35, 0.1);
+    --color-ms-white-alpha-12: rgba(23, 45, 35, 0.12);
+    --color-ms-white-alpha-14: rgba(23, 45, 35, 0.14);
+    --color-ms-white-alpha-16: rgba(23, 45, 35, 0.16);
+    --color-ms-white-alpha-18: rgba(23, 45, 35, 0.18);
+    --color-ms-white-alpha-22: rgba(23, 45, 35, 0.22);
+    --color-ms-white-alpha-24: rgba(23, 45, 35, 0.24);
+    --color-ms-white-alpha-38: rgba(23, 45, 35, 0.38);
+    --color-ms-white-alpha-42: rgba(23, 45, 35, 0.42);
+    --color-ms-white-alpha-44: rgba(23, 45, 35, 0.44);
+    --color-ms-white-alpha-46: rgba(23, 45, 35, 0.46);
+    --color-ms-white-alpha-55: rgba(23, 45, 35, 0.55);
+    --color-ms-white-alpha-56: rgba(23, 45, 35, 0.56);
+    --color-ms-white-alpha-58: rgba(23, 45, 35, 0.58);
+    --color-ms-white-alpha-62: rgba(23, 45, 35, 0.62);
+    --color-ms-white-alpha-66: rgba(23, 45, 35, 0.66);
+    --color-ms-white-alpha-68: rgba(23, 45, 35, 0.68);
+    --color-ms-white-alpha-72: rgba(23, 45, 35, 0.72);
+    --color-ms-white-alpha-78: rgba(23, 45, 35, 0.78);
+}
