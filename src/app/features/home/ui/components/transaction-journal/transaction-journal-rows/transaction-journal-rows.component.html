@@ -39,37 +39,39 @@
             [class.transactions-table__actions--with-edit]="isTransactionEditable(item)"
             [class.transactions-table__actions--split]="!isTransactionEditable(item)"
         >
-            @if (isTransactionEditable(item)) {
-                <ms-button
-                    appearance="ghost"
-                    variant="neutral"
-                    size="sm"
-                    class="transaction-action-button transaction-edit-action transaction-edit-action--readable"
-                    data-testid="edit-transaction"
-                    [disabled]="saving()"
-                    (onClick)="editTransaction.emit(item)"
-                    aria-label="Редактировать транзакцию"
-                >
-                    <span class="material-symbols-outlined">edit</span>
-                    <span class="transaction-edit-action__label">Изменить</span>
-                </ms-button>
-            }
+            <div class="transaction-actions">
+                @if (isTransactionEditable(item)) {
+                    <ms-button
+                        appearance="ghost"
+                        variant="neutral"
+                        size="sm"
+                        class="transaction-action-button transaction-edit-action transaction-edit-action--readable"
+                        data-testid="edit-transaction"
+                        [disabled]="saving()"
+                        (onClick)="editTransaction.emit(item)"
+                        aria-label="Редактировать транзакцию"
+                    >
+                        <span class="material-symbols-outlined">edit</span>
+                        <span class="transaction-edit-action__label">Изменить</span>
+                    </ms-button>
+                }
 
-            @if (canDeleteTransaction(item)) {
-                <ms-button
-                    appearance="ghost"
-                    variant="danger"
-                    size="sm"
-                    class="transaction-action-button transaction-delete-action transaction-delete-action--readable"
-                    data-testid="delete-transaction"
-                    [disabled]="saving()"
-                    (onClick)="deleteTransaction.emit(item.id)"
-                    aria-label="Удалить транзакцию"
-                >
-                    <span class="material-symbols-outlined">delete</span>
-                    <span class="transaction-delete-action__label">Удалить</span>
-                </ms-button>
-            }
+                @if (canDeleteTransaction(item)) {
+                    <ms-button
+                        appearance="ghost"
+                        variant="danger"
+                        size="sm"
+                        class="transaction-action-button transaction-delete-action transaction-delete-action--readable"
+                        data-testid="delete-transaction"
+                        [disabled]="saving()"
+                        (onClick)="deleteTransaction.emit(item.id)"
+                        aria-label="Удалить транзакцию"
+                    >
+                        <span class="material-symbols-outlined">delete</span>
+                        <span class="transaction-delete-action__label">Удалить</span>
+                    </ms-button>
+                }
+            </div>
         </td>
     </tr>
 }

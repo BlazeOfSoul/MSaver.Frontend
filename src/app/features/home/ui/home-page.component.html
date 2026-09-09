@@ -25,7 +25,13 @@
                         (logout)="logout()"
                     ></ms-main-header>
 
-                    <ms-main-summary-cards [cards]="summaryCards()"></ms-main-summary-cards>
+                    @if (dashboard.summaryReady()) {
+                        <ms-main-summary-cards [cards]="summaryCards()"></ms-main-summary-cards>
+                    } @else if (!isLoading()) {
+                        <p class="data-notice" role="status">
+                            Уточняем сводку: балансы, курсы и полную историю долгов.
+                        </p>
+                    }
 
                     <ms-main-tab-bar
                         [tabs]="tabs"
@@ -58,6 +64,17 @@
                             (retry)="reloadDashboard()"
                             (dismiss)="dismissError()"
                         ></ms-home-error-alert>
+                    }
+
+                    @if (dashboard.cachedDataAt()) {
+                        <p class="data-notice" role="status">
+                            Показана сохранённая копия данных. Обновляем при подключении к серверу.
+                        </p>
+                    }
+                    @if (dashboard.exchangeRateNotice()) {
+                        <p class="data-notice" role="status">
+                            {{ dashboard.exchangeRateNotice() }}
+                        </p>
                     }
 
                     @if (isLoading()) {
@@ -98,113 +115,141 @@
                             }
 
                             @case ('accounts') {
-                                <ms-accounts-tab
-                                    [accounts]="accountList()"
-                                    [allAccounts]="accounts()"
-                                    [transferDraft]="transferDraft()"
-                                    [currencyOptions]="currencyOptions"
-                                    [accountOptions]="accountOptions()"
-                                    [accountFilterOptions]="toolbarAccountOptions()"
-                                    [searchControl]="accountSearchControl"
-                                    [selectedAccountId]="accountsSelectedAccountId()"
-                                    [summaryBalanceLabel]="accountSummaryBalanceLabel()"
-                                    [summaryBalanceValue]="accountSummaryBalance()"
-                                    [newAccountName]="newAccountName()"
-                                    [newAccountCurrency]="newAccountCurrency()"
-                                    [newAccountInitialBalance]="newAccountInitialBalance()"
-                                    [newAccountNameError]="accountNameError()"
-                                    [transferRateError]="transferRateError()"
-                                    [rateLoading]="isTransferRateLoading()"
-                                    [saving]="isSaving()"
-                                    (accountChange)="setAccountsAccountFilter($event)"
-                                    (transferDraftChange)="updateTransferDraft($event)"
-                                    (newAccountNameChange)="setNewAccountName($event)"
-                                    (newAccountCurrencyChange)="setNewAccountCurrency($event)"
-                                    (newAccountInitialBalanceChange)="
-                                        setNewAccountInitialBalance($event)
-                                    "
-                                    (createAccount)="createNewAccount()"
-                                    (deleteAccount)="deleteAccount($event)"
-                                    (renameAccount)="renameAccount($event)"
-                                    (submitTransfer)="transferBetweenAccounts()"
-                                ></ms-accounts-tab>
+                                @defer (on immediate) {
+                                    <ms-accounts-tab
+                                        [accounts]="accountList()"
+                                        [allAccounts]="accounts()"
+                                        [transferDraft]="transferDraft()"
+                                        [currencyOptions]="currencyOptions"
+                                        [accountOptions]="accountOptions()"
+                                        [accountFilterOptions]="toolbarAccountOptions()"
+                                        [searchControl]="accountSearchControl"
+                                        [selectedAccountId]="accountsSelectedAccountId()"
+                                        [summaryBalanceLabel]="accountSummaryBalanceLabel()"
+                                        [summaryBalanceValue]="accountSummaryBalance()"
+                                        [newAccountName]="newAccountName()"
+                                        [newAccountCurrency]="newAccountCurrency()"
+                                        [newAccountInitialBalance]="newAccountInitialBalance()"
+                                        [newAccountNameError]="accountNameError()"
+                                        [transferRateError]="transferRateError()"
+                                        [rateLoading]="isTransferRateLoading()"
+                                        [saving]="isSaving()"
+                                        (accountChange)="setAccountsAccountFilter($event)"
+                                        (transferDraftChange)="updateTransferDraft($event)"
+                                        (newAccountNameChange)="setNewAccountName($event)"
+                                        (newAccountCurrencyChange)="setNewAccountCurrency($event)"
+                                        (newAccountInitialBalanceChange)="
+                                            setNewAccountInitialBalance($event)
+                                        "
+                                        (createAccount)="createNewAccount()"
+                                        (deleteAccount)="deleteAccount($event)"
+                                        (renameAccount)="renameAccount($event)"
+                                        (submitTransfer)="transferBetweenAccounts()"
+                                    ></ms-accounts-tab>
+                                } @placeholder {
+                                    <p class="data-notice" role="status">Открываем раздел…</p>
+                                }
                             }
 
                             @case ('analytics') {
-                                <ms-analytics-tab
-                                    [metrics]="analyticsMetrics()"
-                                    [incomeVsExpense]="incomeVsExpense()"
-                                    [categoryMonthTable]="categoryMonthTable()"
-                                    [expenseCategories]="analyticsExpenseCategories()"
-                                    [incomeCategories]="analyticsIncomeCategories()"
-                                    [monthlyExpenses]="monthlyExpensesChart()"
-                                    [balanceDynamics]="balanceDynamicsChart()"
-                                    [transferIncome]="transferIncomeChart()"
-                                    [savingsRate]="savingsRateChart()"
-                                    [tagExpenses]="tagExpensesChart()"
-                                    [topExpenses]="topExpensesChart()"
-                                    [accountOptions]="toolbarAccountOptions()"
-                                    [selectedAccountId]="analyticsSelectedAccountId()"
-                                    [selectedMonth]="selectedMonth()"
-                                    [transactions]="analyticsMonthTransactions()"
-                                    [transactionsLoading]="analyticsTransactionsLoading()"
-                                    (accountChange)="setAnalyticsAccountFilter($event)"
-                                ></ms-analytics-tab>
+                                @defer (on immediate) {
+                                    <ms-analytics-tab
+                                        [metrics]="analyticsMetrics()"
+                                        [incomeVsExpense]="incomeVsExpense()"
+                                        [categoryMonthTable]="categoryMonthTable()"
+                                        [debtDetails]="dashboard.debtDetailItems()"
+                                        [expenseCategories]="analyticsExpenseCategories()"
+                                        [incomeCategories]="analyticsIncomeCategories()"
+                                        [monthlyExpenses]="monthlyExpensesChart()"
+                                        [balanceDynamics]="balanceDynamicsChart()"
+                                        [transferIncome]="transferIncomeChart()"
+                                        [transferExpense]="dashboard.transferExpenseChart()"
+                                        [currencyCode]="dashboard.analyticsCurrencyCode()"
+                                        [transferAccounts]="dashboard.transferAccounts()"
+                                        [tagExpenses]="tagExpensesChart()"
+                                        [topExpenses]="topExpensesChart()"
+                                        [accountOptions]="toolbarAccountOptions()"
+                                        [selectedAccountId]="analyticsSelectedAccountId()"
+                                        [selectedMonth]="selectedMonth()"
+                                        [transactions]="analyticsMonthTransactions()"
+                                        [transactionsLoading]="
+                                            analyticsTransactionsLoading() ||
+                                            !dashboard.summaryReady()
+                                        "
+                                        (accountChange)="setAnalyticsAccountFilter($event)"
+                                    ></ms-analytics-tab>
+                                } @placeholder {
+                                    <p class="data-notice" role="status">Открываем раздел…</p>
+                                }
                             }
 
                             @case ('categories') {
-                                <ms-categories-tab
-                                    [incomeCategories]="filteredIncomeCategories()"
-                                    [expenseCategories]="filteredExpenseCategories()"
-                                    [incomeCategoryOrderItems]="incomeCategories()"
-                                    [expenseCategoryOrderItems]="expenseCategories()"
-                                    [tagGroups]="filteredTagGroups()"
-                                    [categoryOptions]="allCategoryOptions()"
-                                    [searchControl]="categorySearchControl"
-                                    [newIncomeCategory]="newIncomeCategory()"
-                                    [newExpenseCategory]="newExpenseCategory()"
-                                    [newIncomeCategoryColor]="newIncomeCategoryColor()"
-                                    [newExpenseCategoryColor]="newExpenseCategoryColor()"
-                                    [newTagGroup]="newTagGroup()"
-                                    [newTagGroupColor]="newTagGroupColor()"
-                                    [saving]="isSaving()"
-                                    [budgetMonth]="selectedMonth()"
-                                    [budgetAccountOptions]="accountOptions()"
-                                    (newIncomeCategoryChange)="setNewIncomeCategory($event)"
-                                    (newExpenseCategoryChange)="setNewExpenseCategory($event)"
-                                    (newIncomeCategoryColorChange)="
-                                        setNewIncomeCategoryColor($event)
-                                    "
-                                    (newExpenseCategoryColorChange)="
-                                        setNewExpenseCategoryColor($event)
-                                    "
-                                    (newTagGroupChange)="setNewTagGroup($event)"
-                                    (newTagGroupColorChange)="setNewTagGroupColor($event)"
-                                    (addIncomeCategory)="addIncomeCategory()"
-                                    (addExpenseCategory)="addExpenseCategory()"
-                                    (deleteCategory)="deleteCategory($event)"
-                                    (moveCategory)="moveCategory($event)"
-                                    (reorderCategories)="reorderCategories($event)"
-                                    (resetCategoryOrder)="resetCategoryOrder()"
-                                    (addTagGroup)="addTagGroup()"
-                                    (deleteTag)="deleteTag($event)"
-                                    (assignCategoryToTag)="assignCategoryToTag($event)"
-                                    (removeCategoryFromTag)="removeCategoryFromTag($event)"
-                                ></ms-categories-tab>
+                                @defer (on immediate) {
+                                    <ms-categories-tab
+                                        [incomeCategories]="filteredIncomeCategories()"
+                                        [expenseCategories]="filteredExpenseCategories()"
+                                        [incomeCategoryOrderItems]="incomeCategories()"
+                                        [expenseCategoryOrderItems]="expenseCategories()"
+                                        [tagGroups]="filteredTagGroups()"
+                                        [categoryOptions]="allCategoryOptions()"
+                                        [searchControl]="categorySearchControl"
+                                        [newIncomeCategory]="newIncomeCategory()"
+                                        [newExpenseCategory]="newExpenseCategory()"
+                                        [newIncomeCategoryColor]="newIncomeCategoryColor()"
+                                        [newExpenseCategoryColor]="newExpenseCategoryColor()"
+                                        [newTagGroup]="newTagGroup()"
+                                        [newTagGroupColor]="newTagGroupColor()"
+                                        [saving]="isSaving()"
+                                        [budgetMonth]="selectedMonth()"
+                                        [budgetAccountOptions]="accountOptions()"
+                                        (newIncomeCategoryChange)="setNewIncomeCategory($event)"
+                                        (newExpenseCategoryChange)="setNewExpenseCategory($event)"
+                                        (newIncomeCategoryColorChange)="
+                                            setNewIncomeCategoryColor($event)
+                                        "
+                                        (newExpenseCategoryColorChange)="
+                                            setNewExpenseCategoryColor($event)
+                                        "
+                                        (newTagGroupChange)="setNewTagGroup($event)"
+                                        (newTagGroupColorChange)="setNewTagGroupColor($event)"
+                                        (addIncomeCategory)="addIncomeCategory()"
+                                        (addExpenseCategory)="addExpenseCategory()"
+                                        (deleteCategory)="deleteCategory($event)"
+                                        (moveCategory)="moveCategory($event)"
+                                        (reorderCategories)="reorderCategories($event)"
+                                        (resetCategoryOrder)="resetCategoryOrder()"
+                                        (addTagGroup)="addTagGroup()"
+                                        (deleteTag)="deleteTag($event)"
+                                        (assignCategoryToTag)="assignCategoryToTag($event)"
+                                        (removeCategoryFromTag)="removeCategoryFromTag($event)"
+                                    ></ms-categories-tab>
+                                } @placeholder {
+                                    <p class="data-notice" role="status">Открываем раздел…</p>
+                                }
                             }
 
                             @case ('settings') {
-                                <ms-settings-tab
-                                    [applicationCurrencyCode]="applicationCurrencyCode()"
-                                    [categorySortMode]="categorySortMode()"
-                                    [balanceDisplayAccountId]="selectedBalanceDisplayAccountId()"
-                                    [balanceDisplayOptions]="balanceDisplayOptions()"
-                                    [currencyOptions]="currencyOptions"
-                                    [saving]="isSaving()"
-                                    (applicationCurrencyChange)="updateApplicationCurrency($event)"
-                                    (balanceDisplayAccountChange)="setBalanceDisplayAccount($event)"
-                                    (categorySortModeChange)="setCategorySortMode($event)"
-                                ></ms-settings-tab>
+                                @defer (on immediate) {
+                                    <ms-settings-tab
+                                        [applicationCurrencyCode]="applicationCurrencyCode()"
+                                        [categorySortMode]="categorySortMode()"
+                                        [balanceDisplayAccountId]="
+                                            selectedBalanceDisplayAccountId()
+                                        "
+                                        [balanceDisplayOptions]="balanceDisplayOptions()"
+                                        [currencyOptions]="currencyOptions"
+                                        [saving]="isSaving()"
+                                        (applicationCurrencyChange)="
+                                            updateApplicationCurrency($event)
+                                        "
+                                        (balanceDisplayAccountChange)="
+                                            setBalanceDisplayAccount($event)
+                                        "
+                                        (categorySortModeChange)="setCategorySortMode($event)"
+                                    ></ms-settings-tab>
+                                } @placeholder {
+                                    <p class="data-notice" role="status">Открываем раздел…</p>
+                                }
                             }
                         }
                     }

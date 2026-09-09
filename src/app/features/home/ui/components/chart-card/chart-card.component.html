@@ -7,7 +7,7 @@
     </header>
 
     <div class="chart-card__body" [style.height.px]="height()">
-        <canvas #canvas></canvas>
+        <canvas #canvas role="img" [attr.aria-label]="title() + '. ' + subtitle()"></canvas>
 
         @if (!hasData) {
             <div class="chart-card__empty">
@@ -31,5 +31,32 @@
                 </span>
             }
         </div>
+    }
+    @if (showValues() && labels().length) {
+        <details class="chart-values">
+            <summary>Показать точные значения</summary>
+            <div class="chart-values__scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Период / счёт</th>
+                            @for (dataset of datasets(); track $index) {
+                                <th scope="col">{{ dataset.label }}</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (label of labels(); track $index; let index = $index) {
+                            <tr>
+                                <th scope="row">{{ label }}</th>
+                                @for (dataset of datasets(); track $index) {
+                                    <td>{{ formatValue(dataset.data[index]) }}</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </details>
     }
 </article>

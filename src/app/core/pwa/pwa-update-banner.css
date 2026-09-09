@@ -1,0 +1,63 @@
+.update-banner {
+    position: fixed;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    left: max(1rem, env(safe-area-inset-left));
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    max-width: 38rem;
+    margin-inline: auto;
+    padding: 1rem;
+    border: 1px solid var(--color-ms-border-strong);
+    border-radius: 1rem;
+    color: var(--color-ms-text-primary);
+    background: var(--color-ms-surface-elevated);
+    box-shadow: 0 12px 36px var(--color-ms-black-alpha-26);
+}
+
+p {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+span {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--color-ms-text-muted);
+    font-size: 0.8rem;
+}
+
+button {
+    flex: 0 0 auto;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--color-ms-primary);
+    border-radius: 0.7rem;
+    color: var(--color-ms-text-inverse);
+    background: var(--color-ms-primary-soft);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+button:focus-visible {
+    outline: 2px solid var(--color-ms-text-primary);
+    outline-offset: 3px;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+@media (max-width: 480px) {
+    .update-banner {
+        top: max(0.75rem, env(safe-area-inset-top));
+        bottom: auto;
+        flex-wrap: wrap;
+    }
+}

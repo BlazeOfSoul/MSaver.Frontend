@@ -22,6 +22,20 @@
         (accountChange)="accountChange.emit($event)"
     ></ms-account-list-panel>
 
+    @for (chart of balanceCharts(); track chart.currency) {
+        <ms-chart-card
+            [title]="'Счета · ' + chart.currency"
+            subtitle="Баланс и изменение за выбранный месяц. Учитываются поиск и фильтр счетов; каждая валюта показана отдельно."
+            type="bar"
+            [horizontal]="true"
+            [showValues]="true"
+            [unit]="chart.currency"
+            [labels]="chart.labels"
+            [datasets]="chart.datasets"
+            [height]="chart.height"
+        />
+    }
+
     <article class="panel">
         <div class="panel__header">
             <div>

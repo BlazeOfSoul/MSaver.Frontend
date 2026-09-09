@@ -1,6 +1,5 @@
 import { inject, Injectable } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class LocalPushSubscriptionService {
@@ -11,7 +10,15 @@ export class LocalPushSubscriptionService {
             return null;
         }
 
-        return firstValueFrom(this.swPush.subscription).catch(() => null);
+        try {
+            // Reading an existing registration resolves immediately even on a first
+            // visit. SwPush.subscription waits for a worker and can hold up the
+            // auth guards until registerWhenStable's 30-second fallback.
+            const registration = await globalThis.navigator?.serviceWorker?.getRegistration();
+            return (await registration?.pushManager?.getSubscription()) ?? null;
+        } catch {
+            return null;
+        }
     }
 
     async unsubscribeCurrent(): Promise<void> {

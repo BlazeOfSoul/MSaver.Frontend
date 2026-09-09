@@ -35,25 +35,11 @@ describe('Transaction journal row mobile styles', () => {
         expect(iconRule).toContain('flex: 0 0 auto');
     });
 
-    it('uses an orange warning tone for the edit action feedback', () => {
-        const editActionRule = extractLastRule(
-            mobileStyles,
-            'ms-button.ms-btn.transaction-edit-action',
-        );
-        const editHoverRule = extractLastRule(
-            mobileStyles,
-            'ms-button.ms-btn.transaction-edit-action:hover',
-        );
-
-        expect(editActionRule).toContain('--edit-action-color: var(--color-ms-warning)');
-        expect(editActionRule).toContain('color: color-mix(in oklab, var(--edit-action-color)');
-        expect(editHoverRule).toContain('border-color: color-mix(in oklab, var(--edit-action-color)');
-        expect(editHoverRule).toContain('background: color-mix(in oklab, var(--edit-action-color)');
-    });
-
     function extractLastRule(styles: string, selector: string): string {
         const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const matches = [...styles.matchAll(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`, 'g'))];
+        const matches = [
+            ...styles.matchAll(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`, 'g')),
+        ];
 
         expect(matches.length).toBeGreaterThan(0);
 

@@ -1,5 +1,11 @@
 <article class="analytics-table-card">
     <h3>{{ title() }}</h3>
+    @if (detailsEnabled()) {
+        <p class="debt-explanation">
+            Месяц — остаток на конец месяца. Итого — остаток на конец года. Среднее — по месяцам с
+            ненулевым остатком. Нажмите сумму для расшифровки.
+        </p>
+    }
 
     @if (rows().length || showWhenEmpty()) {
         <div class="analytics-table-shell">
@@ -21,13 +27,37 @@
                                 <i [style.background]="row.color"></i>
                                 <span>{{ row.name }}</span>
                             </th>
-                            @for (cell of row.cells; track cell.label) {
+                            @for (cell of row.cells; track cell.label; let monthIndex = $index) {
                                 <td [attr.data-label]="cell.label">
-                                    {{ cell.formattedValue }}
+                                    @if (detailsEnabled()) {
+                                        <button
+                                            type="button"
+                                            class="debt-value"
+                                            (click)="
+                                                detailRequested.emit({ rowId: row.id, monthIndex })
+                                            "
+                                        >
+                                            {{ cell.formattedValue }}
+                                        </button>
+                                    } @else {
+                                        {{ cell.formattedValue }}
+                                    }
                                 </td>
                             }
                             <td data-label="Итого">
-                                <strong>{{ row.formattedTotal }}</strong>
+                                @if (detailsEnabled()) {
+                                    <button
+                                        type="button"
+                                        class="debt-value"
+                                        (click)="
+                                            detailRequested.emit({ rowId: row.id, monthIndex: 11 })
+                                        "
+                                    >
+                                        <strong>{{ row.formattedTotal }}</strong>
+                                    </button>
+                                } @else {
+                                    <strong>{{ row.formattedTotal }}</strong>
+                                }
                             </td>
                             <td data-label="Среднее">
                                 <strong>{{ row.formattedAverage }}</strong>

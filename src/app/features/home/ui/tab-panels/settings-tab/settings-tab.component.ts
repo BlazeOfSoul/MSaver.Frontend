@@ -16,16 +16,24 @@ import {
 import { Button } from '../../../../../shared/ui/button/button';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import { CategorySortMode } from '../../home-category-order.utils';
+import { ThemeService } from '../../../../../shared/theme/theme.service';
+import { SessionsPanelComponent } from './sessions-panel.component';
 
 @Component({
     selector: 'ms-settings-tab',
     standalone: true,
-    imports: [Button, SelectComponent],
+    imports: [Button, SelectComponent, SessionsPanelComponent],
     templateUrl: './settings-tab.component.html',
     styleUrl: './settings-tab.component.css',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SettingsTabComponent implements OnInit {
+    readonly theme = inject(ThemeService);
+    readonly themeOptions: ReadonlyArray<MsSelectOption> = [
+        { value: 'dark', label: 'Тёмная' },
+        { value: 'light', label: 'Светлая' },
+        { value: 'system', label: 'Как на устройстве' },
+    ];
     private readonly pushNotifications = inject(PwaPushNotificationService);
 
     applicationCurrencyCode = input.required<string>();

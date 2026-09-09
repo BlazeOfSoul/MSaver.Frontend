@@ -4,22 +4,16 @@
     left: 0;
     right: 0;
     z-index: 120;
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 0.35rem;
     max-height: 16rem;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    box-sizing: border-box;
+    overflow: hidden;
     padding: 0.45rem;
     border: 1px solid var(--color-ms-border-strong);
     border-radius: 0.5rem;
-    background:
-        linear-gradient(
-            180deg,
-            color-mix(in oklab, var(--color-ms-surface-raised), transparent 2%),
-            color-mix(in oklab, var(--color-ms-surface-raised), transparent 4%)
-        ),
-        color-mix(in oklab, var(--color-ms-surface-raised), transparent 4%);
+    background: var(--color-ms-surface-raised);
     box-shadow:
         0 24px 48px var(--color-ms-black-alpha-28),
         inset 0 1px 0 var(--color-ms-white-alpha-04);
@@ -37,6 +31,7 @@
 .ms-select__option {
     --option-color: var(--color-ms-primary);
     display: flex;
+    min-width: 0;
     max-width: 100%;
     min-height: 2.8rem;
     align-items: center;
@@ -57,7 +52,13 @@
 
 .ms-select__options {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
     gap: 0.35rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .ms-select__option-label {

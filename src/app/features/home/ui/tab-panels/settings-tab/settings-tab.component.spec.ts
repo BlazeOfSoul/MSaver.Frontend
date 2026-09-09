@@ -1,3 +1,5 @@
+import { of } from 'rxjs';
+import { AuthService } from '../../../../auth/data-access/auth.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PwaPushNotificationService } from '../../../../../core/push/pwa-push-notification.service';
 import { SettingsTabComponent } from './settings-tab.component';
@@ -19,7 +21,10 @@ describe('SettingsTabComponent', () => {
 
         await TestBed.configureTestingModule({
             imports: [SettingsTabComponent],
-            providers: [{ provide: PwaPushNotificationService, useValue: pushNotifications }],
+            providers: [
+                { provide: PwaPushNotificationService, useValue: pushNotifications },
+                { provide: AuthService, useValue: { sessions: () => of([]) } },
+            ],
         }).compileComponents();
 
         fixture = TestBed.createComponent(SettingsTabComponent);
@@ -59,7 +64,8 @@ describe('SettingsTabComponent', () => {
         const host = fixture.nativeElement as HTMLElement;
         const panels = Array.from(host.querySelectorAll<HTMLElement>('.settings-panel'));
 
-        expect(panels).toHaveLength(4);
+        expect(panels).toHaveLength(5);
+        expect(panels.shift()?.textContent).toContain('Оформление');
         expect(panels[0].textContent).toContain('Валюта приложения');
         expect(panels[0].textContent).not.toContain('Баланс на главной');
         expect(panels[0].textContent).not.toContain('Порядок категорий');

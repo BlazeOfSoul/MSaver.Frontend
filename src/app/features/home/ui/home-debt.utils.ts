@@ -79,14 +79,26 @@ export function calculateDebtSummary<T extends DebtTransactionSource>(
     readAmount: (transaction: T) => number,
 ): DebtSummary {
     const totals = calculateDebtTotals(transactions, readAmount);
-    const owedByMe = Math.max(0, (totals.get('taken') ?? 0) - (totals.get('returned') ?? 0));
-    const owedToMe = Math.max(0, (totals.get('given') ?? 0) - (totals.get('received') ?? 0));
+    const owedByMe = calculateOutstandingDebt(
+        totals.get('taken') ?? 0,
+        totals.get('returned') ?? 0,
+    );
+    const owedToMe = calculateOutstandingDebt(
+        totals.get('given') ?? 0,
+        totals.get('received') ?? 0,
+    );
 
     return {
         owedByMe,
         owedToMe,
         balanceAfterClosing: primaryBalance - owedByMe + owedToMe,
     };
+}
+
+export function calculateOutstandingDebt(loaned: number, repaid: number): number {
+    // Normalize the net amount to the same minor units as the displayed currencies.
+    // Otherwise 0.1 + 0.2 - 0.3 leaves a positive "debt" that is displayed as zero.
+    return Math.max(0, Math.round((loaned - repaid) * 100) / 100);
 }
 
 export function calculateDebtTotalsUntilMonth<T extends DebtTransactionSource>(

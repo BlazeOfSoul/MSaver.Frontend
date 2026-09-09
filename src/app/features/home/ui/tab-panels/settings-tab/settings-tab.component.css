@@ -1,10 +1,21 @@
 :host {
     display: block;
+    min-width: 0;
 }
 
 .settings-layout {
     display: grid;
     gap: 1rem;
+}
+
+.settings-panel > * {
+    min-width: 0;
+}
+.settings-panel h2 {
+    font-size: 1.05rem;
+}
+.settings-panel p {
+    line-height: 1.5;
 }
 
 .panel {
@@ -111,7 +122,7 @@
 @media (min-width: 760px) {
     .settings-hero,
     .settings-notifications {
-        grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.35fr);
+        grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.6fr);
         align-items: center;
     }
 }

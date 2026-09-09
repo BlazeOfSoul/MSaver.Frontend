@@ -151,6 +151,26 @@ describe('AccountListPanelComponent', () => {
         expect(currencySpy).not.toHaveBeenCalled();
     });
 
+    it('saves a chosen account color while preserving its name', () => {
+        const selected = account({ id: 'reserve', name: 'Reserve', color: '#123456' });
+        fixture.componentRef.setInput('accounts', [selected]);
+        fixture.componentRef.setInput('allAccounts', [selected]);
+        const save = vi.fn();
+        fixture.componentInstance.renameAccount.subscribe(save);
+        fixture.detectChanges();
+        const host = fixture.nativeElement as HTMLElement;
+        host.querySelector<HTMLButtonElement>('[data-testid="rename-account"]')!.click();
+        fixture.detectChanges();
+        host.querySelector<HTMLButtonElement>('[aria-label="Цвет 6"]')!.click();
+        fixture.detectChanges();
+        host.querySelector<HTMLButtonElement>('[data-testid="submit-account-rename"]')!.click();
+        expect(save).toHaveBeenCalledWith({
+            accountId: 'reserve',
+            name: 'Reserve',
+            color: '#5896ed',
+        });
+    });
+
     it('allows every account to be renamed from the account list', () => {
         const renameSpy = vi.fn();
         const primary = account({ id: 'primary-account', name: 'Main', isPrimary: true });

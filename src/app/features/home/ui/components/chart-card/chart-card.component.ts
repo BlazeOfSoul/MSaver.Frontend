@@ -7,6 +7,7 @@ import {
     ViewChild,
     effect,
     input,
+    inject,
 } from '@angular/core';
 import {
     ArcElement,
@@ -27,8 +28,10 @@ import {
     buildChartConfiguration,
     readChartThemeColors,
     resolveChartLegendColor,
+    formatChartValue,
 } from './chart-card.config';
 import { HomeChartDataset, HomeChartType } from '../../home-page.models';
+import { ThemeService } from '../../../../../shared/theme/theme.service';
 
 Chart.register(
     BarController,
@@ -53,6 +56,7 @@ Chart.register(
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChartCardComponent implements AfterViewInit, OnDestroy {
+    private readonly theme = inject(ThemeService);
     @ViewChild('canvas') private canvasRef?: ElementRef<HTMLCanvasElement>;
 
     type = input<HomeChartType>('bar');
@@ -61,8 +65,14 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
     labels = input<ReadonlyArray<string>>([]);
     datasets = input<ReadonlyArray<HomeChartDataset>>([]);
     height = input<number>(240);
+    horizontal = input(false);
+    unit = input('');
+    showValues = input(false);
+    formatValue(value: number): string {
+        return formatChartValue(value, this.unit());
+    }
 
-    private chart: Chart | null = null;
+    private chart: Chart<HomeChartType, number[], string> | null = null;
     private isViewReady = false;
 
     constructor() {
@@ -71,6 +81,9 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
             this.labels();
             this.datasets();
             this.height();
+            this.horizontal();
+            this.unit();
+            this.theme.resolved();
 
             if (this.isViewReady) {
                 this.renderChart();
@@ -79,7 +92,9 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
     }
 
     get hasData(): boolean {
-        return this.datasets().some((dataset) => dataset.data.some((value) => value > 0));
+        return this.datasets().some((dataset) =>
+            dataset.data.some((value) => Number.isFinite(value) && value !== 0),
+        );
     }
 
     ngAfterViewInit(): void {
@@ -107,6 +122,8 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
                 labels: this.labels(),
                 datasets: this.datasets(),
                 themeColors: readChartThemeColors(),
+                horizontal: this.horizontal(),
+                unit: this.unit(),
             }),
         );
     }

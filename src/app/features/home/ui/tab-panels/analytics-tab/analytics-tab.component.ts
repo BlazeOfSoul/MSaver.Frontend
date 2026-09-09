@@ -1,4 +1,7 @@
 import { DOCUMENT } from '@angular/common';
+import { SavingsSummaryComponent } from '../../components/savings-summary/savings-summary.component';
+import { TransferSummaryComponent } from '../../components/transfer-summary/transfer-summary.component';
+import { TransferAccountSummary } from '../../home-transfer-summary';
 import {
     ChangeDetectionStrategy,
     Component,
@@ -44,6 +47,11 @@ import {
     selectLimitedBreakdownItems,
 } from './analytics-tab.helpers';
 import { createTransactionsCsvExport } from './analytics-csv-export.utils';
+import {
+    DebtDetailItem,
+    DebtDetailSelection,
+    DebtDetailsComponent,
+} from '../../components/debt-details/debt-details.component';
 
 @Component({
     selector: 'ms-analytics-tab',
@@ -53,6 +61,9 @@ import { createTransactionsCsvExport } from './analytics-csv-export.utils';
         AnalyticsMonthTableComponent,
         AnalyticsOverviewPanelComponent,
         SelectComponent,
+        DebtDetailsComponent,
+        SavingsSummaryComponent,
+        TransferSummaryComponent,
     ],
     templateUrl: './analytics-tab.component.html',
     styleUrls: [
@@ -73,7 +84,9 @@ export class AnalyticsTabComponent {
     monthlyExpenses = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     balanceDynamics = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     transferIncome = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
-    savingsRate = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
+    transferExpense = input<ReadonlyArray<AnalyticsSeriesPoint>>([]);
+    currencyCode = input('');
+    transferAccounts = input<ReadonlyArray<TransferAccountSummary>>([]);
     tagExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     topExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     accountOptions = input.required<ReadonlyArray<MsSelectOption>>();
@@ -81,6 +94,8 @@ export class AnalyticsTabComponent {
     selectedMonth = input.required<Date>();
     transactions = input.required<ReadonlyArray<TransactionResponse>>();
     transactionsLoading = input(false);
+    debtDetails = input<ReadonlyArray<DebtDetailItem>>([]);
+    readonly selectedDebtDetail = signal<DebtDetailSelection | null>(null);
 
     accountChange = output<string>();
     readonly activeView = signal<AnalyticsViewId>('monthly');
@@ -224,21 +239,19 @@ export class AnalyticsTabComponent {
     );
 
     readonly netCashFlowLabels = computed(() => chartLabels(this.incomeVsExpense()));
+    readonly transferComparisonDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
+        ...buildValueDataset('Поступило', this.transferIncome(), MS_ANALYTICS_CHART_COLORS.balance),
+        ...buildValueDataset(
+            'Отправлено',
+            this.transferExpense(),
+            MS_ANALYTICS_CHART_COLORS.expense,
+        ),
+    ]);
     readonly netCashFlowDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
         buildNetCashFlowDataset(
             this.incomeVsExpense(),
             'Чистый поток',
             MS_ANALYTICS_CHART_COLORS.balance,
-        ),
-    );
-
-    readonly savingsRateLabels = computed(() => chartLabels(this.savingsRate()));
-    readonly savingsRateDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
-        buildValueDataset(
-            'Норма накоплений',
-            this.savingsRate(),
-            MS_ANALYTICS_CHART_COLORS.savings,
-            true,
         ),
     );
 

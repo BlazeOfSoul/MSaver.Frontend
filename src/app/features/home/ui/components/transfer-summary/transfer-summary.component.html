@@ -1,0 +1,57 @@
+<section class="transfer-summary" aria-label="Влияние переводов на счета">
+    <header>
+        <h3>Как переводы изменили счета</h3>
+        <p>
+            {{ year() }} год. Плюс — счёт получил больше, чем отправил. Минус — с него ушло больше
+            денег. Каждая валюта показана отдельно.
+        </p>
+    </header>
+    @for (group of groups(); track group.currency) {
+        @if (group.hasNetChange) {
+            <ms-chart-card
+                [title]="'Изменение по счетам · ' + group.currency"
+                subtitle="Поступило минус отправлено. Учитывается выбранный счёт."
+                type="bar"
+                [horizontal]="true"
+                [unit]="group.currency"
+                [height]="group.height"
+                [labels]="group.labels"
+                [datasets]="group.datasets"
+            />
+        } @else {
+            <p class="balanced">
+                {{ group.currency }}: входящие и исходящие переводы уравновесились.
+            </p>
+        }
+        <div class="table-scroll">
+            <table [attr.aria-label]="'Переводы по счетам в ' + group.currency">
+                <thead>
+                    <tr>
+                        <th scope="col">Счёт</th>
+                        <th scope="col">Поступило</th>
+                        <th scope="col">Отправлено</th>
+                        <th scope="col">Изменение</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (item of group.rows; track item.id) {
+                        <tr>
+                            <th scope="row">{{ item.name }}</th>
+                            <td data-label="Поступило">
+                                {{ money(item.incoming, item.currency) }}
+                            </td>
+                            <td data-label="Отправлено">
+                                {{ money(item.outgoing, item.currency) }}
+                            </td>
+                            <td data-label="Изменение" [class.negative]="item.net < 0">
+                                <strong>{{ signedMoney(item.net, item.currency) }}</strong>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    } @empty {
+        <p class="balanced">За выбранный год переводов по этим счетам нет.</p>
+    }
+</section>

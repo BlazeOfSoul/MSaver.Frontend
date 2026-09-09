@@ -71,4 +71,21 @@ describe('home debt utils', () => {
         expect(totals.get('given')).toBe(200);
         expect(totals.get('received')).toBe(0);
     });
+
+    it('clears fully repaid fractional debts without a positive floating-point remainder', () => {
+        const transactions = [
+            transaction('Дано в долг (-)', -0.1),
+            transaction('Дано в долг (-)', -0.2),
+            transaction('Получено по долгу (+)', 0.3),
+            transaction('Взято в долг (+)', 0.1),
+            transaction('Взято в долг (+)', 0.2),
+            transaction('Возвращено по долгу (-)', -0.3),
+        ];
+
+        expect(calculateDebtSummary(transactions, 1000, (item) => item.amount)).toEqual({
+            owedByMe: 0,
+            owedToMe: 0,
+            balanceAfterClosing: 1000,
+        });
+    });
 });

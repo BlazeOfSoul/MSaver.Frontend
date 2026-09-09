@@ -9,8 +9,8 @@ import {
     from,
     map,
     of,
-    range,
     reduce,
+    shareReplay,
     switchMap,
 } from 'rxjs';
 import {
@@ -26,6 +26,13 @@ import {
     TransactionResponse,
 } from '../data-access/home-api.models';
 import { HomeApiService } from '../data-access/home-api.service';
+import { HomeDataLoader, ExchangeRateMap, loadAllPages } from '../data-access/home-data-loader';
+import { DebtDetailItem } from './components/debt-details/debt-details.component';
+import { AuthStore } from '../../auth/data-access/auth.store';
+import { PrivateDataCache, privateCacheGeneration } from '../../../core/cache/private-data-cache';
+import { indexTransactionsByMonth, indexCategoryMonthTotals } from './home-analytics-index';
+import { summarizeAccountTransfers } from './home-transfer-summary';
+import { nextAccountColor } from './home-account-colors';
 import { MsSelectOption } from '../../../shared/ui/select/select';
 import {
     AccountBalanceItem,
@@ -83,6 +90,9 @@ import {
     DebtSummary,
     calculateDebtSummary,
     calculateDebtTotalsUntilMonth,
+    calculateOutstandingDebt,
+    isDebtCategoryName,
+    resolveDebtCategoryKind,
 } from './home-debt.utils';
 import {
     CategoryMoveDirection,
@@ -173,18 +183,60 @@ function writeStoredApplicationCurrencyCode(
     }
 }
 
-interface DashboardPayload {
+interface TransactionHistoryPayload {
+    yearTransactions: TransactionResponse[];
+    priorDebtTransactions: TransactionResponse[];
+}
+
+interface DashboardPayload extends TransactionHistoryPayload {
     accounts: AccountResponse[];
     currentUser: CurrentUserResponse & { applicationCurrencyCode: string };
     transactionPage: PagedResponse<TransactionResponse>;
-    yearTransactions: TransactionResponse[];
     yearBalances: MonthBalanceResponse[];
     exchangeRatesByAccountId: Map<string, number>;
+    categories?: CategoryResponse[];
+}
+
+function isDashboardPayload(value: DashboardPayload | null): value is DashboardPayload {
+    return (
+        !!value &&
+        Array.isArray(value.accounts) &&
+        Array.isArray(value.yearTransactions) &&
+        Array.isArray(value.priorDebtTransactions) &&
+        Array.isArray(value.yearBalances) &&
+        Array.isArray(value.transactionPage?.items) &&
+        typeof value.currentUser?.applicationCurrencyCode === 'string' &&
+        value.exchangeRatesByAccountId instanceof Map
+    );
 }
 
 @Injectable()
 export class HomeDashboardStore {
     private readonly homeApi = inject(HomeApiService);
+    private readonly dataLoader = inject(HomeDataLoader);
+    private readonly auth = inject(AuthStore);
+    private readonly cache = inject(PrivateDataCache);
+    readonly cachedDataAt = signal<number | null>(null);
+    readonly historyReady = signal(false);
+    readonly balancesReady = signal(false);
+    readonly ratesReady = signal(false);
+    readonly summaryReady = computed(
+        () => this.historyReady() && this.balancesReady() && this.ratesReady(),
+    );
+    readonly exchangeRateNotice = computed(() => {
+        const rates = this.exchangeRatesByAccountId() as ExchangeRateMap;
+        if ([...rates.values()].some((rate) => !Number.isFinite(rate)))
+            return 'Не все курсы доступны. Общие суммы в разных валютах временно недоступны; суммы отдельных счетов сохранены.';
+        if (rates.isStale)
+            return (
+                'Используются последние сохранённые курсы' +
+                (rates.updatedAtUtc
+                    ? ' от ' + new Date(rates.updatedAtUtc).toLocaleDateString('ru-RU')
+                    : '') +
+                '. Обновление источника временно недоступно.'
+            );
+        return '';
+    });
     private readonly destroyRef = inject(DestroyRef);
     private readonly initialTransactionPageSize = readStoredTransactionPageSize();
 
@@ -241,6 +293,11 @@ export class HomeDashboardStore {
     private readonly tagDetailsResponses = signal<TagDetailsResponse[]>([]);
     private readonly transactionResponses = signal<TransactionResponse[]>([]);
     private readonly yearTransactionResponses = signal<TransactionResponse[]>([]);
+    private readonly priorDebtTransactionResponses = signal<TransactionResponse[]>([]);
+    private readonly debtTransactionResponses = computed(() => [
+        ...this.priorDebtTransactionResponses(),
+        ...this.yearTransactionResponses(),
+    ]);
     private readonly yearBalanceResponses = signal<MonthBalanceResponse[]>([]);
     private readonly transactionPageMonthKey = signal<string | null>(null);
     private readonly exchangeRatesByAccountId = signal(new Map<string, number>());
@@ -248,6 +305,7 @@ export class HomeDashboardStore {
     private readonly hasLoadedTagDetails = signal(false);
     private hasLoadedCategories = false;
     private isCategoryDataLoading = false;
+    private categoryListRequest: Observable<CategoryResponse[]> | null = null;
     private isTagDetailsLoading = false;
     readonly isYearTransactionsLoading = signal(false);
     private shouldRefreshTagDetailsAfterLoad = false;
@@ -352,6 +410,14 @@ export class HomeDashboardStore {
             (transaction) => transaction.account.id === selectedAccountId,
         );
     });
+    private readonly transactionsByMonth = computed(() =>
+        indexTransactionsByMonth(this.selectedYearTransactions()),
+    );
+    private readonly categoryMonthTotals = computed(() =>
+        indexCategoryMonthTotals(this.selectedYearTransactions(), (transaction) =>
+            this.convertAnalyticsTransactionAmount(transaction),
+        ),
+    );
     readonly selectedMonthTransactions = computed(() => {
         const key = monthKey(this.selectedMonth());
 
@@ -538,7 +604,7 @@ export class HomeDashboardStore {
             ? this.convertAccountAmount(primaryAccount.id, primaryAccount.balanceValue)
             : 0;
         const selectedMonthKey = monthKey(this.selectedMonth());
-        const debtTransactions = this.yearTransactionResponses().filter(
+        const debtTransactions = this.debtTransactionResponses().filter(
             (transaction) => this.transactionMonthKey(transaction.date) <= selectedMonthKey,
         );
 
@@ -583,6 +649,9 @@ export class HomeDashboardStore {
             };
         }),
     );
+    readonly transferAccounts = computed(() =>
+        summarizeAccountTransfers(this.selectedYearTransactions(), this.accounts()),
+    );
     readonly categoryMonthTable = computed<AnalyticsCategoryMonthTable>(() => {
         const months = this.monthsForSelectedYear();
         const incomeRows = this.buildCategoryMonthRows(months, 'income');
@@ -599,6 +668,45 @@ export class HomeDashboardStore {
             debtSummary: this.buildMonthSummary(months, debtRows, { totalFromLastCell: true }),
         };
     });
+    readonly transferExpenseChart = computed<ReadonlyArray<AnalyticsSeriesPoint>>(() =>
+        this.monthsForSelectedYear().map((month) => ({
+            label: compactMonthLabel(month),
+            value: this.transactionsForMonth(month)
+                .filter((transaction) => transaction.category.type === 'TransferExpense')
+                .reduce(
+                    (sum, transaction) =>
+                        sum + Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
+                    0,
+                ),
+        })),
+    );
+    readonly debtDetailItems = computed<ReadonlyArray<DebtDetailItem>>(() =>
+        this.debtTransactionResponses()
+            .filter(
+                (transaction) =>
+                    this.analyticsSelectedAccountId() === 'all' ||
+                    transaction.account.id === this.analyticsSelectedAccountId(),
+            )
+            .flatMap((transaction) => {
+                const kind = resolveDebtCategoryKind(transaction.category.name);
+                const month = apiDateMonthKey(transaction.date);
+                if (!kind || !month) return [];
+                const amount = Math.abs(this.convertAnalyticsTransactionAmount(transaction));
+                return [
+                    {
+                        id: transaction.id,
+                        date: transaction.date,
+                        month,
+                        kind,
+                        amount,
+                        amountLabel: formatMoney(amount, this.analyticsCurrencyCode()),
+                        account: transaction.account.name,
+                        category: transaction.category.name,
+                        description: transaction.description ?? '',
+                    },
+                ];
+            }),
+    );
     readonly monthlyExpensesChart = computed<ReadonlyArray<AnalyticsSeriesPoint>>(() =>
         this.incomeVsExpense().map((item) => ({ label: item.label, value: item.expense })),
     );
@@ -627,15 +735,6 @@ export class HomeDashboardStore {
                 value,
             };
         }),
-    );
-    readonly savingsRateChart = computed<ReadonlyArray<AnalyticsSeriesPoint>>(() =>
-        this.incomeVsExpense().map((item) => ({
-            label: item.label,
-            value:
-                item.income > 0
-                    ? Math.round(((item.income - item.expense) / item.income) * 100)
-                    : 0,
-        })),
     );
     readonly tagExpensesChart = computed<ReadonlyArray<CategoryBreakdownItem>>(() => {
         const totals = categoryTotals(
@@ -824,6 +923,20 @@ export class HomeDashboardStore {
         this.loadCategoriesForTab(this.activeTab());
         const requestId = ++this.dashboardLoadRequestId;
 
+        const cacheQuery = JSON.stringify([
+            this.selectedMonth().getFullYear(),
+            this.transactionQuery(),
+            this.transactionPageSize(),
+        ]);
+        const cacheUserId = this.auth.userId();
+        const cacheGeneration = privateCacheGeneration();
+        const cached = this.cache.read<DashboardPayload>(cacheUserId, cacheQuery);
+        if (cached && isDashboardPayload(cached.value) && !this.hasLoaded()) {
+            this.setPayload(cached.value);
+            this.historyReady.set(true);
+            this.cachedDataAt.set(cached.savedAt);
+            this.isLoading.set(false);
+        }
         this.loadDashboardPayload()
             .pipe(
                 finalize(() => {
@@ -839,16 +952,50 @@ export class HomeDashboardStore {
                         return;
                     }
 
-                    this.setPayload(payload);
+                    this.setPayload(payload, false);
+                    this.cachedDataAt.set(null);
+                    this.historyReady.set(false);
+                    this.areYearTransactionsStale = true;
+                    const persist = () => {
+                        if (
+                            this.summaryReady() &&
+                            requestId === this.dashboardLoadRequestId &&
+                            this.auth.userId() === cacheUserId &&
+                            privateCacheGeneration() === cacheGeneration &&
+                            cacheQuery ===
+                                JSON.stringify([
+                                    this.selectedMonth().getFullYear(),
+                                    this.transactionQuery(),
+                                    this.transactionPageSize(),
+                                ])
+                        ) {
+                            this.cache.write(cacheUserId, cacheQuery, {
+                                ...payload,
+                                yearTransactions: this.yearTransactionResponses(),
+                                priorDebtTransactions: this.priorDebtTransactionResponses(),
+                                yearBalances: this.yearBalanceResponses(),
+                                exchangeRatesByAccountId: this.exchangeRatesByAccountId(),
+                                categories: this.categoryResponses(),
+                            });
+                        }
+                    };
+                    this.reloadSelectedYearTransactions(persist);
+                    this.refreshApplicationExchangeRates(
+                        payload.currentUser.applicationCurrencyCode,
+                        persist,
+                    );
+                    this.loadSelectedMonthBalances(persist);
                 },
                 error: (error) => {
                     if (requestId !== this.dashboardLoadRequestId) {
                         return;
                     }
 
-                    this.clearPayload();
+                    if (!this.cachedDataAt()) {
+                        this.clearPayload();
+                        this.hasLoaded.set(false);
+                    }
                     this.errorMessage.set(toFriendlyApiError(error, FRIENDLY_LOAD_ERROR_MESSAGE));
-                    this.hasLoaded.set(false);
                 },
             });
     }
@@ -1304,7 +1451,7 @@ export class HomeDashboardStore {
             this.homeApi.createAccount({
                 name,
                 currencyCode: this.newAccountCurrency(),
-                color: ACCOUNT_COLORS[this.accounts().length % ACCOUNT_COLORS.length],
+                color: nextAccountColor(this.accounts().map((account) => account.color)),
                 initialBalance: this.newAccountInitialBalance(),
             }),
             'Не удалось создать счёт.',
@@ -1498,7 +1645,6 @@ export class HomeDashboardStore {
             currentUser: this.homeApi.getCurrentUser(),
         }).pipe(
             switchMap(({ accounts, currentUser }) => {
-                const selectedMonth = this.selectedMonth();
                 const applicationCurrencyCode = this.resolvePayloadApplicationCurrencyCode(
                     currentUser,
                     accounts,
@@ -1513,28 +1659,29 @@ export class HomeDashboardStore {
                         },
                         transactionPage: createEmptyTransactionPage(this.transactionPageSize()),
                         yearTransactions: [],
+                        priorDebtTransactions: [],
                         yearBalances: [],
                         exchangeRatesByAccountId: new Map<string, number>(),
                     });
                 }
 
                 return forkJoin({
-                    exchangeRatesByAccountId: this.loadApplicationExchangeRates(
-                        accounts,
-                        applicationCurrencyCode,
-                    ),
+                    exchangeRatesByAccountId: of(new Map<string, number>()),
                     transactions: this.loadTransactionPage(
                         this.transactionQuery(),
                         this.transactionPageSize(),
                     ),
-                    yearTransactions: this.loadTransactions(this.yearTransactionQuery()),
-                    yearBalances: this.loadMonthBalances(accounts, [selectedMonth]),
+                    transactionHistory: of<TransactionHistoryPayload>({
+                        yearTransactions: [],
+                        priorDebtTransactions: [],
+                    }),
+                    yearBalances: of<MonthBalanceResponse[]>([]),
                 }).pipe(
                     map(
                         ({
                             exchangeRatesByAccountId,
                             transactions,
-                            yearTransactions,
+                            transactionHistory,
                             yearBalances,
                         }): DashboardPayload => ({
                             accounts,
@@ -1543,7 +1690,7 @@ export class HomeDashboardStore {
                                 applicationCurrencyCode,
                             },
                             transactionPage: transactions,
-                            yearTransactions,
+                            ...transactionHistory,
                             yearBalances,
                             exchangeRatesByAccountId,
                         }),
@@ -1557,13 +1704,30 @@ export class HomeDashboardStore {
         return this.loadAllPages<AccountResponse>((page) => this.homeApi.getAccounts({ page }));
     }
 
-    private loadCategories() {
-        return this.loadAllPages<CategoryResponse>((page) => this.homeApi.getCategories({ page }));
+    private loadCategories(forceReload = false): Observable<CategoryResponse[]> {
+        if (this.categoryListRequest && !forceReload) {
+            return this.categoryListRequest;
+        }
+
+        // Category UI and debt history need the same list during initial loading.
+        const request = this.loadAllPages<CategoryResponse>((page) =>
+            this.homeApi.getCategories({ page }),
+        ).pipe(
+            finalize(() => {
+                if (this.categoryListRequest === request) {
+                    this.categoryListRequest = null;
+                }
+            }),
+            shareReplay({ bufferSize: 1, refCount: true }),
+        );
+        this.categoryListRequest = request;
+
+        return request;
     }
 
     private loadCategoryData() {
         return forkJoin({
-            categories: this.loadCategories(),
+            categories: this.loadCategories(true),
             order: this.homeApi.getCategoryOrder(),
         });
     }
@@ -1588,13 +1752,57 @@ export class HomeDashboardStore {
 
     private loadTransactions(query: {
         accountId?: string;
-        fromDate: string;
+        categoryId?: string;
+        fromDate?: string;
         toDate: string;
         search?: string;
     }) {
         return this.loadAllPages<TransactionResponse>((page) =>
             this.homeApi.getTransactions({ ...query, page }),
         );
+    }
+
+    private loadTransactionHistory(): Observable<TransactionHistoryPayload> {
+        const query = this.yearTransactionQuery();
+        const yearStartKey = monthKey(startOfYear(this.selectedMonth()));
+        const categories = this.hasLoadedCategories
+            ? of(this.categoryResponses())
+            : this.loadCategories();
+
+        return forkJoin({
+            yearTransactions: this.loadTransactions(query),
+            priorDebtTransactions: categories.pipe(
+                switchMap((items) => {
+                    const debtCategories = items.filter((item) => isDebtCategoryName(item.name));
+
+                    if (!debtCategories.length) {
+                        return of<TransactionResponse[]>([]);
+                    }
+
+                    // Fetch only debt categories before the year, keeping ordinary analytics
+                    // within the selected year and retaining existing server-side pagination.
+                    return from(debtCategories).pipe(
+                        concatMap((category) =>
+                            this.loadTransactions({
+                                categoryId: category.id,
+                                toDate: query.fromDate,
+                            }),
+                        ),
+                        reduce(
+                            (transactions, page) => [...transactions, ...page],
+                            [] as TransactionResponse[],
+                        ),
+                        map((transactions) =>
+                            transactions.filter(
+                                (transaction) =>
+                                    isDebtCategoryName(transaction.category.name) &&
+                                    this.transactionMonthKey(transaction.date) < yearStartKey,
+                            ),
+                        ),
+                    );
+                }),
+            ),
+        });
     }
 
     private loadTransactionPage(
@@ -1609,51 +1817,13 @@ export class HomeDashboardStore {
         accounts: AccountResponse[],
         applicationCurrencyCode: string,
     ) {
-        const applicationAccount = this.resolveApplicationAccount(
-            accounts,
-            applicationCurrencyCode,
-        );
-
-        if (!applicationAccount) {
-            return of(new Map<string, number>());
-        }
-
-        return from(accounts).pipe(
-            concatMap((account) => {
-                if (
-                    account.id === applicationAccount.id ||
-                    account.currencyCode === applicationAccount.currencyCode
-                ) {
-                    return of([account.id, 1] as const);
-                }
-
-                return this.homeApi.getTransferRate(account.id, applicationAccount.id).pipe(
-                    map((response) => [account.id, response.rate] as const),
-                    catchError(() => of([account.id, 1] as const)),
-                );
-            }),
-            reduce(
-                (rates, [accountId, rate]) => rates.set(accountId, rate),
-                new Map<string, number>(),
-            ),
-        );
+        return this.dataLoader.exchangeRates(accounts, applicationCurrencyCode);
     }
 
     private loadAllPages<T>(
         loadPage: (page: number) => Observable<PagedResponse<T>>,
     ): Observable<T[]> {
-        return loadPage(1).pipe(
-            switchMap((firstPage) => {
-                if (firstPage.totalPages <= 1) {
-                    return of(firstPage.items);
-                }
-
-                return range(2, firstPage.totalPages - 1).pipe(
-                    concatMap((page) => loadPage(page)),
-                    reduce((items: T[], page) => [...items, ...page.items], [...firstPage.items]),
-                );
-            }),
-        );
+        return loadAllPages(loadPage);
     }
 
     private toTagDetails(tag: TagResponse) {
@@ -1661,33 +1831,21 @@ export class HomeDashboardStore {
     }
 
     private loadMonthBalances(accounts: AccountResponse[], months: Date[]) {
-        const requests = accounts.flatMap((account) =>
-            months.map((month) => ({
-                accountId: account.id,
-                year: month.getFullYear(),
-                month: month.getMonth() + 1,
-            })),
-        );
-
-        if (!requests.length) {
-            return of<MonthBalanceResponse[]>([]);
-        }
-
-        return from(requests).pipe(
-            concatMap((request) =>
-                this.homeApi.getMonthBalance(request.accountId, request.year, request.month),
-            ),
-            reduce((balances, balance) => [...balances, balance], [] as MonthBalanceResponse[]),
-        );
+        return this.dataLoader.monthBalances(accounts, months);
     }
 
-    private setPayload(payload: DashboardPayload): void {
+    private setPayload(payload: DashboardPayload, ready = true): void {
+        this.balancesReady.set(ready);
+        this.ratesReady.set(ready);
+        if (payload.categories?.length && !this.hasLoadedCategories)
+            this.categoryResponses.set(payload.categories);
         this.accountResponses.set(payload.accounts);
         this.balanceDisplayAccountId.set(payload.currentUser.balanceDisplayAccountId ?? null);
         this.setApplicationCurrency(payload.currentUser.applicationCurrencyCode);
         this.exchangeRatesByAccountId.set(payload.exchangeRatesByAccountId);
         this.setTransactionPage(payload.transactionPage);
         this.yearTransactionResponses.set(payload.yearTransactions);
+        this.priorDebtTransactionResponses.set(payload.priorDebtTransactions);
         this.areYearTransactionsStale = false;
         this.yearBalanceResponses.set(payload.yearBalances);
         this.loadedFullBalanceYear = null;
@@ -1712,6 +1870,7 @@ export class HomeDashboardStore {
         this.areYearTransactionsStale = false;
         this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()), null);
         this.yearTransactionResponses.set([]);
+        this.priorDebtTransactionResponses.set([]);
         this.yearBalanceResponses.set([]);
         this.exchangeRatesByAccountId.set(new Map<string, number>());
         this.loadedFullBalanceYear = null;
@@ -1830,19 +1989,25 @@ export class HomeDashboardStore {
             });
     }
 
-    private reloadSelectedYearTransactions(): void {
+    private reloadSelectedYearTransactions(
+        onLoaded?: (history: TransactionHistoryPayload) => void,
+    ): void {
         this.errorMessage.set('');
         const requestId = ++this.selectedYearTransactionsRequestId;
 
         if (!this.accountResponses().length) {
             this.yearTransactionResponses.set([]);
+            this.priorDebtTransactionResponses.set([]);
             this.areYearTransactionsStale = false;
+            this.historyReady.set(true);
+            onLoaded?.({ yearTransactions: [], priorDebtTransactions: [] });
             return;
         }
 
         this.isYearTransactionsLoading.set(true);
+        this.historyReady.set(false);
 
-        this.loadTransactions(this.yearTransactionQuery())
+        this.loadTransactionHistory()
             .pipe(
                 finalize(() => {
                     if (requestId === this.selectedYearTransactionsRequestId) {
@@ -1852,13 +2017,16 @@ export class HomeDashboardStore {
                 takeUntilDestroyed(this.destroyRef),
             )
             .subscribe({
-                next: (transactions) => {
+                next: ({ yearTransactions, priorDebtTransactions }) => {
                     if (requestId !== this.selectedYearTransactionsRequestId) {
                         return;
                     }
 
-                    this.yearTransactionResponses.set(transactions);
+                    this.yearTransactionResponses.set(yearTransactions);
+                    this.priorDebtTransactionResponses.set(priorDebtTransactions);
                     this.areYearTransactionsStale = false;
+                    this.historyReady.set(true);
+                    onLoaded?.({ yearTransactions, priorDebtTransactions });
                 },
                 error: (error) => {
                     if (requestId !== this.selectedYearTransactionsRequestId) {
@@ -1965,6 +2133,7 @@ export class HomeDashboardStore {
         if (!this.accountResponses().length) {
             this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()));
             this.yearTransactionResponses.set([]);
+            this.priorDebtTransactionResponses.set([]);
             this.yearBalanceResponses.set([]);
             this.loadedFullBalanceYear = null;
             return;
@@ -1995,8 +2164,12 @@ export class HomeDashboardStore {
         this.reloadSelectedYearTransactions();
     }
 
-    private refreshApplicationExchangeRates(applicationCurrencyCode: string): void {
+    private refreshApplicationExchangeRates(
+        applicationCurrencyCode: string,
+        onLoaded?: () => void,
+    ): void {
         this.errorMessage.set('');
+        this.ratesReady.set(false);
         const requestId = ++this.applicationExchangeRatesRequestId;
 
         this.loadApplicationExchangeRates(this.accountResponses(), applicationCurrencyCode)
@@ -2009,6 +2182,8 @@ export class HomeDashboardStore {
 
                     this.setApplicationCurrency(applicationCurrencyCode);
                     this.exchangeRatesByAccountId.set(exchangeRatesByAccountId);
+                    this.ratesReady.set(true);
+                    onLoaded?.();
                 },
                 error: (error) => {
                     if (requestId !== this.applicationExchangeRatesRequestId) {
@@ -2062,6 +2237,7 @@ export class HomeDashboardStore {
                             exchangeRatesByAccountId: new Map<string, number>(),
                             transactionPage: createEmptyTransactionPage(this.transactionPageSize()),
                             yearTransactions: [],
+                            priorDebtTransactions: [],
                             yearBalances: [],
                         });
                     }
@@ -2080,16 +2256,19 @@ export class HomeDashboardStore {
                             this.transactionQuery(selectedAccountId),
                             this.transactionPageSize(),
                         ),
-                        yearTransactions: reloadYearTransactions
-                            ? this.loadTransactions(this.yearTransactionQuery())
-                            : of(this.yearTransactionResponses()),
+                        transactionHistory: reloadYearTransactions
+                            ? this.loadTransactionHistory()
+                            : of<TransactionHistoryPayload>({
+                                  yearTransactions: this.yearTransactionResponses(),
+                                  priorDebtTransactions: this.priorDebtTransactionResponses(),
+                              }),
                         yearBalances: this.loadMonthBalances(accounts, balanceMonths),
                     }).pipe(
                         map(
                             ({
                                 exchangeRatesByAccountId,
                                 transactions,
-                                yearTransactions,
+                                transactionHistory,
                                 yearBalances,
                             }) => ({
                                 accounts,
@@ -2099,7 +2278,7 @@ export class HomeDashboardStore {
                                 applicationCurrencyCode,
                                 exchangeRatesByAccountId,
                                 transactionPage: transactions,
-                                yearTransactions,
+                                ...transactionHistory,
                                 yearBalances,
                             }),
                         ),
@@ -2117,6 +2296,7 @@ export class HomeDashboardStore {
                     exchangeRatesByAccountId,
                     transactionPage,
                     yearTransactions,
+                    priorDebtTransactions,
                     yearBalances,
                 }) => {
                     if (requestId !== this.accountDataRequestId) {
@@ -2131,8 +2311,12 @@ export class HomeDashboardStore {
                     this.exchangeRatesByAccountId.set(exchangeRatesByAccountId);
                     this.setTransactionPage(transactionPage);
                     this.yearTransactionResponses.set(yearTransactions);
+                    this.priorDebtTransactionResponses.set(priorDebtTransactions);
                     this.areYearTransactionsStale = accounts.length > 0 && !reloadYearTransactions;
                     this.yearBalanceResponses.set(yearBalances);
+                    this.balancesReady.set(true);
+                    this.ratesReady.set(true);
+                    if (reloadYearTransactions) this.historyReady.set(true);
                     this.hasLoaded.set(true);
                     this.loadedFullBalanceYear =
                         accounts.length > 0 && this.activeTab() === 'analytics'
@@ -2150,14 +2334,17 @@ export class HomeDashboardStore {
             });
     }
 
-    private loadSelectedMonthBalances(): void {
+    private loadSelectedMonthBalances(onLoaded?: () => void): void {
         const requestId = ++this.selectedMonthBalanceRequestId;
         const missingMonths = this.monthsMissingBalances([this.selectedMonth()]);
 
         if (!missingMonths.length) {
+            this.balancesReady.set(true);
+            onLoaded?.();
             return;
         }
 
+        this.balancesReady.set(false);
         this.loadMonthBalances(this.accountResponses(), missingMonths)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
@@ -2167,6 +2354,9 @@ export class HomeDashboardStore {
                     }
 
                     this.mergeMonthBalances(balances);
+                    this.balancesReady.set(true);
+                    onLoaded?.();
+                    this.loadYearBalancesForTab(this.activeTab());
                 },
                 error: (error) => {
                     if (requestId !== this.selectedMonthBalanceRequestId) {
@@ -2184,7 +2374,7 @@ export class HomeDashboardStore {
     }
 
     private loadYearBalancesForTab(tab: HomeTabId): void {
-        if (tab !== 'analytics') {
+        if (tab !== 'analytics' || !this.balancesReady()) {
             return;
         }
 
@@ -2505,7 +2695,12 @@ export class HomeDashboardStore {
     }
 
     private convertAccountAmount(accountId: string, amount: number): number {
-        const rate = this.exchangeRatesByAccountId().get(accountId) ?? 1;
+        const rate =
+            this.exchangeRatesByAccountId().get(accountId) ??
+            (this.accountResponses().find((account) => account.id === accountId)?.currencyCode ===
+            this.applicationCurrencyCode()
+                ? 1
+                : NaN);
 
         return amount * rate;
     }
@@ -2522,18 +2717,6 @@ export class HomeDashboardStore {
         this.applicationCurrencyCodeSignal.set(currencyCode);
         this.newAccountCurrency.set(currencyCode);
         writeStoredApplicationCurrencyCode(currencyCode);
-    }
-
-    private resolveApplicationAccount(
-        accounts: AccountResponse[],
-        applicationCurrencyCode: string,
-    ): AccountResponse | undefined {
-        const sortedAccounts = this.sortAccounts(accounts);
-
-        return (
-            sortedAccounts.find((account) => account.currencyCode === applicationCurrencyCode) ??
-            sortedAccounts[0]
-        );
     }
 
     private resolvePayloadApplicationCurrencyCode(
@@ -2802,11 +2985,7 @@ export class HomeDashboardStore {
     }
 
     private transactionsForMonth(month: Date): TransactionResponse[] {
-        const key = monthKey(month);
-
-        return this.selectedYearTransactions().filter(
-            (transaction) => this.transactionMonthKey(transaction.date) === key,
-        );
+        return this.transactionsByMonth().get(monthKey(month)) ?? [];
     }
 
     private buildCategoryMonthRows(
@@ -2823,19 +3002,7 @@ export class HomeDashboardStore {
         return categories
             .map((category) => {
                 const cells = monthKeys.map((key, index) => {
-                    const value = this.selectedYearTransactions()
-                        .filter((transaction) => transaction.category.id === category.id)
-                        .filter((transaction) =>
-                            type === 'expense'
-                                ? isExpenseOperationTransaction(transaction)
-                                : isIncomeOperationTransaction(transaction),
-                        )
-                        .filter((transaction) => this.transactionMonthKey(transaction.date) === key)
-                        .reduce(
-                            (sum, transaction) =>
-                                sum + Math.abs(this.convertAnalyticsTransactionAmount(transaction)),
-                            0,
-                        );
+                    const value = this.categoryMonthTotals().get(category.id + ':' + key) ?? 0;
 
                     return {
                         label: compactMonthLabel(months[index]),
@@ -2867,20 +3034,25 @@ export class HomeDashboardStore {
     }
 
     private buildDebtMonthRows(months: Date[]): AnalyticsCategoryMonthRow[] {
+        const selectedAccountId = this.analyticsSelectedAccountId();
+        const transactions = this.debtTransactionResponses().filter(
+            (transaction) =>
+                selectedAccountId === 'all' || transaction.account.id === selectedAccountId,
+        );
         const debtRows = [
             {
                 id: 'owed-by-me',
                 name: 'Я должен',
                 color: CATEGORY_COLORS[2] ?? CATEGORY_COLORS[0],
                 readValue: (totals: Map<DebtCategoryKind, number>) =>
-                    Math.max(0, (totals.get('taken') ?? 0) - (totals.get('returned') ?? 0)),
+                    calculateOutstandingDebt(totals.get('taken') ?? 0, totals.get('returned') ?? 0),
             },
             {
                 id: 'owed-to-me',
                 name: 'Мне должны',
                 color: CATEGORY_COLORS[0],
                 readValue: (totals: Map<DebtCategoryKind, number>) =>
-                    Math.max(0, (totals.get('given') ?? 0) - (totals.get('received') ?? 0)),
+                    calculateOutstandingDebt(totals.get('given') ?? 0, totals.get('received') ?? 0),
             },
         ];
 
@@ -2888,7 +3060,7 @@ export class HomeDashboardStore {
             .map((row) => {
                 const cells = months.map((month) => {
                     const totals = calculateDebtTotalsUntilMonth(
-                        this.selectedYearTransactions(),
+                        transactions,
                         month,
                         (transaction) => this.convertAnalyticsTransactionAmount(transaction),
                     );
@@ -2912,9 +3084,7 @@ export class HomeDashboardStore {
                     type: 'debt' as const,
                     cells,
                     totalValue,
-                    formattedTotal: totalValue
-                        ? formatMoney(totalValue, this.analyticsCurrencyCode())
-                        : '—',
+                    formattedTotal: formatMoney(totalValue, this.analyticsCurrencyCode()),
                     averageValue,
                     formattedAverage: averageValue
                         ? formatMoney(averageValue, this.analyticsCurrencyCode())
@@ -2946,9 +3116,10 @@ export class HomeDashboardStore {
         return {
             cells,
             totalValue,
-            formattedTotal: totalValue
-                ? formatMoney(totalValue, this.analyticsCurrencyCode())
-                : '—',
+            formattedTotal:
+                totalValue || (options.totalFromLastCell && rows.length > 0)
+                    ? formatMoney(totalValue, this.analyticsCurrencyCode())
+                    : '—',
             averageValue,
             formattedAverage: averageValue
                 ? formatMoney(averageValue, this.analyticsCurrencyCode())

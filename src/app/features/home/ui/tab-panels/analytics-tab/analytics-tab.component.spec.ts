@@ -30,7 +30,6 @@ describe('AnalyticsTabComponent', () => {
         fixture.componentRef.setInput('monthlyExpenses', []);
         fixture.componentRef.setInput('balanceDynamics', []);
         fixture.componentRef.setInput('transferIncome', []);
-        fixture.componentRef.setInput('savingsRate', []);
         fixture.componentRef.setInput('tagExpenses', []);
         fixture.componentRef.setInput('topExpenses', []);
         fixture.componentRef.setInput('accountOptions', [{ value: 'all', label: 'All' }]);
@@ -190,7 +189,28 @@ describe('AnalyticsTabComponent', () => {
         expect(component.netCashFlowDatasets()[0].data).toEqual([40, -30]);
     });
 
+    it('shows account effects instead of equal incoming/outgoing totals for all accounts', () => {
+        component.activeView.set('yearly');
+        fixture.componentRef.setInput('transferAccounts', [
+            {
+                id: 'cash',
+                name: 'Cash',
+                currency: 'BYN',
+                color: '#23c78b',
+                incoming: 25,
+                outgoing: 0,
+                net: 25,
+            },
+        ]);
+        fixture.detectChanges();
+        const host = fixture.nativeElement as HTMLElement;
+        expect(host.textContent).toContain('Как переводы изменили счета');
+        expect(host.textContent).toContain('Cash');
+        expect(host.textContent).not.toContain('Переводы выбранного счёта');
+    });
+
     it('renders yearly transfers into accounts as a separate chart', () => {
+        fixture.componentRef.setInput('selectedAccountId', 'main');
         fixture.componentRef.setInput('transferIncome', [
             { label: 'Jan', value: 150 },
             { label: 'Feb', value: 0 },
@@ -204,7 +224,7 @@ describe('AnalyticsTabComponent', () => {
             title.textContent?.trim(),
         );
 
-        expect(chartTitles).toContain('Переводы на счёт');
+        expect(chartTitles).toContain('Переводы выбранного счёта');
         expect(component.transferIncomeLabels()).toEqual(['Jan', 'Feb']);
         expect(component.transferIncomeDatasets()[0].data).toEqual([150, 0]);
     });

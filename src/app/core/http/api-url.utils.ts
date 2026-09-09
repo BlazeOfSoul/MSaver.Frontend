@@ -14,19 +14,9 @@ export function isApiRequestUrl(url: string): boolean {
     const matchesApiPath =
         requestUrl.pathname === apiPath || requestUrl.pathname.startsWith(`${apiPath}/`);
 
-    if (!matchesApiPath) {
-        return false;
-    }
-
-    if (isAbsoluteUrl(environment.apiUrl)) {
-        return requestUrl.origin === apiUrl.origin;
-    }
-
-    if (isAbsoluteUrl(url)) {
-        return requestUrl.origin === currentOrigin();
-    }
-
-    return true;
+    // Compare parsed origins for every URL form, including //host/api and
+    // backslashes normalized by the URL parser. A matching path is not enough.
+    return matchesApiPath && requestUrl.origin === apiUrl.origin;
 }
 
 export function currentOrigin(): string {
@@ -39,10 +29,6 @@ function parseUrl(url: string): URL | null {
     } catch {
         return null;
     }
-}
-
-function isAbsoluteUrl(url: string): boolean {
-    return /^[a-z][a-z\d+\-.]*:/i.test(url);
 }
 
 function stripTrailingSlash(value: string): string {

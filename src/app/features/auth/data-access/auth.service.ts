@@ -9,6 +9,13 @@ import {
 } from '../../../core/models/auth.models';
 import { environment } from '../../../../environments/environment';
 
+export interface AuthSessionItem {
+    clientId: string;
+    createdAt: string;
+    expiresAt: string;
+    isCurrent: boolean;
+}
+
 @Injectable({
     providedIn: 'root',
 })
@@ -36,5 +43,21 @@ export class AuthService {
 
     logout(): Observable<void> {
         return this.http.post<void>(`${this.baseUrl}/logout`, {}, { withCredentials: true });
+    }
+
+    sessions(): Observable<AuthSessionItem[]> {
+        return this.http.get<AuthSessionItem[]>(`${this.baseUrl}/sessions`, {
+            withCredentials: true,
+        });
+    }
+
+    revokeSession(clientId: string): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/sessions/${encodeURIComponent(clientId)}`, {
+            withCredentials: true,
+        });
+    }
+
+    logoutAll(): Observable<void> {
+        return this.http.post<void>(`${this.baseUrl}/logout-all`, {}, { withCredentials: true });
     }
 }

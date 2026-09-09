@@ -1,0 +1,65 @@
+<article class="savings-summary" aria-label="Остаток от доходов">
+    <header>
+        <h3>Что осталось от доходов</h3>
+        <p>
+            Операции за {{ year() }} год с учётом выбранного счёта. Переводы и выдача/возврат долгов
+            сюда не входят.
+        </p>
+    </header>
+    @if (rows().length) {
+        <dl class="summary-values">
+            <div>
+                <dt>Доходы</dt>
+                <dd>{{ money(total().income, currency()) }}</dd>
+            </div>
+            <div>
+                <dt>Расходы</dt>
+                <dd>{{ money(total().expense, currency()) }}</dd>
+            </div>
+            <div class="remainder" [class.negative]="total().net < 0">
+                <dt>{{ total().net < 0 ? 'Расходы сверх доходов' : 'Осталось от доходов' }}</dt>
+                <dd>{{ signedMoney(total().net, currency()) }}</dd>
+                <small
+                    >{{ total().rate < 0 ? 'Расходы выше доходов' : 'Доля остатка в доходах' }}:
+                    {{ percent(total().rate < 0 ? -total().rate : total().rate) }}</small
+                >
+            </div>
+        </dl>
+        <p class="explanation">
+            Это разница доходов и расходов, а не баланс счетов или сумма, переведённая в накопления.
+            Доля за год считается от общих доходов; месяцы без дохода не имеют процента.
+        </p>
+        <details>
+            <summary>По месяцам · {{ rows().length }}</summary>
+            <table aria-label="Доходы, расходы и остаток по месяцам">
+                <thead>
+                    <tr>
+                        <th scope="col">Месяц</th>
+                        <th scope="col">Доходы</th>
+                        <th scope="col">Расходы</th>
+                        <th scope="col">Остаток</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (row of rows(); track row.label) {
+                        <tr>
+                            <th scope="row">{{ row.label }}</th>
+                            <td data-label="Доходы">{{ money(row.income, currency()) }}</td>
+                            <td data-label="Расходы">{{ money(row.expense, currency()) }}</td>
+                            <td data-label="Остаток" [class.negative]="row.net < 0">
+                                <strong>{{ signedMoney(row.net, currency()) }}</strong
+                                ><small>{{
+                                    row.income === 0
+                                        ? 'Без доходов'
+                                        : percent(row.rate) + ' от доходов'
+                                }}</small>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </details>
+    } @else {
+        <p>За выбранный год доходов и расходов по этим счетам нет.</p>
+    }
+</article>

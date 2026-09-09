@@ -268,6 +268,44 @@ describe('SelectComponent', () => {
         expect(dropdownStyles.transformOrigin).toBe('bottom center');
     });
 
+    it('opens above a trigger near the viewport bottom and follows scrolling', () => {
+        fixture.detectChanges();
+        const host = fixture.nativeElement as HTMLElement;
+        const trigger = host.querySelector<HTMLButtonElement>('.ms-select__trigger')!;
+        const bounds = vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({
+            top: window.innerHeight - 80,
+            bottom: window.innerHeight - 28,
+            height: 52,
+        } as DOMRect);
+        trigger.click();
+        fixture.detectChanges();
+        expect(host.classList.contains('ms-select-host--dropdown-top')).toBe(true);
+        expect(fixture.componentInstance.dropdownMaxHeight()).toBe(256);
+        bounds.mockReturnValue({ top: 24, bottom: 76, height: 52 } as DOMRect);
+        window.dispatchEvent(new Event('scroll'));
+        fixture.detectChanges();
+        expect(host.classList.contains('ms-select-host--dropdown-top')).toBe(false);
+        bounds.mockRestore();
+    });
+
+    it('limits menu height when neither side has room for a full dropdown', () => {
+        fixture.detectChanges();
+        const trigger = fixture.nativeElement.querySelector(
+            '.ms-select__trigger',
+        ) as HTMLButtonElement;
+        const bounds = vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({
+            top: 80,
+            bottom: window.innerHeight - 100,
+            height: window.innerHeight - 180,
+        } as DOMRect);
+        trigger.click();
+        fixture.detectChanges();
+        expect(fixture.componentInstance.resolvedDropdownPlacement()).toBe('bottom');
+        expect(fixture.componentInstance.dropdownMaxHeight()).toBeGreaterThan(0);
+        expect(fixture.componentInstance.dropdownMaxHeight()).toBeLessThan(100);
+        bounds.mockRestore();
+    });
+
     it('closes without throwing when a document click target is not a DOM node', () => {
         fixture.detectChanges();
 

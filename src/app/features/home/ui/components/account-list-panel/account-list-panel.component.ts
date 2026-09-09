@@ -10,6 +10,7 @@ import {
     parseMoneyInputAmount,
 } from '../../../../../shared/utils/money-input.utils';
 import { AccountBalanceItem } from '../../home-page.models';
+import { MS_ACCOUNT_COLORS } from '../../../../../shared/theme/theme-colors';
 
 @Component({
     selector: 'ms-account-list-panel',
@@ -60,6 +61,7 @@ export class AccountListPanelComponent {
     readonly renameAccountId = signal('');
     readonly renameAccountName = signal('');
     readonly renameAccountColor = signal('#23c78b');
+    readonly accountColors = MS_ACCOUNT_COLORS;
 
     openAccountDialog(): void {
         this.accountDialogName.set(this.newAccountName());
@@ -72,7 +74,11 @@ export class AccountListPanelComponent {
     }
 
     onInitialBalanceInput(value: string | number): void {
-        const nextText = normalizeMoneyInputText(`${value ?? ''}`, true, this.newAccountInitialBalance());
+        const nextText = normalizeMoneyInputText(
+            `${value ?? ''}`,
+            true,
+            this.newAccountInitialBalance(),
+        );
 
         this.initialBalanceText.set(nextText);
         this.newAccountInitialBalanceChange.emit(parseMoneyInputAmount(nextText));

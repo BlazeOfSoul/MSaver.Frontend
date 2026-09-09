@@ -1,179 +1,205 @@
 <section class="analytics-layout">
-    <ms-analytics-overview-panel
-        [metrics]="metrics()"
-        [accountOptions]="accountOptions()"
-        [selectedAccountId]="selectedAccountId()"
-        [views]="analyticsViews"
-        [activeView]="activeView()"
-        [exportDisabled]="transactionsLoading() || !transactions().length"
-        [exportLoading]="transactionsLoading()"
-        (accountChange)="accountChange.emit($event)"
-        (viewChange)="setActiveView($event)"
-        (exportRequested)="exportTransactionsCsv()"
-    ></ms-analytics-overview-panel>
+    @if (transactionsLoading()) {
+        <p role="status">
+            Загружаем данные для полной аналитики. Журнал операций уже доступен на главной.
+        </p>
+    } @else {
+        <ms-analytics-overview-panel
+            [metrics]="metrics()"
+            [accountOptions]="accountOptions()"
+            [selectedAccountId]="selectedAccountId()"
+            [views]="analyticsViews"
+            [activeView]="activeView()"
+            [exportDisabled]="transactionsLoading() || !transactions().length"
+            [exportLoading]="transactionsLoading()"
+            (accountChange)="accountChange.emit($event)"
+            (viewChange)="setActiveView($event)"
+            (exportRequested)="exportTransactionsCsv()"
+        ></ms-analytics-overview-panel>
 
-    @switch (activeView()) {
-        @case ('monthly') {
-            <section class="analytics-section">
-                <div class="analytics-section__header">
-                    <span>Месячный срез</span>
-                </div>
-
-                <ms-chart-card
-                    title="Расходы по категориям"
-                    subtitle="Структура расходов выбранного месяца."
-                    type="doughnut"
-                    [labels]="expenseCategoryLabels()"
-                    [datasets]="expenseCategoryDatasets()"
-                ></ms-chart-card>
-
-                <ms-chart-card
-                    title="Доходы по категориям"
-                    subtitle="Структура поступлений выбранного месяца."
-                    type="doughnut"
-                    [labels]="incomeCategoryLabels()"
-                    [datasets]="incomeCategoryDatasets()"
-                ></ms-chart-card>
-
-                <ms-chart-card
-                    title="Доходы и расходы"
-                    subtitle="Сравнение поступлений и списаний выбранного месяца."
-                    type="bar"
-                    [labels]="monthlyCashFlowLabels"
-                    [datasets]="monthlyCashFlowDatasets()"
-                ></ms-chart-card>
-
-                <ms-chart-card
-                    title="Топ расходов"
-                    subtitle="Самые затратные категории выбранного месяца."
-                    type="bar"
-                    [labels]="topExpenseLabels()"
-                    [datasets]="topExpenseDatasets()"
-                ></ms-chart-card>
-
-                <div class="tag-chart-section">
+        @switch (activeView()) {
+            @case ('monthly') {
+                <section class="analytics-section">
                     <div class="analytics-section__header">
-                        <span>Теги</span>
-                    </div>
-
-                    <div class="tag-chart-controls">
-                        <ms-select
-                            label="Вид"
-                            [options]="tagChartTypeOptions"
-                            [value]="tagChartType()"
-                            (valueChange)="setTagChartType($event)"
-                        ></ms-select>
-
-                        <ms-select
-                            label="Лимит"
-                            [options]="tagChartLimitOptions"
-                            [value]="tagChartLimit()"
-                            (valueChange)="setTagChartLimit($event)"
-                        ></ms-select>
+                        <span>Месячный срез</span>
                     </div>
 
                     <ms-chart-card
-                        title="Расходы по тегам"
-                        subtitle="Теги, которые собирают основные траты выбранного месяца."
-                        [type]="tagChartType()"
-                        [labels]="tagExpenseLabels()"
-                        [datasets]="tagExpenseDatasets()"
-                        [height]="280"
+                        title="Расходы по категориям"
+                        subtitle="Структура расходов выбранного месяца."
+                        type="doughnut"
+                        [labels]="expenseCategoryLabels()"
+                        [datasets]="expenseCategoryDatasets()"
                     ></ms-chart-card>
-                </div>
-            </section>
-        }
 
-        @case ('yearly') {
-            <section class="analytics-section analytics-section--wide">
-                <div class="analytics-section__header">
-                    <span>Годовое движение</span>
-                </div>
+                    <ms-chart-card
+                        title="Доходы по категориям"
+                        subtitle="Структура поступлений выбранного месяца."
+                        type="doughnut"
+                        [labels]="incomeCategoryLabels()"
+                        [datasets]="incomeCategoryDatasets()"
+                    ></ms-chart-card>
 
-                <ms-chart-card
-                    title="Доходы и расходы"
-                    subtitle="Сравнение денежных потоков по месяцам выбранного года."
-                    type="bar"
-                    [labels]="incomeVsExpenseLabels()"
-                    [datasets]="incomeVsExpenseDatasets()"
-                ></ms-chart-card>
+                    <ms-chart-card
+                        title="Доходы и расходы"
+                        subtitle="Сравнение поступлений и списаний выбранного месяца."
+                        type="bar"
+                        [labels]="monthlyCashFlowLabels"
+                        [datasets]="monthlyCashFlowDatasets()"
+                    ></ms-chart-card>
 
-                <ms-chart-card
-                    title="Чистый денежный поток"
-                    subtitle="Итоговая разница между доходами и расходами по месяцам."
-                    type="line"
-                    [labels]="netCashFlowLabels()"
-                    [datasets]="netCashFlowDatasets()"
-                ></ms-chart-card>
+                    <ms-chart-card
+                        title="Топ расходов"
+                        subtitle="Самые затратные категории выбранного месяца."
+                        type="bar"
+                        [labels]="topExpenseLabels()"
+                        [datasets]="topExpenseDatasets()"
+                    ></ms-chart-card>
 
-                <ms-chart-card
-                    title="Расходы по месяцам"
-                    subtitle="Динамика расходов в выбранном году."
-                    type="bar"
-                    [labels]="monthlyExpenseLabels()"
-                    [datasets]="monthlyExpenseDatasets()"
-                ></ms-chart-card>
+                    <div class="tag-chart-section">
+                        <div class="analytics-section__header">
+                            <span>Теги</span>
+                        </div>
 
-                <ms-chart-card
-                    title="Динамика баланса"
-                    subtitle="Закрывающий баланс по месяцам выбранного года."
-                    type="line"
-                    [labels]="balanceDynamicsLabels()"
-                    [datasets]="balanceDynamicsDatasets()"
-                ></ms-chart-card>
+                        <div class="tag-chart-controls">
+                            <ms-select
+                                label="Вид"
+                                [options]="tagChartTypeOptions"
+                                [value]="tagChartType()"
+                                (valueChange)="setTagChartType($event)"
+                            ></ms-select>
 
-                <ms-chart-card
-                    title="Переводы на счёт"
-                    subtitle="Сколько пришло внутренними переводами на выбранный счёт по месяцам."
-                    type="bar"
-                    [labels]="transferIncomeLabels()"
-                    [datasets]="transferIncomeDatasets()"
-                ></ms-chart-card>
+                            <ms-select
+                                label="Лимит"
+                                [options]="tagChartLimitOptions"
+                                [value]="tagChartLimit()"
+                                (valueChange)="setTagChartLimit($event)"
+                            ></ms-select>
+                        </div>
 
-                <ms-chart-card
-                    title="Норма накоплений"
-                    subtitle="Доля денег, которая остаётся после расходов в каждом месяце."
-                    type="line"
-                    [labels]="savingsRateLabels()"
-                    [datasets]="savingsRateDatasets()"
-                ></ms-chart-card>
-            </section>
-        }
+                        <ms-chart-card
+                            title="Расходы по тегам"
+                            subtitle="Теги, которые собирают основные траты выбранного месяца."
+                            [type]="tagChartType()"
+                            [labels]="tagExpenseLabels()"
+                            [datasets]="tagExpenseDatasets()"
+                            [height]="280"
+                        ></ms-chart-card>
+                    </div>
+                </section>
+            }
 
-        @case ('tables') {
-            <section class="analytics-section analytics-section--wide">
-                <div class="analytics-section__header">
-                    <span>Таблицы по месяцам</span>
-                </div>
+            @case ('yearly') {
+                <section class="analytics-section analytics-section--wide">
+                    <div class="analytics-section__header">
+                        <span>Годовое движение</span>
+                    </div>
 
-                <ms-analytics-month-table
-                    title="Расходы по категориям"
-                    rowHeader="Категория"
-                    [months]="categoryMonthTable().months"
-                    [rows]="categoryMonthTable().expenseRows"
-                    [summary]="categoryMonthTable().expenseSummary"
-                    emptyText="Расходов за выбранный год пока нет."
-                ></ms-analytics-month-table>
+                    <ms-chart-card
+                        title="Доходы и расходы"
+                        subtitle="Сравнение денежных потоков по месяцам выбранного года."
+                        type="bar"
+                        [labels]="incomeVsExpenseLabels()"
+                        [datasets]="incomeVsExpenseDatasets()"
+                    ></ms-chart-card>
 
-                <ms-analytics-month-table
-                    title="Доходы по категориям"
-                    rowHeader="Категория"
-                    [months]="categoryMonthTable().months"
-                    [rows]="categoryMonthTable().incomeRows"
-                    [summary]="categoryMonthTable().incomeSummary"
-                    emptyText="Доходов за выбранный год пока нет."
-                ></ms-analytics-month-table>
+                    <ms-chart-card
+                        title="Чистый денежный поток"
+                        subtitle="Итоговая разница между доходами и расходами по месяцам."
+                        type="line"
+                        [labels]="netCashFlowLabels()"
+                        [datasets]="netCashFlowDatasets()"
+                    ></ms-chart-card>
 
-                <ms-analytics-month-table
-                    title="Долги"
-                    rowHeader="Долг"
-                    [months]="categoryMonthTable().months"
-                    [rows]="categoryMonthTable().debtRows ?? []"
-                    [summary]="categoryMonthTable().debtSummary"
-                    [showWhenEmpty]="true"
-                    emptyText="Долгов за выбранный год пока нет."
-                ></ms-analytics-month-table>
-            </section>
+                    <ms-chart-card
+                        title="Расходы по месяцам"
+                        subtitle="Динамика расходов в выбранном году."
+                        type="bar"
+                        [labels]="monthlyExpenseLabels()"
+                        [datasets]="monthlyExpenseDatasets()"
+                    ></ms-chart-card>
+
+                    <ms-chart-card
+                        title="Динамика баланса"
+                        subtitle="Закрывающий баланс по месяцам выбранного года."
+                        type="line"
+                        [labels]="balanceDynamicsLabels()"
+                        [datasets]="balanceDynamicsDatasets()"
+                    ></ms-chart-card>
+
+                    @if (selectedAccountId() === 'all') {
+                        <ms-transfer-summary
+                            [items]="transferAccounts()"
+                            [year]="selectedMonth().getFullYear()"
+                        />
+                    } @else {
+                        <ms-chart-card
+                            title="Переводы выбранного счёта"
+                            subtitle="Сколько поступило на выбранный счёт и сколько отправлено с него по месяцам."
+                            type="bar"
+                            [horizontal]="true"
+                            [height]="420"
+                            [showValues]="true"
+                            [unit]="currencyCode()"
+                            [labels]="transferIncomeLabels()"
+                            [datasets]="transferComparisonDatasets()"
+                        ></ms-chart-card>
+                    }
+
+                    <ms-savings-summary
+                        [months]="incomeVsExpense()"
+                        [currency]="currencyCode()"
+                        [year]="selectedMonth().getFullYear()"
+                    />
+                </section>
+            }
+
+            @case ('tables') {
+                <section class="analytics-section analytics-section--wide">
+                    <div class="analytics-section__header">
+                        <span>Таблицы по месяцам</span>
+                    </div>
+
+                    <ms-analytics-month-table
+                        title="Расходы по категориям"
+                        rowHeader="Категория"
+                        [months]="categoryMonthTable().months"
+                        [rows]="categoryMonthTable().expenseRows"
+                        [summary]="categoryMonthTable().expenseSummary"
+                        emptyText="Расходов за выбранный год пока нет."
+                    ></ms-analytics-month-table>
+
+                    <ms-analytics-month-table
+                        title="Доходы по категориям"
+                        rowHeader="Категория"
+                        [months]="categoryMonthTable().months"
+                        [rows]="categoryMonthTable().incomeRows"
+                        [summary]="categoryMonthTable().incomeSummary"
+                        emptyText="Доходов за выбранный год пока нет."
+                    ></ms-analytics-month-table>
+
+                    <ms-analytics-month-table
+                        title="Долги"
+                        [detailsEnabled]="true"
+                        (detailRequested)="selectedDebtDetail.set($event)"
+                        rowHeader="Долг"
+                        [months]="categoryMonthTable().months"
+                        [rows]="categoryMonthTable().debtRows ?? []"
+                        [summary]="categoryMonthTable().debtSummary"
+                        [showWhenEmpty]="true"
+                        emptyText="Долгов за выбранный год пока нет."
+                    ></ms-analytics-month-table>
+                </section>
+            }
         }
     }
 </section>
+@if (selectedDebtDetail(); as selection) {
+    <ms-debt-details
+        [items]="debtDetails()"
+        [selection]="selection"
+        [year]="selectedMonth().getFullYear()"
+        [currency]="currencyCode()"
+        (closed)="selectedDebtDetail.set(null)"
+    />
+}

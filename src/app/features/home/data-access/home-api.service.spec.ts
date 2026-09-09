@@ -101,6 +101,28 @@ describe('HomeApiService', () => {
         });
     });
 
+    it('loads earlier debt history using the existing category filter without a start date', () => {
+        service
+            .getTransactions({
+                categoryId: 'debt-category-id',
+                toDate: '2026-01-01T00:00:00.000Z',
+                page: 2,
+            })
+            .subscribe();
+
+        const request = httpMock.expectOne(
+            (candidate) => candidate.url === `${environment.apiUrl}/Transactions`,
+        );
+
+        expect(request.request.method).toBe('GET');
+        expect(request.request.params.get('categoryId')).toBe('debt-category-id');
+        expect(request.request.params.has('fromDate')).toBe(false);
+        expect(request.request.params.get('toDate')).toBe('2026-01-01T00:00:00.000Z');
+        expect(request.request.params.get('page')).toBe('2');
+        expect(request.request.params.get('size')).toBe('100');
+        request.flush({ items: [], totalPages: 0 });
+    });
+
     it('skips the current recurring occurrence through the dedicated action endpoint', () => {
         service.skipRecurringTransaction('recurring-id').subscribe();
 
