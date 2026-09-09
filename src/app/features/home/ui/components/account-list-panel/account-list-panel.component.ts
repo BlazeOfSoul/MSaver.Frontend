@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Button } from '../../../../../shared/ui/button/button';
 import { DialogShellComponent } from '../../../../../shared/ui/dialog-shell/dialog-shell';
@@ -45,6 +45,7 @@ export class AccountListPanelComponent {
     newAccountCurrency = input.required<string>();
     newAccountInitialBalance = input.required<number>();
     newAccountNameError = input<string>('');
+    createdAccountId = input<string | null>(null);
     saving = input(false);
 
     newAccountNameChange = output<string>();
@@ -62,6 +63,38 @@ export class AccountListPanelComponent {
     readonly renameAccountId = signal('');
     readonly renameAccountName = signal('');
     readonly renameAccountColor = signal('#23c78b');
+    readonly accountPendingDeletion = signal<AccountBalanceItem | null>(null);
+
+    constructor() {
+        effect(() => {
+            if (this.createdAccountId()) {
+                this.closeAccountDialog();
+            }
+        });
+    }
+
+    openDeleteDialog(account: AccountBalanceItem): void {
+        if (!account.isPrimary && !this.saving()) {
+            this.accountPendingDeletion.set(account);
+        }
+    }
+
+    closeDeleteDialog(): void {
+        this.accountPendingDeletion.set(null);
+    }
+
+    confirmDeleteAccount(): void {
+        const pendingAccount = this.accountPendingDeletion();
+        if (!pendingAccount || this.saving()) {
+            return;
+        }
+
+        const account = this.allAccounts().find((item) => item.id === pendingAccount.id);
+        this.closeDeleteDialog();
+        if (account && !account.isPrimary) {
+            this.deleteAccount.emit(account.id);
+        }
+    }
 
     openAccountDialog(): void {
         this.accountDialogName.set(this.newAccountName());

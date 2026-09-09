@@ -35,6 +35,11 @@
     gap: 0.85rem;
 }
 
+.account-dialog__header > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .account-dialog__header h2,
 .account-dialog__header p {
     margin: 0;

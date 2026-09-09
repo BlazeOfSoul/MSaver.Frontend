@@ -269,6 +269,7 @@ export class HomeDashboardStore {
             label: size.toString(),
         }));
     readonly newAccountName = signal('');
+    readonly lastCreatedAccountId = signal<string | null>(null);
     readonly newAccountCurrency = signal('BYN');
     readonly newAccountInitialBalance = signal(0);
     readonly categorySortMode = signal<CategorySortMode>(readStoredCategorySortMode());
@@ -1455,7 +1456,8 @@ export class HomeDashboardStore {
                 initialBalance: this.newAccountInitialBalance(),
             }),
             'Не удалось создать счёт.',
-            () => {
+            (accountId) => {
+                this.lastCreatedAccountId.set(accountId);
                 this.newAccountName.set('');
                 this.newAccountInitialBalance.set(0);
                 this.accountNameError.set('');

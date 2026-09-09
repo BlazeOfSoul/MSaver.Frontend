@@ -28,13 +28,11 @@ describe('Add transaction dialog styles', () => {
             dialogShellStyles,
             String.raw`\.dialog-backdrop,\s*\.category-dialog-backdrop`,
         );
-        const backdropRule = extractRule(dialogShellStyles, '.dialog-backdrop');
         const dialogRule = extractRule(dialogStyles, '.dialog');
         const footerRule = extractRule(dialogFooterStyles, '.dialog__footer');
 
         expect(sharedBackdropRule).toContain('overflow-x: hidden');
         expect(sharedBackdropRule).toContain('overflow-y: auto');
-        expect(backdropRule).not.toContain('backdrop-filter');
         expect(dialogRule).toContain('overflow: visible');
         expect(dialogRule).not.toContain('overflow: auto');
         expect(footerRule).toContain('position: static');

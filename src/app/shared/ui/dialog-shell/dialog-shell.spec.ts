@@ -45,6 +45,7 @@ describe('DialogShellComponent', () => {
         const dialog = host.querySelector<HTMLElement>('.test-dialog');
 
         expect(backdrop).not.toBeNull();
+        expect(backdrop!.classList.contains('ms-modal-backdrop')).toBe(true);
         expect(dialog).not.toBeNull();
 
         dialog!.dispatchEvent(new Event('pointerdown', { bubbles: true }));

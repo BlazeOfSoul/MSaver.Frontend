@@ -9,11 +9,7 @@
     @for (group of groups(); track group.currency) {
         <div class="table-scroll">
             <table [attr.aria-label]="'Переводы по счетам в ' + group.currency">
-                <caption>
-                    {{
-                        group.currency
-                    }}
-                </caption>
+                <caption>{{ group.currency }}</caption>
                 <thead>
                     <tr>
                         <th scope="col">Счёт</th>

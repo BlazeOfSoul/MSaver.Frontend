@@ -16,21 +16,6 @@
     overscroll-behavior: contain;
 }
 
-.dialog-backdrop {
-    background: var(--color-ms-overlay-backdrop);
-}
-
-.category-dialog-backdrop {
-    background:
-        radial-gradient(
-            circle at top,
-            color-mix(in oklab, var(--color-ms-primary), transparent 92%),
-            transparent 32%
-        ),
-        var(--color-ms-overlay-surface);
-    backdrop-filter: blur(14px) saturate(120%);
-}
-
 @media (max-width: 480px) {
     .dialog-backdrop,
     .category-dialog-backdrop {

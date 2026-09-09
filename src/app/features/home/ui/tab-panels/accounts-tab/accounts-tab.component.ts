@@ -29,6 +29,7 @@ export class AccountsTabComponent {
     newAccountCurrency = input.required<string>();
     newAccountInitialBalance = input.required<number>();
     newAccountNameError = input<string>('');
+    createdAccountId = input<string | null>(null);
     transferRateError = input<string>('');
     rateLoading = input(false);
     saving = input(false);

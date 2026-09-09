@@ -79,7 +79,7 @@
                                     size="sm"
                                     data-testid="delete-account"
                                     [disabled]="saving()"
-                                    (onClick)="deleteAccount.emit(account.id)"
+                                    (onClick)="openDeleteDialog(account)"
                                     aria-label="Удалить счёт"
                                 >
                                     <span class="material-symbols-outlined">delete</span>
@@ -115,6 +115,48 @@
         </div>
     }
 </article>
+
+@if (accountPendingDeletion(); as account) {
+    <ms-dialog-shell backdropClass="category-dialog-backdrop" (closed)="closeDeleteDialog()">
+        <section
+            class="account-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+            aria-describedby="delete-account-description"
+        >
+            <header class="account-dialog__header">
+                <div>
+                    <h2 id="delete-account-title">Удалить счёт «{{ account.name }}»?</h2>
+                    <p id="delete-account-description">
+                        Счёт будет перемещён в архив и скрыт из списка. Его операции сохранятся.
+                    </p>
+                </div>
+            </header>
+            <footer class="account-dialog__footer">
+                <ms-button
+                    variant="neutral"
+                    appearance="ghost"
+                    [fullWidth]="true"
+                    autofocus
+                    data-testid="cancel-delete-account"
+                    (onClick)="closeDeleteDialog()"
+                >
+                    Отмена
+                </ms-button>
+                <ms-button
+                    variant="danger"
+                    [fullWidth]="true"
+                    [disabled]="saving()"
+                    data-testid="confirm-delete-account"
+                    (onClick)="confirmDeleteAccount()"
+                >
+                    Удалить счёт
+                </ms-button>
+            </footer>
+        </section>
+    </ms-dialog-shell>
+}
 
 @if (isAccountDialogOpen()) {
     <ms-dialog-shell backdropClass="category-dialog-backdrop" (closed)="closeAccountDialog()">

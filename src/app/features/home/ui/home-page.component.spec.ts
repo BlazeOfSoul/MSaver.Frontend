@@ -2504,7 +2504,7 @@ describe('HomePageComponent', () => {
         vi.useRealTimers();
     });
 
-    it('hides the delete action for the primary account and refreshes accounts after deleting another account', async () => {
+    it('hides primary account deletion and deletes another account only after confirmation', async () => {
         homeApi.getAccounts.mockReturnValue(
             of(
                 page([
@@ -2551,7 +2551,19 @@ describe('HomePageComponent', () => {
         const initialTagListCalls = homeApi.getTags.mock.calls.length;
         const initialTagDetailsCalls = homeApi.getTagById.mock.calls.length;
         deleteButtons[0].click();
+        fixture.detectChanges();
 
+        expect(homeApi.deleteAccount).not.toHaveBeenCalled();
+        expect(host.querySelector('[role="dialog"]')?.textContent).toContain('Карта');
+        host.querySelector<HTMLElement>('[data-testid="cancel-delete-account"]')!.click();
+        fixture.detectChanges();
+        expect(homeApi.deleteAccount).not.toHaveBeenCalled();
+
+        deleteButtons[0].click();
+        fixture.detectChanges();
+        host.querySelector<HTMLElement>('[data-testid="confirm-delete-account"]')!.click();
+
+        expect(homeApi.deleteAccount).toHaveBeenCalledTimes(1);
         expect(homeApi.deleteAccount).toHaveBeenCalledWith('secondary-account');
         expect(homeApi.getAccounts.mock.calls.length).toBeGreaterThan(initialAccountCalls);
         expect(homeApi.getCurrentUser).toHaveBeenCalledTimes(initialUserCalls);
@@ -4475,6 +4487,63 @@ describe('HomePageComponent', () => {
         expect(content?.getAttribute('aria-label')).toBe('Настройки');
         expect(content?.getAttribute('aria-labelledby')).toBeNull();
     });
+
+    it.each(['success', 'error'])(
+        'closes account creation only on success: %s response',
+        async (outcome) => {
+            const request = new Subject<string>();
+            homeApi.getAccounts.mockReturnValue(of(page([account({ isPrimary: true })])));
+            homeApi.createAccount.mockReturnValue(request.asObservable());
+            fixture = TestBed.createComponent(HomePageComponent);
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.componentInstance.setActiveTab('accounts');
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges();
+            const host = fixture.nativeElement as HTMLElement;
+            host.querySelector<HTMLElement>('[data-testid="open-account-dialog"]')!.click();
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges();
+            const nameInput = host.querySelector<HTMLInputElement>('.account-dialog input')!;
+            nameInput.value = 'Беларусбанк';
+            nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+            fixture.detectChanges();
+            host.querySelector<HTMLElement>('[data-testid="submit-account-dialog"]')!.click();
+            fixture.detectChanges();
+            expect(homeApi.createAccount).toHaveBeenCalledTimes(1);
+            expect(host.querySelector('.account-dialog')).not.toBeNull();
+
+            if (outcome === 'success') {
+                request.next('created-account-id');
+                request.complete();
+            } else {
+                request.error(
+                    new HttpErrorResponse({
+                        status: 409,
+                        error: { message: 'Счёт уже существует.' },
+                    }),
+                );
+            }
+            fixture.detectChanges();
+            await fixture.whenStable();
+            fixture.detectChanges();
+            if (outcome === 'success') {
+                expect(host.querySelector('.account-dialog')).toBeNull();
+                host.querySelector<HTMLElement>('[data-testid="open-account-dialog"]')!.click();
+                fixture.detectChanges();
+                expect(host.querySelector<HTMLInputElement>('.account-dialog input')!.value).toBe(
+                    '',
+                );
+            } else {
+                expect(host.querySelector<HTMLInputElement>('.account-dialog input')!.value).toBe(
+                    'Беларусбанк',
+                );
+                expect(host.querySelector('.account-dialog .field-error')).not.toBeNull();
+            }
+        },
+    );
 
     it('shows backend validation details when account creation fails', () => {
         const conflictMessage = 'Счёт с таким названием уже существует.';

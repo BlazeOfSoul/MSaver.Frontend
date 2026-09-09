@@ -27,7 +27,7 @@ const FOCUSABLE_SELECTOR = [
     template: `
         <div
             #backdrop
-            [attr.class]="backdropClass()"
+            [attr.class]="'ms-modal-backdrop ' + backdropClass()"
             tabindex="-1"
             (pointerdown)="onBackdropPointerDown($event)"
             (click)="onBackdropClick($event)"

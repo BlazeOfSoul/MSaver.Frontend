@@ -1,6 +1,6 @@
 <div class="home-page" [class.home-page--setup]="needsAccountSetup()">
     @if (needsAccountSetup()) {
-        <div class="first-account-backdrop">
+        <div class="first-account-backdrop ms-modal-backdrop">
             <ms-first-account-setup
                 [currencyOptions]="currencyOptions"
                 [selectedCurrency]="newAccountCurrency()"
@@ -131,6 +131,7 @@
                                         [newAccountCurrency]="newAccountCurrency()"
                                         [newAccountInitialBalance]="newAccountInitialBalance()"
                                         [newAccountNameError]="accountNameError()"
+                                        [createdAccountId]="dashboard.lastCreatedAccountId()"
                                         [transferRateError]="transferRateError()"
                                         [rateLoading]="isTransferRateLoading()"
                                         [saving]="isSaving()"

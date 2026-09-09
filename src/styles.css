@@ -172,6 +172,12 @@
     color-scheme: dark;
 }
 
+.ms-modal-backdrop {
+    background: var(--color-ms-overlay-backdrop);
+    backdrop-filter: blur(12px) saturate(110%);
+    -webkit-backdrop-filter: blur(12px) saturate(110%);
+}
+
 *,
 *::before,
 *::after {

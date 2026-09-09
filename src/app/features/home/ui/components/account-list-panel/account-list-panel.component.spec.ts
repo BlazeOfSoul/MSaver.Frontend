@@ -176,6 +176,97 @@ describe('AccountListPanelComponent', () => {
         });
     });
 
+    it('requires confirmation for the named account and focuses cancellation first', async () => {
+        const secondary = account({ id: 'home', name: 'Дома', isPrimary: false });
+        fixture.componentRef.setInput('accounts', [secondary]);
+        fixture.componentRef.setInput('allAccounts', [secondary]);
+        const deleted = vi.fn();
+        fixture.componentInstance.deleteAccount.subscribe(deleted);
+        fixture.detectChanges();
+        const host = fixture.nativeElement as HTMLElement;
+
+        host.querySelector<HTMLElement>('[data-testid="delete-account"]')!.click();
+        fixture.detectChanges();
+        await fixture.whenStable();
+        expect(host.querySelector('[role="dialog"]')?.textContent).toContain(
+            'Удалить счёт «Дома»?',
+        );
+        expect(deleted).not.toHaveBeenCalled();
+        const cancel = host.querySelector<HTMLElement>('[data-testid="cancel-delete-account"]')!;
+        expect(document.activeElement).toBe(cancel);
+        cancel.click();
+        fixture.detectChanges();
+        expect(host.querySelector('[role="dialog"]')).toBeNull();
+        expect(deleted).not.toHaveBeenCalled();
+
+        host.querySelector<HTMLElement>('[data-testid="delete-account"]')!.click();
+        fixture.detectChanges();
+        const confirm = host.querySelector<HTMLElement>('[data-testid="confirm-delete-account"]')!;
+        confirm.click();
+        confirm.click();
+        fixture.detectChanges();
+        expect(deleted).toHaveBeenCalledExactlyOnceWith('home');
+        expect(host.querySelector('[role="dialog"]')).toBeNull();
+    });
+
+    it.each(['escape', 'backdrop'])('cancels account deletion with %s', (action) => {
+        const secondary = account({ id: 'home', isPrimary: false });
+        fixture.componentRef.setInput('accounts', [secondary]);
+        fixture.componentRef.setInput('allAccounts', [secondary]);
+        const deleted = vi.fn();
+        fixture.componentInstance.deleteAccount.subscribe(deleted);
+        fixture.detectChanges();
+        const host = fixture.nativeElement as HTMLElement;
+        host.querySelector<HTMLElement>('[data-testid="delete-account"]')!.click();
+        fixture.detectChanges();
+        const backdrop = host.querySelector<HTMLElement>('.ms-modal-backdrop')!;
+        if (action === 'escape') {
+            backdrop.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        } else {
+            backdrop.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+            backdrop.click();
+        }
+        fixture.detectChanges();
+        expect(host.querySelector('[role="dialog"]')).toBeNull();
+        expect(deleted).not.toHaveBeenCalled();
+    });
+
+    it.each(['missing', 'primary'])(
+        'does not delete an account that became %s while confirming',
+        (state) => {
+            const secondary = account({ id: 'home', isPrimary: false });
+            fixture.componentRef.setInput('accounts', [secondary]);
+            fixture.componentRef.setInput('allAccounts', [secondary]);
+            const deleted = vi.fn();
+            fixture.componentInstance.deleteAccount.subscribe(deleted);
+            fixture.detectChanges();
+            const host = fixture.nativeElement as HTMLElement;
+            host.querySelector<HTMLElement>('[data-testid="delete-account"]')!.click();
+            fixture.detectChanges();
+            fixture.componentRef.setInput(
+                'allAccounts',
+                state === 'missing' ? [] : [{ ...secondary, isPrimary: true }],
+            );
+            fixture.detectChanges();
+            host.querySelector<HTMLElement>('[data-testid="confirm-delete-account"]')!.click();
+            expect(deleted).not.toHaveBeenCalled();
+        },
+    );
+
+    it('does not confirm account deletion while a mutation is pending', () => {
+        const secondary = account({ id: 'home', isPrimary: false });
+        fixture.componentRef.setInput('accounts', [secondary]);
+        fixture.componentRef.setInput('allAccounts', [secondary]);
+        const deleted = vi.fn();
+        fixture.componentInstance.deleteAccount.subscribe(deleted);
+        fixture.detectChanges();
+        fixture.componentInstance.openDeleteDialog(secondary);
+        fixture.componentRef.setInput('saving', true);
+        fixture.detectChanges();
+        fixture.componentInstance.confirmDeleteAccount();
+        expect(deleted).not.toHaveBeenCalled();
+    });
+
     it('allows every account to be renamed from the account list', () => {
         const renameSpy = vi.fn();
         const primary = account({ id: 'primary-account', name: 'Main', isPrimary: true });
