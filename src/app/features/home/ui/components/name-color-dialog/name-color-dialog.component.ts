@@ -5,7 +5,7 @@ import { Button } from '../../../../../shared/ui/button/button';
 import { DialogShellComponent } from '../../../../../shared/ui/dialog-shell/dialog-shell';
 import { InputComponent } from '../../../../../shared/ui/input/input';
 
-export type NameColorDialogPreviewKind = 'category' | 'tag';
+export type NameColorDialogPreviewKind = 'category' | 'tag' | 'account';
 
 @Component({
     selector: 'ms-name-color-dialog',
@@ -29,6 +29,7 @@ export class NameColorDialogComponent {
     previewKind = input.required<NameColorDialogPreviewKind>();
     colorPickerTestId = input.required<string>();
     submitTestId = input.required<string>();
+    submitLabel = input('Создать');
     saving = input(false);
 
     closed = output<void>();

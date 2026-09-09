@@ -1,30 +1,19 @@
 <section class="transfer-summary" aria-label="Влияние переводов на счета">
     <header>
-        <h3>Как переводы изменили счета</h3>
+        <h3>Переводы по счетам</h3>
         <p>
             {{ year() }} год. Плюс — счёт получил больше, чем отправил. Минус — с него ушло больше
             денег. Каждая валюта показана отдельно.
         </p>
     </header>
     @for (group of groups(); track group.currency) {
-        @if (group.hasNetChange) {
-            <ms-chart-card
-                [title]="'Изменение по счетам · ' + group.currency"
-                subtitle="Поступило минус отправлено. Учитывается выбранный счёт."
-                type="bar"
-                [horizontal]="true"
-                [unit]="group.currency"
-                [height]="group.height"
-                [labels]="group.labels"
-                [datasets]="group.datasets"
-            />
-        } @else {
-            <p class="balanced">
-                {{ group.currency }}: входящие и исходящие переводы уравновесились.
-            </p>
-        }
         <div class="table-scroll">
             <table [attr.aria-label]="'Переводы по счетам в ' + group.currency">
+                <caption>
+                    {{
+                        group.currency
+                    }}
+                </caption>
                 <thead>
                     <tr>
                         <th scope="col">Счёт</th>

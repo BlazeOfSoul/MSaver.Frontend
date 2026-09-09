@@ -197,81 +197,21 @@
 }
 
 @if (isRenameDialogOpen()) {
-    <ms-dialog-shell backdropClass="category-dialog-backdrop" (closed)="closeRenameDialog()">
-        <section
-            class="account-dialog account-rename-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="account-rename-title"
-            (click)="$event.stopPropagation()"
-        >
-            <header class="account-dialog__header">
-                <div>
-                    <h2 id="account-rename-title">Название и цвет счёта</h2>
-                    <p>Выберите цвет, по которому будет удобно узнавать счёт.</p>
-                </div>
-
-                <ms-button
-                    appearance="icon"
-                    variant="neutral"
-                    size="md"
-                    (onClick)="closeRenameDialog()"
-                    aria-label="Закрыть диалог"
-                >
-                    <span class="material-symbols-outlined">close</span>
-                </ms-button>
-            </header>
-
-            <div class="account-dialog__fields">
-                <ms-input
-                    [ngModel]="renameAccountName()"
-                    (ngModelChange)="setRenameAccountName($event)"
-                    placeholder="Название счёта"
-                ></ms-input>
-                <fieldset class="account-color-picker">
-                    <legend>Цвет счёта</legend>
-                    <div class="account-color-picker__options">
-                        @for (color of accountColors; track color; let index = $index) {
-                            <button
-                                type="button"
-                                class="account-color-picker__swatch"
-                                [style.--swatch]="color"
-                                [attr.aria-label]="'Цвет ' + (index + 1)"
-                                [attr.aria-pressed]="renameAccountColor().toLowerCase() === color"
-                                (click)="renameAccountColor.set(color)"
-                            >
-                                @if (renameAccountColor().toLowerCase() === color) {
-                                    <span class="material-symbols-outlined" aria-hidden="true"
-                                        >check</span
-                                    >
-                                }
-                            </button>
-                        }
-                    </div>
-                </fieldset>
-            </div>
-
-            <footer class="account-dialog__footer">
-                <ms-button
-                    variant="neutral"
-                    appearance="outline"
-                    [fullWidth]="true"
-                    (onClick)="closeRenameDialog()"
-                >
-                    Отмена
-                </ms-button>
-
-                <ms-button
-                    variant="primary"
-                    [fullWidth]="true"
-                    data-testid="submit-account-rename"
-                    [loading]="saving()"
-                    [disabled]="!renameAccountName().trim()"
-                    (onClick)="submitRenameDialog()"
-                >
-                    Сохранить
-                </ms-button>
-            </footer>
-        </section>
-    </ms-dialog-shell>
+    <ms-name-color-dialog
+        title="Название и цвет счёта"
+        description="Выберите цвет, по которому будет удобно узнавать счёт."
+        placeholder="Название счёта"
+        fallbackName="Счёт"
+        previewKind="account"
+        colorPickerTestId="account-color-picker"
+        submitTestId="submit-account-rename"
+        submitLabel="Сохранить"
+        [name]="renameAccountName()"
+        [color]="renameAccountColor()"
+        [saving]="saving()"
+        (nameChange)="setRenameAccountName($event)"
+        (colorChange)="renameAccountColor.set($event)"
+        (closed)="closeRenameDialog()"
+        (submit)="submitRenameDialog()"
+    />
 }

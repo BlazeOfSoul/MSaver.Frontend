@@ -1,12 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { ChartCardComponent } from '../chart-card/chart-card.component';
 import { TransferAccountSummary } from '../../home-transfer-summary';
 import { formatMoney, formatSignedMoney } from '../../home-formatters';
 
 @Component({
     selector: 'ms-transfer-summary',
     standalone: true,
-    imports: [ChartCardComponent],
     templateUrl: './transfer-summary.component.html',
     styleUrl: './transfer-summary.component.css',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,17 +21,6 @@ export class TransferSummaryComponent {
             return {
                 currency,
                 rows,
-                hasNetChange: rows.some((row) => row.net !== 0),
-                labels: rows.map((row) => row.name),
-                datasets: [
-                    {
-                        label: 'Изменение от переводов',
-                        data: rows.map((row) => row.net),
-                        color: '#67a6c1',
-                        colors: rows.map((row) => (row.net < 0 ? '#ff6f91' : row.color)),
-                    },
-                ],
-                height: Math.max(150, rows.length * 48),
             };
         });
     });

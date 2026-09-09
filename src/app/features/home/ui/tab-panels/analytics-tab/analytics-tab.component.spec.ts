@@ -204,7 +204,9 @@ describe('AnalyticsTabComponent', () => {
         ]);
         fixture.detectChanges();
         const host = fixture.nativeElement as HTMLElement;
-        expect(host.textContent).toContain('Как переводы изменили счета');
+        expect(host.textContent).toContain('Переводы по счетам');
+        expect(host.querySelector('ms-transfer-summary ms-chart-card')).toBeNull();
+        expect(host.querySelector('ms-transfer-summary table')).not.toBeNull();
         expect(host.textContent).toContain('Cash');
         expect(host.textContent).not.toContain('Переводы выбранного счёта');
     });

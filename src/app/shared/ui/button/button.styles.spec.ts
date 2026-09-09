@@ -4,7 +4,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 describe('Button design-system styles', () => {
-    const styles = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+    const styles = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8').replaceAll(
+        '\r\n',
+        '\n',
+    );
 
     it('keeps button text centered within the reusable content wrapper', () => {
         const contentRule = extractRule('ms-button.ms-btn .ms-btn__content');

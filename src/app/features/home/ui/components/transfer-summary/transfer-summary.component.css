@@ -37,6 +37,12 @@ table {
     border-collapse: collapse;
     font-size: 0.85rem;
 }
+caption {
+    text-align: left;
+    font-weight: 700;
+    padding: 0.5rem 0.65rem;
+    color: var(--color-ms-light);
+}
 th,
 td {
     padding: 0.65rem;

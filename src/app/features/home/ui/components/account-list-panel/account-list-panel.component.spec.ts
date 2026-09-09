@@ -161,7 +161,12 @@ describe('AccountListPanelComponent', () => {
         const host = fixture.nativeElement as HTMLElement;
         host.querySelector<HTMLButtonElement>('[data-testid="rename-account"]')!.click();
         fixture.detectChanges();
-        host.querySelector<HTMLButtonElement>('[aria-label="Цвет 6"]')!.click();
+        const picker = host.querySelector<HTMLInputElement>(
+            '[data-testid="account-color-picker"]',
+        )!;
+        expect(picker.type).toBe('color');
+        picker.value = '#5896ed';
+        picker.dispatchEvent(new Event('input', { bubbles: true }));
         fixture.detectChanges();
         host.querySelector<HTMLButtonElement>('[data-testid="submit-account-rename"]')!.click();
         expect(save).toHaveBeenCalledWith({
@@ -190,7 +195,9 @@ describe('AccountListPanelComponent', () => {
         editButtons[1].click();
         fixture.detectChanges();
 
-        const input = host.querySelector<HTMLInputElement>('.account-rename-dialog input');
+        const input = host.querySelector<HTMLInputElement>(
+            'ms-name-color-dialog input[type="text"]',
+        );
         input!.value = 'Family wallet';
         input!.dispatchEvent(new Event('input', { bubbles: true }));
         fixture.detectChanges();

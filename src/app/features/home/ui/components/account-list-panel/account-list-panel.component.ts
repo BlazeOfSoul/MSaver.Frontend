@@ -10,7 +10,7 @@ import {
     parseMoneyInputAmount,
 } from '../../../../../shared/utils/money-input.utils';
 import { AccountBalanceItem } from '../../home-page.models';
-import { MS_ACCOUNT_COLORS } from '../../../../../shared/theme/theme-colors';
+import { NameColorDialogComponent } from '../name-color-dialog/name-color-dialog.component';
 
 @Component({
     selector: 'ms-account-list-panel',
@@ -22,6 +22,7 @@ import { MS_ACCOUNT_COLORS } from '../../../../../shared/theme/theme-colors';
         DialogShellComponent,
         InputComponent,
         SelectComponent,
+        NameColorDialogComponent,
     ],
     templateUrl: './account-list-panel.component.html',
     styleUrls: [
@@ -61,7 +62,6 @@ export class AccountListPanelComponent {
     readonly renameAccountId = signal('');
     readonly renameAccountName = signal('');
     readonly renameAccountColor = signal('#23c78b');
-    readonly accountColors = MS_ACCOUNT_COLORS;
 
     openAccountDialog(): void {
         this.accountDialogName.set(this.newAccountName());
