@@ -115,6 +115,7 @@ const homeId = idOf(
         })
     ).data,
 );
+const reserveColors = ['#67a6c1', '#ff8fab', '#c77dff', '#f39c63', '#42c9c2', '#9cbd54', '#a798e8'];
 for (let i = 1; i <= 7; i++)
     await api('/Accounts', {
         method: 'POST',
@@ -122,7 +123,7 @@ for (let i = 1; i <= 7; i++)
             name: 'Резервный счёт ' + i,
             currencyCode: 'BYN',
             initialBalance: i * 10,
-            color: '#23c78b',
+            color: reserveColors[i - 1],
         },
     });
 const categories = (await api('/Categories?size=100')).data.items;

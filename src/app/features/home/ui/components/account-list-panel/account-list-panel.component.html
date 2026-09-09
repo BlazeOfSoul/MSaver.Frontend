@@ -67,7 +67,7 @@
                                 data-testid="rename-account"
                                 [disabled]="saving()"
                                 (onClick)="openRenameDialog(account)"
-                                aria-label="Переименовать счёт"
+                                aria-label="Изменить счёт"
                             >
                                 <span class="material-symbols-outlined">edit</span>
                             </ms-button>
@@ -207,8 +207,8 @@
         >
             <header class="account-dialog__header">
                 <div>
-                    <h2 id="account-rename-title">Переименовать счёт</h2>
-                    <p>Можно изменить только название. Баланс, валюта и роль счёта сохраняются.</p>
+                    <h2 id="account-rename-title">Название и цвет счёта</h2>
+                    <p>Выберите цвет, по которому будет удобно узнавать счёт.</p>
                 </div>
 
                 <ms-button
@@ -228,6 +228,27 @@
                     (ngModelChange)="setRenameAccountName($event)"
                     placeholder="Название счёта"
                 ></ms-input>
+                <fieldset class="account-color-picker">
+                    <legend>Цвет счёта</legend>
+                    <div class="account-color-picker__options">
+                        @for (color of accountColors; track color; let index = $index) {
+                            <button
+                                type="button"
+                                class="account-color-picker__swatch"
+                                [style.--swatch]="color"
+                                [attr.aria-label]="'Цвет ' + (index + 1)"
+                                [attr.aria-pressed]="renameAccountColor().toLowerCase() === color"
+                                (click)="renameAccountColor.set(color)"
+                            >
+                                @if (renameAccountColor().toLowerCase() === color) {
+                                    <span class="material-symbols-outlined" aria-hidden="true"
+                                        >check</span
+                                    >
+                                }
+                            </button>
+                        }
+                    </div>
+                </fieldset>
             </div>
 
             <footer class="account-dialog__footer">

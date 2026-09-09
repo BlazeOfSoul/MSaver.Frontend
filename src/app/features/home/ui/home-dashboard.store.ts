@@ -31,6 +31,8 @@ import { DebtDetailItem } from './components/debt-details/debt-details.component
 import { AuthStore } from '../../auth/data-access/auth.store';
 import { PrivateDataCache, privateCacheGeneration } from '../../../core/cache/private-data-cache';
 import { indexTransactionsByMonth, indexCategoryMonthTotals } from './home-analytics-index';
+import { summarizeAccountTransfers } from './home-transfer-summary';
+import { nextAccountColor } from './home-account-colors';
 import { MsSelectOption } from '../../../shared/ui/select/select';
 import {
     AccountBalanceItem,
@@ -647,6 +649,9 @@ export class HomeDashboardStore {
             };
         }),
     );
+    readonly transferAccounts = computed(() =>
+        summarizeAccountTransfers(this.selectedYearTransactions(), this.accounts()),
+    );
     readonly categoryMonthTable = computed<AnalyticsCategoryMonthTable>(() => {
         const months = this.monthsForSelectedYear();
         const incomeRows = this.buildCategoryMonthRows(months, 'income');
@@ -730,15 +735,6 @@ export class HomeDashboardStore {
                 value,
             };
         }),
-    );
-    readonly savingsRateChart = computed<ReadonlyArray<AnalyticsSeriesPoint>>(() =>
-        this.incomeVsExpense().map((item) => ({
-            label: item.label,
-            value:
-                item.income > 0
-                    ? Math.round(((item.income - item.expense) / item.income) * 100)
-                    : 0,
-        })),
     );
     readonly tagExpensesChart = computed<ReadonlyArray<CategoryBreakdownItem>>(() => {
         const totals = categoryTotals(
@@ -1455,7 +1451,7 @@ export class HomeDashboardStore {
             this.homeApi.createAccount({
                 name,
                 currencyCode: this.newAccountCurrency(),
-                color: ACCOUNT_COLORS[this.accounts().length % ACCOUNT_COLORS.length],
+                color: nextAccountColor(this.accounts().map((account) => account.color)),
                 initialBalance: this.newAccountInitialBalance(),
             }),
             'Не удалось создать счёт.',

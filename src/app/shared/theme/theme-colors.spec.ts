@@ -7,7 +7,15 @@ import {
 
 describe('theme colors', () => {
     it('exposes the shared account fallback palette', () => {
-        expect(MS_ACCOUNT_COLORS).toEqual(['#23c78b', '#ffd166', '#67a6c1', '#ff8fab', '#c77dff']);
+        expect(MS_ACCOUNT_COLORS.slice(0, 5)).toEqual([
+            '#23c78b',
+            '#ffd166',
+            '#67a6c1',
+            '#ff8fab',
+            '#c77dff',
+        ]);
+        expect(new Set(MS_ACCOUNT_COLORS).size).toBe(MS_ACCOUNT_COLORS.length);
+        expect(MS_ACCOUNT_COLORS.length).toBeGreaterThanOrEqual(10);
     });
 
     it('exposes the shared category fallback palette', () => {

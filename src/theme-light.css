@@ -18,6 +18,7 @@
     --color-ms-text-subtle: #526859;
     --color-ms-text-faint: #64796b;
     --color-ms-text-inverse: #ffffff;
+    --color-ms-toggle-thumb: #ffffff;
     --color-ms-info: #226f94;
     --color-ms-success: #087a53;
     --color-ms-warning: #966013;
@@ -44,6 +45,46 @@
     --color-ms-black-alpha-26: rgb(43 78 57 / 7%);
     --color-ms-black-alpha-28: rgb(43 78 57 / 8%);
     --color-ms-black-alpha-32: rgb(43 78 57 / 10%);
+    --color-ms-black-alpha-16: rgb(43 78 57 / 4%);
+    --color-ms-black-alpha-22: rgb(43 78 57 / 5%);
+    --color-ms-black-alpha-3: rgb(43 78 57 / 7%);
+    --color-ms-black-alpha-34: rgb(43 78 57 / 8%);
+    --color-ms-black-alpha-42: rgb(43 78 57 / 12%);
+}
+
+html[data-theme='light'],
+:root[data-theme='light'] app-home-page {
+    animation: none;
+    background: #f2f5f4;
+}
+
+:root[data-theme='light'] ms-account-list-panel .account-card {
+    border-color: color-mix(in oklab, var(--account-color), #344f43 35%);
+    border-left-width: 4px;
+    background: linear-gradient(
+        120deg,
+        color-mix(in oklab, var(--account-color), white 92%),
+        #ffffff 70%
+    );
+    box-shadow: 0 2px 5px rgb(26 48 37 / 5%);
+}
+
+:root[data-theme='light'] ms-account-list-panel .account-card__balance {
+    color: #172d23;
+}
+
+:root[data-theme='light'] ms-account-list-panel .account-card__balance--negative {
+    color: var(--color-ms-danger);
+}
+
+:root[data-theme='light'] ms-account-list-panel .account-card__icon,
+:root[data-theme='light'] ms-account-list-panel .account-card__badge {
+    color: color-mix(in oklab, var(--account-color), #102b1e 55%);
+    background: color-mix(in oklab, var(--account-color), white 87%);
+}
+
+:root[data-theme='light'] .planning-notification-toggle__track::after {
+    box-shadow: 0 1px 3px rgb(26 48 37 / 18%);
 }
 
 @media (max-width: 760px), (prefers-reduced-motion: reduce) {

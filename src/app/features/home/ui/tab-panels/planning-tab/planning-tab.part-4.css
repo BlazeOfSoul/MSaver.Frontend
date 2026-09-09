@@ -48,7 +48,7 @@
     width: 1.05rem;
     height: 1.05rem;
     border-radius: 50%;
-    background: var(--color-ms-light-dark);
+    background: var(--color-ms-toggle-thumb, var(--color-ms-light-dark));
     box-shadow: 0 2px 7px var(--color-ms-black-alpha-28);
     content: '';
     transition:
@@ -62,7 +62,7 @@
 }
 
 .planning-notification-toggle__input:checked + .planning-notification-toggle__track::after {
-    background: var(--color-ms-light);
+    background: var(--color-ms-toggle-thumb, var(--color-ms-light));
     transform: translateX(1.18rem);
 }
 

@@ -1,4 +1,7 @@
 import { DOCUMENT } from '@angular/common';
+import { SavingsSummaryComponent } from '../../components/savings-summary/savings-summary.component';
+import { TransferSummaryComponent } from '../../components/transfer-summary/transfer-summary.component';
+import { TransferAccountSummary } from '../../home-transfer-summary';
 import {
     ChangeDetectionStrategy,
     Component,
@@ -59,6 +62,8 @@ import {
         AnalyticsOverviewPanelComponent,
         SelectComponent,
         DebtDetailsComponent,
+        SavingsSummaryComponent,
+        TransferSummaryComponent,
     ],
     templateUrl: './analytics-tab.component.html',
     styleUrls: [
@@ -81,7 +86,7 @@ export class AnalyticsTabComponent {
     transferIncome = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     transferExpense = input<ReadonlyArray<AnalyticsSeriesPoint>>([]);
     currencyCode = input('');
-    savingsRate = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
+    transferAccounts = input<ReadonlyArray<TransferAccountSummary>>([]);
     tagExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     topExpenses = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     accountOptions = input.required<ReadonlyArray<MsSelectOption>>();
@@ -242,35 +247,11 @@ export class AnalyticsTabComponent {
             MS_ANALYTICS_CHART_COLORS.expense,
         ),
     ]);
-    readonly detailedSavingsDatasets = computed<ReadonlyArray<HomeChartDataset>>(() => [
-        {
-            label: 'Осталось от дохода',
-            data: this.incomeVsExpense().map((item) =>
-                item.income > 0 ? ((item.income - item.expense) / item.income) * 100 : NaN,
-            ),
-            color: MS_ANALYTICS_CHART_COLORS.balance,
-            colors: this.incomeVsExpense().map((item) =>
-                item.income < item.expense
-                    ? MS_ANALYTICS_CHART_COLORS.expense
-                    : MS_ANALYTICS_CHART_COLORS.balance,
-            ),
-        },
-    ]);
     readonly netCashFlowDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
         buildNetCashFlowDataset(
             this.incomeVsExpense(),
             'Чистый поток',
             MS_ANALYTICS_CHART_COLORS.balance,
-        ),
-    );
-
-    readonly savingsRateLabels = computed(() => chartLabels(this.savingsRate()));
-    readonly savingsRateDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
-        buildValueDataset(
-            'Норма накоплений',
-            this.savingsRate(),
-            MS_ANALYTICS_CHART_COLORS.savings,
-            true,
         ),
     );
 

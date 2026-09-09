@@ -4,6 +4,13 @@ export const MS_ACCOUNT_COLORS: ReadonlyArray<string> = [
     '#67a6c1',
     '#ff8fab',
     '#c77dff',
+    '#5896ed',
+    '#f39c63',
+    '#42c9c2',
+    '#dd7fae',
+    '#9cbd54',
+    '#a798e8',
+    '#b99979',
 ];
 
 export const MS_CATEGORY_COLORS: ReadonlyArray<string> = [

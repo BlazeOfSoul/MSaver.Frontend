@@ -1,0 +1,134 @@
+:host {
+    display: block;
+    min-width: 0;
+}
+.savings-summary {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background: var(--color-ms-surface-raised);
+    color: var(--color-ms-light);
+}
+h3,
+p,
+dl,
+dd {
+    margin: 0;
+}
+h3 {
+    font-size: 1rem;
+}
+p,
+dt,
+small {
+    color: var(--color-ms-light-dark);
+    line-height: 1.5;
+}
+header p {
+    margin-top: 0.35rem;
+}
+.summary-values {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+.summary-values > div {
+    padding: 0.9rem;
+    background: var(--color-ms-white-alpha-04);
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+}
+dt {
+    font-size: 0.8rem;
+}
+dd {
+    font-size: clamp(1.1rem, 2vw, 1.6rem);
+    font-weight: 800;
+    margin-top: 0.3rem;
+    overflow-wrap: anywhere;
+}
+.remainder dd {
+    color: var(--color-ms-primary-soft);
+}
+.negative strong,
+.remainder.negative dd {
+    color: var(--color-ms-danger);
+}
+small {
+    display: block;
+    font-size: 0.75rem;
+    margin-top: 0.2rem;
+}
+.explanation {
+    font-size: 0.8rem;
+}
+summary {
+    color: var(--color-ms-primary-soft);
+    cursor: pointer;
+    min-height: 2rem;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+th,
+td {
+    padding: 0.65rem;
+    border-bottom: 1px solid var(--color-ms-border);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+th:first-child {
+    text-align: left;
+}
+thead {
+    color: var(--color-ms-light-dark);
+}
+@media (max-width: 600px) {
+    .savings-summary {
+        padding: 0.8rem;
+    }
+    .summary-values {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    .summary-values > div {
+        padding: 0.65rem;
+    }
+    table,
+    tbody {
+        display: grid;
+        gap: 0.7rem;
+    }
+    thead {
+        display: none;
+    }
+    tr {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.4rem;
+        border-bottom: 1px solid var(--color-ms-border);
+        padding-bottom: 0.6rem;
+    }
+    th,
+    td {
+        border: 0;
+        padding: 0;
+        min-width: 0;
+        text-align: left;
+        overflow-wrap: anywhere;
+    }
+    th {
+        grid-column: 1 / -1;
+    }
+    td::before {
+        content: attr(data-label);
+        display: block;
+        color: var(--color-ms-light-dark);
+        font-size: 0.7rem;
+        margin-bottom: 0.3rem;
+    }
+}

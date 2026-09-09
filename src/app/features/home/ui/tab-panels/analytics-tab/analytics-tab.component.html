@@ -127,33 +127,30 @@
                         [datasets]="balanceDynamicsDatasets()"
                     ></ms-chart-card>
 
-                    <ms-chart-card
-                        title="Переводы между счетами"
-                        [subtitle]="
-                            selectedAccountId() === 'all'
-                                ? 'Поступления и отправления по всем счетам. Внутренние переводы не являются доходом; валютные суммы пересчитаны по текущему курсу.'
-                                : 'Сколько поступило на выбранный счёт и сколько отправлено с него по месяцам.'
-                        "
-                        type="bar"
-                        [horizontal]="true"
-                        [height]="420"
-                        [showValues]="true"
-                        [unit]="currencyCode()"
-                        [labels]="transferIncomeLabels()"
-                        [datasets]="transferComparisonDatasets()"
-                    ></ms-chart-card>
+                    @if (selectedAccountId() === 'all') {
+                        <ms-transfer-summary
+                            [items]="transferAccounts()"
+                            [year]="selectedMonth().getFullYear()"
+                        />
+                    } @else {
+                        <ms-chart-card
+                            title="Переводы выбранного счёта"
+                            subtitle="Сколько поступило на выбранный счёт и сколько отправлено с него по месяцам."
+                            type="bar"
+                            [horizontal]="true"
+                            [height]="420"
+                            [showValues]="true"
+                            [unit]="currencyCode()"
+                            [labels]="transferIncomeLabels()"
+                            [datasets]="transferComparisonDatasets()"
+                        ></ms-chart-card>
+                    }
 
-                    <ms-chart-card
-                        title="Норма накоплений"
-                        subtitle="(Доходы − расходы) / доходы × 100%. Отрицательное значение — расходы выше доходов. Без доходов процент не рассчитывается."
-                        type="bar"
-                        [horizontal]="true"
-                        [height]="360"
-                        [showValues]="true"
-                        unit="%"
-                        [labels]="savingsRateLabels()"
-                        [datasets]="detailedSavingsDatasets()"
-                    ></ms-chart-card>
+                    <ms-savings-summary
+                        [months]="incomeVsExpense()"
+                        [currency]="currencyCode()"
+                        [year]="selectedMonth().getFullYear()"
+                    />
                 </section>
             }
 
