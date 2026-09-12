@@ -104,6 +104,66 @@ function summaryCardValue(component: HomePageComponent, id: string): string | un
 }
 
 describe('HomePageComponent', () => {
+    it('keeps the calculation currency independent of account display order', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    account({
+                        id: 'main',
+                        name: 'Основной счёт',
+                        currencyCode: 'BYN',
+                        sortOrder: 1,
+                    }),
+                    account({
+                        id: 'usd',
+                        name: 'Долларовый резерв',
+                        currencyCode: 'USD',
+                        isPrimary: false,
+                        sortOrder: 0,
+                    }),
+                ]),
+            ),
+        );
+        homeApi.getCurrentUser.mockReturnValue(
+            of({ id: 'user-123', username: 'Alex', email: 'alex@example.com' }),
+        );
+        window.localStorage.setItem('msaver:account-sort-mode', 'alphabetical');
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        expect(fixture.componentInstance.accounts()[0].id).toBe('usd');
+        expect(fixture.componentInstance.dashboard.applicationCurrencyCode()).toBe('BYN');
+        expect(fixture.componentInstance.dashboard.primaryAccount()?.id).toBe('main');
+    });
+
+    it('rolls back account ordering and sort preference after a failed save', () => {
+        homeApi.getAccounts.mockReturnValue(
+            of(
+                page([
+                    account({ id: 'main', name: 'Основной счёт' }),
+                    account({ id: 'home', name: 'Дома', isPrimary: false }),
+                ]),
+            ),
+        );
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        const store = fixture.componentInstance.dashboard;
+        store.setAccountSortMode('alphabetical');
+        const request = new Subject<void>();
+        homeApi.updateAccountOrder.mockReturnValue(request);
+        store.reorderAccounts(['main', 'home']);
+        expect(store.accounts().map((item) => item.id)).toEqual(['main', 'home']);
+        expect(store.isSaving()).toBe(true);
+        store.reorderAccounts(['home', 'main']);
+        expect(homeApi.updateAccountOrder).toHaveBeenCalledTimes(1);
+        request.error(new HttpErrorResponse({ status: 500 }));
+        expect(store.accountSortMode()).toBe('alphabetical');
+        expect(store.accounts().map((item) => item.id)).toEqual(['home', 'main']);
+        expect(store.accountOrderItems().map((item) => item.id)).toEqual(['main', 'home']);
+        expect(store.isSaving()).toBe(false);
+        expect(store.errorMessage()).toBeTruthy();
+        store.setAccountSortMode('priority');
+    });
+
     let fixture: ComponentFixture<HomePageComponent>;
     let authStore: {
         userId: WritableSignal<string | null>;
@@ -132,6 +192,7 @@ describe('HomePageComponent', () => {
         getBudgets: ReturnType<typeof vi.fn>;
         getRecurringTransactions: ReturnType<typeof vi.fn>;
         createAccount: ReturnType<typeof vi.fn>;
+        updateAccountOrder: ReturnType<typeof vi.fn>;
         updateAccount: ReturnType<typeof vi.fn>;
         deleteAccount: ReturnType<typeof vi.fn>;
         deleteCategory: ReturnType<typeof vi.fn>;
@@ -238,6 +299,7 @@ describe('HomePageComponent', () => {
                 }),
             ),
             createAccount: vi.fn(() => of('account-id')),
+            updateAccountOrder: vi.fn(() => of(undefined)),
             updateAccount: vi.fn(() => of('account-id')),
             deleteAccount: vi.fn(() => of('account-id')),
             deleteCategory: vi.fn(() => of('category-id')),

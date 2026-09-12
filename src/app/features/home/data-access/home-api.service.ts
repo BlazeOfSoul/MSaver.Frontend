@@ -80,6 +80,10 @@ export class HomeApiService {
         return this.http.put<string>(`${this.baseUrl}/Accounts/${accountId}`, payload);
     }
 
+    updateAccountOrder(accountIds: ReadonlyArray<string>): Observable<void> {
+        return this.http.put<void>(`${this.baseUrl}/Accounts/order`, { accountIds });
+    }
+
     deleteAccount(accountId: string): Observable<string> {
         return this.http.delete<string>(`${this.baseUrl}/Accounts/${accountId}`);
     }

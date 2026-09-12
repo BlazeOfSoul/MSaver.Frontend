@@ -15,6 +15,8 @@ import { ChartCardComponent } from '../../components/chart-card/chart-card.compo
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountsTabComponent {
+    accountOrderItems = input<ReadonlyArray<AccountBalanceItem>>([]);
+    reorderAccounts = output<ReadonlyArray<string>>();
     accounts = input.required<ReadonlyArray<AccountBalanceItem>>();
     allAccounts = input.required<ReadonlyArray<AccountBalanceItem>>();
     transferDraft = input.required<TransferDraft>();

@@ -1,0 +1,47 @@
+<p id="account-order-help">
+    Перетаскивайте счета за ручку справа. С клавиатуры используйте ↑ и ↓. Порядок сохраняется для
+    всех устройств.
+</p>
+<div
+    class="order-list"
+    cdkDropList
+    [cdkDropListData]="accounts()"
+    [cdkDropListDisabled]="saving()"
+    (cdkDropListDropped)="drop($event)"
+>
+    @for (account of accounts(); track account.id; let index = $index) {
+        <div
+            class="order-row"
+            cdkDrag
+            [cdkDragData]="account"
+            [cdkDragDisabled]="saving()"
+            data-testid="account-order-row"
+            [attr.data-account-id]="account.id"
+        >
+            <span class="order-index">{{ index + 1 }}</span>
+            <span class="order-color" [style.background]="account.color"></span>
+            <span class="order-name"
+                >{{ account.name }} <small>{{ account.currencyCode }}</small></span
+            >
+            <button
+                type="button"
+                class="order-handle"
+                cdkDragHandle
+                [disabled]="saving()"
+                [attr.aria-label]="'Переместить счёт ' + account.name"
+                aria-describedby="account-order-help"
+                (keydown)="keyboard($event, index)"
+            >
+                <span class="material-symbols-outlined" aria-hidden="true">drag_handle</span>
+            </button>
+        </div>
+    }
+</div>
+<span class="sr-only" role="status" aria-live="polite">{{ announcement() }}</span>
+<ms-button
+    appearance="outline"
+    variant="neutral"
+    [disabled]="saving() || !accounts().length"
+    (onClick)="reorder.emit([])"
+    >Сбросить порядок</ms-button
+>

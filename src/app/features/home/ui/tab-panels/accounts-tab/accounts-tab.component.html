@@ -1,5 +1,7 @@
 <section class="accounts-layout">
     <ms-account-list-panel
+        [accountOrderItems]="accountOrderItems()"
+        (reorderAccounts)="reorderAccounts.emit($event)"
         [accounts]="accounts()"
         [allAccounts]="allAccounts()"
         [currencyOptions]="currencyOptions()"

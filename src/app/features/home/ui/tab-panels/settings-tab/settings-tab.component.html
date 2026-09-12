@@ -61,6 +61,23 @@
         ></ms-select>
     </article>
 
+    <article class="panel settings-panel settings-hero">
+        <div>
+            <h2>Порядок счетов</h2>
+            <p>
+                Порядок в списках и выборе операций. Настройте приоритет перетаскиванием в разделе
+                «Счета».
+            </p>
+        </div>
+        <ms-select
+            label="Порядок счетов"
+            [options]="categorySortOptions"
+            [value]="accountSortMode()"
+            [disabled]="saving()"
+            (valueChange)="updateAccountSortMode($event)"
+        />
+    </article>
+
     <article class="panel settings-panel settings-notifications">
         <div class="settings-notifications__copy">
             <div>

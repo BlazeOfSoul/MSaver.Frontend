@@ -133,14 +133,13 @@ for (const [name, type] of [
     ['Взято в долг (+)', 'Credit'],
     ['Возвращено по долгу (-)', 'Debit'],
 ]) {
-    if (!categories.some((item) => item.name === name)) {
-        const id = idOf(
-            (await api('/Categories', { method: 'POST', body: { name, type, color: '#23c78b' } }))
-                .data,
-        );
-        categories.push({ id, name, type });
-    }
+    const seeded = categories.find((item) => item.name === name);
+    assert.ok(seeded, 'Registration must create debt category: ' + name);
+    assert.equal(seeded.type, type);
+    assert.equal(seeded.isSystem, true);
+    await api('/Categories/' + seeded.id, { method: 'DELETE', expected: 409 });
 }
+check('Registration creates all protected debt categories', () => {});
 const category = (prefix) => {
     const value = categories.find((item) => item.name.toLowerCase().startsWith(prefix));
     assert.ok(value, 'Category: ' + prefix);

@@ -18,6 +18,7 @@ export interface AccountResponse {
     color: string | null;
     isArchived: boolean;
     isPrimary?: boolean;
+    sortOrder?: number | null;
 }
 
 export interface CurrentUserResponse {

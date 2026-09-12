@@ -64,7 +64,7 @@ describe('SettingsTabComponent', () => {
         const host = fixture.nativeElement as HTMLElement;
         const panels = Array.from(host.querySelectorAll<HTMLElement>('.settings-panel'));
 
-        expect(panels).toHaveLength(5);
+        expect(panels).toHaveLength(6);
         expect(panels.shift()?.textContent).toContain('Оформление');
         expect(panels[0].textContent).toContain('Валюта приложения');
         expect(panels[0].textContent).not.toContain('Баланс на главной');
@@ -72,8 +72,9 @@ describe('SettingsTabComponent', () => {
         expect(panels[1].textContent).toContain('Баланс на главной');
         expect(panels[1].textContent).not.toContain('Порядок категорий');
         expect(panels[2].textContent).toContain('Порядок категорий');
-        expect(panels[3].textContent).toContain('Уведомления');
-        expect(panels[3].textContent).toContain('Текущее устройство · этот браузер');
+        expect(panels[3].textContent).toContain('Порядок счетов');
+        expect(panels[4].textContent).toContain('Уведомления');
+        expect(panels[4].textContent).toContain('Текущее устройство · этот браузер');
     });
 
     it('enables notifications for the current browser from settings', async () => {

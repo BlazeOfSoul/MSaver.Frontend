@@ -27,6 +27,12 @@ import {
 } from '../data-access/home-api.models';
 import { HomeApiService } from '../data-access/home-api.service';
 import { HomeDataLoader, ExchangeRateMap, loadAllPages } from '../data-access/home-data-loader';
+import {
+    AccountSortMode,
+    readStoredAccountSortMode,
+    sortAccountsForDisplay,
+    writeStoredAccountSortMode,
+} from './home-account-order.utils';
 import { DebtDetailItem } from './components/debt-details/debt-details.component';
 import { AuthStore } from '../../auth/data-access/auth.store';
 import { PrivateDataCache, privateCacheGeneration } from '../../../core/cache/private-data-cache';
@@ -272,6 +278,7 @@ export class HomeDashboardStore {
     readonly lastCreatedAccountId = signal<string | null>(null);
     readonly newAccountCurrency = signal('BYN');
     readonly newAccountInitialBalance = signal(0);
+    readonly accountSortMode = signal<AccountSortMode>(readStoredAccountSortMode());
     readonly categorySortMode = signal<CategorySortMode>(readStoredCategorySortMode());
     readonly categoryPriorityIds = signal<ReadonlyArray<string>>([]);
     readonly newIncomeCategory = signal('');
@@ -363,6 +370,12 @@ export class HomeDashboardStore {
             ),
         ),
     );
+    readonly accountOrderItems = computed(() => {
+        const byId = new Map(this.accounts().map((account) => [account.id, account]));
+        return sortAccountsForDisplay(this.accountResponses(), 'priority').map(
+            (account) => byId.get(account.id)!,
+        );
+    });
     readonly primaryAccount = computed(
         () => this.accounts().find((account) => account.isPrimary) ?? this.accounts()[0],
     );
@@ -1355,6 +1368,40 @@ export class HomeDashboardStore {
             () => {
                 this.categoryPriorityIds.set(previousPriorityIds);
                 this.ensureDraftDefaults();
+            },
+        );
+    }
+
+    setAccountSortMode(mode: AccountSortMode): void {
+        this.accountSortMode.set(mode);
+        writeStoredAccountSortMode(mode);
+    }
+
+    reorderAccounts(accountIds: ReadonlyArray<string>): void {
+        if (this.isSaving()) return;
+        const previousAccounts = this.accountResponses();
+        const previousMode = this.accountSortMode();
+        const knownIds = new Set(previousAccounts.map((account) => account.id));
+        if (
+            new Set(accountIds).size !== accountIds.length ||
+            accountIds.some((id) => !knownIds.has(id))
+        )
+            return;
+        const positions = new Map(accountIds.map((id, index) => [id, index]));
+        this.accountResponses.set(
+            previousAccounts.map((account) => ({
+                ...account,
+                sortOrder: positions.get(account.id) ?? null,
+            })),
+        );
+        this.setAccountSortMode('priority');
+        this.runMutation(
+            this.homeApi.updateAccountOrder(accountIds),
+            'Не удалось сохранить порядок счетов.',
+            () => {},
+            () => {
+                this.accountResponses.set(previousAccounts);
+                this.setAccountSortMode(previousMode);
             },
         );
     }
@@ -2735,23 +2782,17 @@ export class HomeDashboardStore {
         currencyCode: string | null | undefined,
         accounts: AccountResponse[],
     ): string {
-        const sortedAccounts = this.sortAccounts(accounts);
+        // Display ordering must not change the fallback currency used in calculations.
+        const defaultAccount =
+            accounts.find(isPrimaryAccountResponse) ??
+            [...accounts].sort((left, right) => left.name.localeCompare(right.name, 'ru'))[0];
         const savedCurrencyCode = currencyCode ? toSupportedCurrencyCode(currencyCode) : null;
 
-        return savedCurrencyCode || sortedAccounts[0]?.currencyCode || 'BYN';
+        return savedCurrencyCode || defaultAccount?.currencyCode || 'BYN';
     }
 
     private sortAccounts(accounts: ReadonlyArray<AccountResponse>): AccountResponse[] {
-        return [...accounts].sort((left, right) => {
-            const leftIsPrimary = isPrimaryAccountResponse(left);
-            const rightIsPrimary = isPrimaryAccountResponse(right);
-
-            if (leftIsPrimary !== rightIsPrimary) {
-                return leftIsPrimary ? -1 : 1;
-            }
-
-            return left.name.localeCompare(right.name, 'ru');
-        });
+        return sortAccountsForDisplay(accounts, this.accountSortMode());
     }
 
     private ensureSelectedAccountExists(): void {

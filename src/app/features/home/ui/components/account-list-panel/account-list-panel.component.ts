@@ -10,6 +10,7 @@ import {
     parseMoneyInputAmount,
 } from '../../../../../shared/utils/money-input.utils';
 import { AccountBalanceItem } from '../../home-page.models';
+import { AccountOrderPanelComponent } from '../account-order-panel/account-order-panel.component';
 import { NameColorDialogComponent } from '../name-color-dialog/name-color-dialog.component';
 
 @Component({
@@ -23,6 +24,7 @@ import { NameColorDialogComponent } from '../name-color-dialog/name-color-dialog
         InputComponent,
         SelectComponent,
         NameColorDialogComponent,
+        AccountOrderPanelComponent,
     ],
     templateUrl: './account-list-panel.component.html',
     styleUrls: [
@@ -33,6 +35,8 @@ import { NameColorDialogComponent } from '../name-color-dialog/name-color-dialog
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountListPanelComponent {
+    accountOrderItems = input<ReadonlyArray<AccountBalanceItem>>([]);
+    reorderAccounts = output<ReadonlyArray<string>>();
     accounts = input.required<ReadonlyArray<AccountBalanceItem>>();
     allAccounts = input.required<ReadonlyArray<AccountBalanceItem>>();
     currencyOptions = input.required<ReadonlyArray<MsSelectOption>>();
@@ -56,6 +60,7 @@ export class AccountListPanelComponent {
     renameAccount = output<{ accountId: string; name: string; color: string }>();
     accountChange = output<string>();
 
+    readonly isOrderDialogOpen = signal(false);
     readonly isAccountDialogOpen = signal(false);
     readonly accountDialogName = signal('');
     readonly initialBalanceText = signal('0.00');

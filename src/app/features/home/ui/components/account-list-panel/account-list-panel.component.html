@@ -31,6 +31,16 @@
         <span class="accounts-summary__helper">Все счета в валюте приложения</span>
     </div>
 
+    <ms-button
+        appearance="outline"
+        variant="neutral"
+        data-testid="open-account-order"
+        [disabled]="saving() || !allAccounts().length"
+        (onClick)="isOrderDialogOpen.set(true)"
+    >
+        <span class="material-symbols-outlined" aria-hidden="true">sort</span> Порядок счетов
+    </ms-button>
+
     <div class="accounts-toolbar">
         <ms-select
             [options]="accountFilterOptions()"
@@ -154,6 +164,38 @@
                     Удалить счёт
                 </ms-button>
             </footer>
+        </section>
+    </ms-dialog-shell>
+}
+
+@if (isOrderDialogOpen()) {
+    <ms-dialog-shell
+        backdropClass="category-dialog-backdrop"
+        (closed)="isOrderDialogOpen.set(false)"
+    >
+        <section
+            class="account-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="account-order-title"
+        >
+            <header class="account-dialog__header">
+                <h2 id="account-order-title">Порядок счетов</h2>
+                <ms-button
+                    appearance="icon"
+                    variant="neutral"
+                    aria-label="Закрыть порядок счетов"
+                    (onClick)="isOrderDialogOpen.set(false)"
+                    ><span class="material-symbols-outlined" aria-hidden="true"
+                        >close</span
+                    ></ms-button
+                >
+            </header>
+            <ms-account-order-panel
+                [accounts]="accountOrderItems()"
+                [saving]="saving()"
+                (reorder)="reorderAccounts.emit($event)"
+            />
         </section>
     </ms-dialog-shell>
 }

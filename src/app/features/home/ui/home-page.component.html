@@ -117,6 +117,8 @@
                             @case ('accounts') {
                                 @defer (on immediate) {
                                     <ms-accounts-tab
+                                        [accountOrderItems]="dashboard.accountOrderItems()"
+                                        (reorderAccounts)="dashboard.reorderAccounts($event)"
                                         [accounts]="accountList()"
                                         [allAccounts]="accounts()"
                                         [transferDraft]="transferDraft()"
@@ -233,6 +235,10 @@
                                 @defer (on immediate) {
                                     <ms-settings-tab
                                         [applicationCurrencyCode]="applicationCurrencyCode()"
+                                        [accountSortMode]="dashboard.accountSortMode()"
+                                        (accountSortModeChange)="
+                                            dashboard.setAccountSortMode($event)
+                                        "
                                         [categorySortMode]="categorySortMode()"
                                         [balanceDisplayAccountId]="
                                             selectedBalanceDisplayAccountId()
