@@ -21,6 +21,28 @@ describe('HomeApiService', () => {
         httpMock.verify();
     });
 
+    it('updates a schedule through PUT while preserving its active state and monthly anchor', () => {
+        const payload = {
+            accountId: 'account-id',
+            categoryId: 'category-id',
+            amount: -15,
+            description: 'Subscription',
+            frequency: 'Monthly' as const,
+            nextOccurrenceAt: '2026-10-31T08:00:00Z',
+            timeZoneId: 'Europe/Minsk',
+            notificationsEnabled: false,
+            dayOfMonth: 31,
+            isActive: true,
+        };
+        service.updateRecurringTransaction('recurring-id', payload).subscribe();
+        const request = httpMock.expectOne(
+            `${environment.apiUrl}/recurring-transactions/recurring-id`,
+        );
+        expect(request.request.method).toBe('PUT');
+        expect(request.request.body).toEqual(payload);
+        request.flush({ id: 'recurring-id', ...payload });
+    });
+
     it('loads the saved category order for the current user', () => {
         service.getCategoryOrder().subscribe((response) => {
             expect(response.categoryIds).toEqual(['rent-id', 'food-id']);

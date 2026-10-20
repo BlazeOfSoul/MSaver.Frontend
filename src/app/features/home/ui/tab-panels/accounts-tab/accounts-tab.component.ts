@@ -1,20 +1,35 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MsSelectOption } from '../../../../../shared/ui/select/select';
+import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import { AccountListPanelComponent } from '../../components/account-list-panel/account-list-panel.component';
 import { AccountTransferPanelComponent } from '../../components/account-transfer-panel/account-transfer-panel.component';
 import { AccountBalanceItem, TransferDraft } from '../../home-page.models';
 import { ChartCardComponent } from '../../components/chart-card/chart-card.component';
+import { AccountMonthActivity } from '../../home-account-activity';
+import { formatMoney } from '../../home-formatters';
 
 @Component({
     selector: 'ms-accounts-tab',
     standalone: true,
-    imports: [AccountListPanelComponent, AccountTransferPanelComponent, ChartCardComponent],
+    imports: [
+        AccountListPanelComponent,
+        AccountTransferPanelComponent,
+        ChartCardComponent,
+        SelectComponent,
+    ],
     templateUrl: './accounts-tab.component.html',
-    styleUrl: './accounts-tab.component.css',
+    styleUrls: [
+        './accounts-tab.component.css',
+        './accounts-tab.activity.css',
+        './accounts-tab.overview.css',
+    ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountsTabComponent {
+    monthLabel = input('');
+    monthActivity = input<ReadonlyMap<string, AccountMonthActivity> | null>(null);
+    readonly money = formatMoney;
+    readonly selectedCurrency = signal('');
     accountOrderItems = input<ReadonlyArray<AccountBalanceItem>>([]);
     reorderAccounts = output<ReadonlyArray<string>>();
     accounts = input.required<ReadonlyArray<AccountBalanceItem>>();
@@ -56,21 +71,34 @@ export class AccountsTabComponent {
             const sorted = accounts.slice().sort((a, b) => b.balanceValue - a.balanceValue);
             return {
                 currency,
+                balance: sorted.reduce((total, account) => total + account.balanceValue, 0),
+                change: sorted.reduce((total, account) => total + account.monthChangeValue, 0),
                 labels: sorted.map((account) => account.name),
-                height: Math.max(180, sorted.length * 52),
+                accounts: sorted.map((account) => ({
+                    ...account,
+                    activity: this.monthActivity()?.get(account.id),
+                })),
+                height: Math.max(140, sorted.length * 56),
                 datasets: [
                     {
-                        label: 'Баланс',
+                        label: 'Остаток',
                         data: sorted.map((account) => account.balanceValue),
                         color: '#23c78b',
-                    },
-                    {
-                        label: 'Изменение за месяц',
-                        data: sorted.map((account) => account.monthChangeValue),
-                        color: '#5896ed',
+                        colors: sorted.map((account) => account.color),
                     },
                 ],
             };
         });
     });
+    readonly selectedBalanceChart = computed(() => {
+        const charts = this.balanceCharts();
+        return charts.find((chart) => chart.currency === this.selectedCurrency()) ?? charts[0];
+    });
+    readonly balanceCurrencyOptions = computed<ReadonlyArray<MsSelectOption>>(() =>
+        this.balanceCharts().map((chart) => ({
+            value: chart.currency,
+            label: chart.currency,
+            description: chart.accounts[0].currencyLabel,
+        })),
+    );
 }

@@ -234,6 +234,11 @@ export interface CreateRecurringTransactionRequest {
     notificationsEnabled: boolean;
 }
 
+export interface UpdateRecurringTransactionRequest extends CreateRecurringTransactionRequest {
+    dayOfMonth?: number;
+    isActive: boolean;
+}
+
 export interface VapidPublicKeyResponse {
     publicKey: string;
 }

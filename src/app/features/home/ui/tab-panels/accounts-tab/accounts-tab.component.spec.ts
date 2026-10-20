@@ -97,4 +97,115 @@ describe('AccountsTabComponent', () => {
         expect(host.textContent ?? '').toContain('-25,00 Br');
         expect(host.textContent ?? '').toContain('К списанию');
     });
+
+    it('shows one balance series per currency and explains transfers separately from the peak', () => {
+        fixture.componentRef.setInput('accounts', [
+            account({ id: 'main', balanceValue: 650 }),
+            account({ id: 'reserve', name: 'Резерв', balanceValue: 1800 }),
+            account({ id: 'usd', currencyCode: 'USD', balanceValue: 50 }),
+        ]);
+        fixture.componentRef.setInput('monthLabel', 'октябрь 2026 г.');
+        fixture.componentRef.setInput(
+            'monthActivity',
+            new Map([
+                [
+                    'main',
+                    {
+                        opening: 500,
+                        incoming: 2400,
+                        outgoing: 2250,
+                        transferIn: 0,
+                        transferOut: 1800,
+                        closing: 650,
+                        maximum: 2900,
+                    },
+                ],
+            ]),
+        );
+        fixture.detectChanges();
+        expect(component.balanceCharts()).toHaveLength(2);
+        expect(component.balanceCharts()[0].datasets).toHaveLength(1);
+        expect(component.balanceCharts()[0].datasets[0].data).toEqual([1800, 650]);
+        expect(component.balanceCharts()[1].datasets[0].data).toEqual([50]);
+        const text = fixture.nativeElement.textContent.replaceAll('\u00a0', ' ');
+        expect(text).toContain('Максимальный остаток');
+        expect(text).toContain('2 900,00 Br');
+        expect(text).toContain('Из них переводы: 1 800,00 Br');
+    });
+
+    it('switches the displayed currency without mixing balances and falls back when filtered out', () => {
+        const byn = account({ id: 'byn', balanceValue: 650, monthChangeValue: -50 });
+        const usd = account({
+            id: 'usd',
+            currencyCode: 'USD',
+            balanceValue: 20,
+            monthChangeValue: 5,
+        });
+        fixture.componentRef.setInput('accounts', [byn, usd]);
+        fixture.detectChanges();
+        const host = fixture.nativeElement as HTMLElement;
+        expect(host.querySelectorAll('ms-chart-card')).toHaveLength(1);
+        expect(component.selectedBalanceChart()?.balance).toBe(650);
+
+        const buttons = host.querySelectorAll<HTMLButtonElement>('.account-currencies button');
+        buttons[1].click();
+        fixture.detectChanges();
+        expect(buttons[1].getAttribute('aria-pressed')).toBe('true');
+        expect(component.selectedBalanceChart()?.currency).toBe('USD');
+        expect(component.selectedBalanceChart()?.balance).toBe(20);
+        expect(component.selectedBalanceChart()?.change).toBe(5);
+
+        fixture.componentRef.setInput('accounts', [byn]);
+        fixture.detectChanges();
+        expect(component.selectedBalanceChart()?.currency).toBe('BYN');
+        expect(component.selectedBalanceChart()?.change).toBe(-50);
+        expect(host.querySelector('.account-currencies')).toBeNull();
+
+        fixture.componentRef.setInput('accounts', []);
+        fixture.detectChanges();
+        expect(host.querySelector('.account-overview')).toBeNull();
+    });
+
+    it('uses a searchable selector for six currencies and preserves selection when returning to buttons', () => {
+        const currencies = [
+            ['BYN', 'Белорусский рубль'],
+            ['USD', 'Доллар США'],
+            ['EUR', 'Евро'],
+            ['RUB', 'Российский рубль'],
+            ['PLN', 'Польский злотый'],
+            ['CNY', 'Китайский юань'],
+        ];
+        const accounts = currencies.map(([currencyCode, currencyLabel], index) =>
+            account({ id: currencyCode, currencyCode, currencyLabel, balanceValue: index + 1 }),
+        );
+        fixture.componentRef.setInput('accounts', accounts);
+        fixture.detectChanges();
+        const host = fixture.nativeElement as HTMLElement;
+        expect(host.querySelector('.account-currencies')).toBeNull();
+        host.querySelector<HTMLButtonElement>(
+            '.account-currency-select [role="combobox"]',
+        )!.click();
+        fixture.detectChanges();
+        const search = host.querySelector<HTMLInputElement>('.account-currency-select input')!;
+        search.value = 'евро';
+        search.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+        const options = host.querySelectorAll<HTMLButtonElement>(
+            '.account-currency-select [role="option"]',
+        );
+        expect(options).toHaveLength(1);
+        expect(options[0].textContent).toContain('EUR');
+        options[0].click();
+        fixture.detectChanges();
+        expect(component.selectedBalanceChart()?.currency).toBe('EUR');
+        expect(component.selectedBalanceChart()?.balance).toBe(3);
+
+        fixture.componentRef.setInput('accounts', accounts.slice(0, 4));
+        fixture.detectChanges();
+        expect(host.querySelector('.account-currency-select')).toBeNull();
+        expect(host.querySelectorAll('.account-currencies button')).toHaveLength(4);
+        expect(
+            host.querySelector('.account-currencies [aria-pressed="true"]')?.textContent,
+        ).toContain('EUR');
+    });
 });

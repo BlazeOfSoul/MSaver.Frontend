@@ -78,64 +78,55 @@
         />
     </article>
 
-    <article class="panel settings-panel settings-notifications">
-        <div class="settings-notifications__copy">
-            <div>
-                <h2>Уведомления</h2>
-                <p>
-                    Подписка действует только в текущем браузере на этом устройстве. Чтобы получать
-                    уведомления на телефоне и компьютере, включите их отдельно на каждом устройстве.
-                </p>
-            </div>
+    <article class="panel settings-panel settings-hero">
+        <div>
+            <h2>Новая транзакция</h2>
+            <p>
+                Какой тип выбирать при открытии новой транзакции. Настройка сохраняется для вашего
+                профиля в этом браузере.
+            </p>
+        </div>
+        <ms-select
+            label="Тип транзакции по умолчанию"
+            [options]="transactionTypeOptions"
+            [value]="defaultTransactionType()"
+            (valueChange)="updateDefaultTransactionType($event)"
+        />
+    </article>
 
-            <div
-                class="notification-status"
-                [class.notification-status--enabled]="notificationsEnabled()"
-                [class.notification-status--blocked]="notificationStatus() === 'denied'"
-            >
-                <span class="material-symbols-outlined" aria-hidden="true">
-                    {{ notificationStatusIcon() }}
-                </span>
-                <span>
-                    <strong>{{ notificationStatusLabel() }}</strong>
-                    <small>Текущее устройство · этот браузер</small>
-                </span>
-            </div>
+    <article class="panel settings-panel settings-hero">
+        <div>
+            <h2>Уведомления</h2>
+            <p>Напоминания о плановых операциях в этом браузере.</p>
 
             @if (notificationMessage()) {
                 <p class="notification-message" role="status" aria-live="polite">
                     {{ notificationMessage() }}
                 </p>
-            }
-        </div>
-
-        <div class="settings-notifications__action">
-            <ms-button
-                [variant]="notificationsEnabled() ? 'danger' : 'primary'"
-                [appearance]="notificationsEnabled() ? 'outline' : 'solid'"
-                [loading]="notificationLoading()"
-                [disabled]="notificationActionDisabled()"
-                [fullWidth]="true"
-                (onClick)="toggleNotifications()"
-            >
-                <span class="material-symbols-outlined" aria-hidden="true">
-                    {{ notificationsEnabled() ? 'notifications_off' : 'notifications_active' }}
-                </span>
-                {{
-                    notificationsEnabled()
-                        ? 'Отключить на этом устройстве'
-                        : 'Включить на этом устройстве'
-                }}
-            </ms-button>
-
-            @if (notificationStatus() === 'denied') {
-                <small>Измените разрешение для сайта в настройках браузера.</small>
+            } @else if (notificationStatus() === 'denied') {
+                <p class="notification-message">
+                    Заблокированы браузером. Измените разрешение для сайта в настройках браузера.
+                </p>
             } @else if (notificationStatus() === 'unsupported') {
-                <small>Откройте приложение в браузере с поддержкой PWA.</small>
-            } @else {
-                <small>Настройки расписаний при этом не изменяются.</small>
+                <p class="notification-message">Этот браузер не поддерживает PWA-уведомления.</p>
             }
         </div>
+
+        <ms-button
+            [variant]="notificationsEnabled() ? 'neutral' : 'primary'"
+            appearance="outline"
+            size="sm"
+            [fullWidth]="true"
+            [loading]="notificationLoading()"
+            [disabled]="notificationActionDisabled()"
+            (onClick)="toggleNotifications()"
+        >
+            {{
+                notificationsEnabled()
+                    ? 'Отключить на этом устройстве'
+                    : 'Включить на этом устройстве'
+            }}
+        </ms-button>
     </article>
     <ms-sessions-panel />
 </section>

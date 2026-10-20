@@ -1144,6 +1144,56 @@ describe('HomePageComponent', () => {
         expect(fixture.componentInstance.transferDraft().rate).toBe(0.33);
     });
 
+    it.each(['income', 'expense'] as const)(
+        'uses the saved %s default and matching categories when creating',
+        (type) => {
+            localStorage.setItem('msaver:default-transaction-type:user-123', type);
+            homeApi.getAccounts.mockReturnValue(of(page([account()])));
+            homeApi.getCategories.mockReturnValue(
+                of(
+                    page<CategoryResponse>([
+                        { id: 'salary', name: 'Salary', type: 'Credit', color: '#23c78b' },
+                        { id: 'food', name: 'Food', type: 'Debit', color: '#ff6f91' },
+                    ]),
+                ),
+            );
+            fixture = TestBed.createComponent(HomePageComponent);
+            fixture.detectChanges();
+            const store = fixture.componentInstance.dashboard;
+            store.startAddingTransaction();
+            expect(store.transactionDraft().type).toBe(type);
+            expect(store.transactionDraft().categoryId).toBe(type === 'income' ? 'salary' : 'food');
+            store.setDefaultTransactionType(type === 'income' ? 'expense' : 'income');
+            expect(store.transactionDraft().type).toBe(type);
+            store.closeTransactionDialog();
+            store.startAddingTransaction();
+            expect(store.transactionDraft().type).not.toBe(type);
+            expect(localStorage.getItem('msaver:default-transaction-type:user-123')).not.toBe(type);
+        },
+    );
+
+    it('preserves the type of an existing transaction when the default is different', () => {
+        const salary: CategoryResponse = {
+            id: 'salary',
+            name: 'Salary',
+            type: 'Credit',
+            color: '#23c78b',
+        };
+        homeApi.getAccounts.mockReturnValue(of(page([account()])));
+        homeApi.getCategories.mockReturnValue(of(page([salary])));
+        homeApi.getTransactions.mockReturnValue(
+            of(page([transaction('salary-payment', account(), salary, 500)])),
+        );
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        const store = fixture.componentInstance.dashboard;
+        store.setDefaultTransactionType('expense');
+        store.startEditingTransaction('salary-payment');
+        expect(store.transactionDraft().type).toBe('income');
+        expect(store.transactionDraft().amount).toBe(500);
+        expect(store.transactionDraft().categoryId).toBe('salary');
+    });
+
     it('reuses categories loaded for overview when the transaction dialog opens', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
@@ -2443,7 +2493,13 @@ describe('HomePageComponent', () => {
             expect(component.filteredTransactions().map((item) => item.id)).toEqual([
                 'july-income',
             ]);
-            expect(summaryCardValue(component, 'operations')).toBe('1');
+            expect(component.filteredTransactions()).toHaveLength(1);
+            expect(component.summaryCards().map((card) => card.id)).toEqual([
+                'balance',
+                'debt-balance',
+                'income',
+                'expense',
+            ]);
         } finally {
             vi.useRealTimers();
         }
@@ -3470,13 +3526,13 @@ describe('HomePageComponent', () => {
             const component = fixture.componentInstance;
 
             expect(summaryCardValue(component, 'balance')).toContain('100');
-            expect(summaryCardValue(component, 'operations')).toBe('1');
+            expect(component.filteredTransactions()).toHaveLength(1);
 
             component.goToNextMonth();
 
             expect(summaryCardValue(component, 'balance')).toBe('...');
             expect(summaryCardValue(component, 'balance')).not.toContain('999');
-            expect(summaryCardValue(component, 'operations')).toBe('0');
+            expect(component.filteredTransactions()).toHaveLength(0);
             expect(summaryCardValue(component, 'income')).toContain('70');
         } finally {
             vi.useRealTimers();

@@ -68,6 +68,7 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
     horizontal = input(false);
     unit = input('');
     showValues = input(false);
+    embedded = input(false);
     formatValue(value: number): string {
         return formatChartValue(value, this.unit());
     }
@@ -93,7 +94,9 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
 
     get hasData(): boolean {
         return this.datasets().some((dataset) =>
-            dataset.data.some((value) => Number.isFinite(value) && value !== 0),
+            dataset.data.some(
+                (value) => Number.isFinite(value) && (this.type() !== 'doughnut' || value !== 0),
+            ),
         );
     }
 

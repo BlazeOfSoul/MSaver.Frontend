@@ -1,4 +1,11 @@
-import { ChartOptions } from 'chart.js';
+import {
+    ArcElement,
+    BarElement,
+    BasicPlatform,
+    Chart,
+    ChartOptions,
+    registerables,
+} from 'chart.js';
 import { MS_CATEGORY_COLORS } from '../../../../../shared/theme/theme-colors';
 import { HomeChartType } from '../../home-page.models';
 import {
@@ -19,6 +26,80 @@ const themeColors = {
 };
 
 describe('chart-card config', () => {
+    Chart.register(...registerables);
+
+    it.each(['mousemove', 'click', 'touchstart'] as const)(
+        'selects the actual doughnut slice on %s',
+        (type) => {
+            const config = buildChartConfiguration({
+                type: 'doughnut',
+                labels: ['Rent', 'Food', 'Travel', 'Other'],
+                datasets: [{ label: 'Expenses', data: [25, 25, 25, 25], color: '#23c78b' }],
+                themeColors,
+            });
+            const canvas = document.createElement('canvas');
+            canvas.width = 500;
+            canvas.height = 300;
+            const chart = new Chart<HomeChartType, number[], string>(canvas, {
+                ...config,
+                platform: BasicPlatform,
+                options: { ...config.options, responsive: false },
+            });
+            try {
+                const options = chart.options.interaction!;
+                for (const [index, arc] of chart.getDatasetMeta(0).data.entries()) {
+                    const { x, y } = (arc as ArcElement).getCenterPoint(false);
+                    const event = Object.assign(new Event(type), { x, y, native: new Event(type) });
+                    const hits = chart.getElementsAtEventForMode(
+                        event,
+                        options.mode!,
+                        options,
+                        false,
+                    );
+                    expect(hits.map((hit) => hit.index)).toEqual([index]);
+                }
+            } finally {
+                chart.destroy();
+            }
+        },
+    );
+
+    it('selects the horizontal account row across the plotting area, including negative balances', () => {
+        const config = buildChartConfiguration({
+            type: 'bar',
+            horizontal: true,
+            labels: ['Main', 'Savings', 'Credit'],
+            datasets: [{ label: 'Balance', data: [20, 900, -100], color: '#23c78b' }],
+            themeColors,
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = 300;
+        const chart = new Chart<HomeChartType, number[], string>(canvas, {
+            ...config,
+            platform: BasicPlatform,
+            options: { ...config.options, responsive: false },
+        });
+        try {
+            const options = chart.options.interaction!;
+            for (const [index, bar] of chart.getDatasetMeta(0).data.entries()) {
+                const { y } = (bar as BarElement).getCenterPoint(false);
+                const event = Object.assign(new Event('mousemove'), {
+                    native: new Event('mousemove'),
+                    x: chart.chartArea.right - 5,
+                    y,
+                });
+                expect(
+                    chart
+                        .getElementsAtEventForMode(event, options.mode!, options, false)
+                        .map((hit) => hit.index),
+                ).toEqual([index]);
+            }
+        } finally {
+            chart.destroy();
+        }
+    });
+
     it('resolves legend colors from dataset slice colors, series colors, and the shared palette', () => {
         expect(
             resolveChartLegendColor(1, [

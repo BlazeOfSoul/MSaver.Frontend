@@ -121,6 +121,8 @@
                                         (reorderAccounts)="dashboard.reorderAccounts($event)"
                                         [accounts]="accountList()"
                                         [allAccounts]="accounts()"
+                                        [monthLabel]="monthLabel()"
+                                        [monthActivity]="dashboard.accountMonthActivity()"
                                         [transferDraft]="transferDraft()"
                                         [currencyOptions]="currencyOptions"
                                         [accountOptions]="accountOptions()"
@@ -240,6 +242,12 @@
                                             dashboard.setAccountSortMode($event)
                                         "
                                         [categorySortMode]="categorySortMode()"
+                                        [defaultTransactionType]="
+                                            dashboard.defaultTransactionType()
+                                        "
+                                        (defaultTransactionTypeChange)="
+                                            dashboard.setDefaultTransactionType($event)
+                                        "
                                         [balanceDisplayAccountId]="
                                             selectedBalanceDisplayAccountId()
                                         "

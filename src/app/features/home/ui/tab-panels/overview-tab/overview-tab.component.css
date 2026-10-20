@@ -73,11 +73,24 @@
 }
 
 .panel__header h2 {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
     margin: 0;
     color: color-mix(in oklab, var(--color-ms-light), var(--color-ms-light-dark) 24%);
     font-size: 1rem;
     font-weight: 700;
     line-height: 1.2;
+}
+
+.transaction-count {
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: var(--color-ms-white-alpha-08);
+    color: var(--color-ms-light-dark);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .panel__header p {

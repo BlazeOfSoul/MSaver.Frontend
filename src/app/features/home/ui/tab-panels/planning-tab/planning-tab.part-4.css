@@ -118,6 +118,12 @@
 }
 
 @media (max-width: 640px) {
+    .recurring-row {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+        gap: 0.65rem;
+    }
+
     .recurring-row__amount,
     .recurring-row__actions {
         grid-column: 1 / -1;
@@ -128,28 +134,7 @@
         text-align: left;
     }
 
-    .recurring-row__actions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
-        align-items: center;
-    }
-
-    .recurring-row__confirm,
-    .recurring-row__skip {
-        width: 100%;
-        min-width: 0;
-    }
-
-    .recurring-row__delete {
-        grid-column: 3;
-        grid-row: 1;
-    }
-
-    .recurring-row__actions:not(:has(.recurring-row__skip)) {
-        grid-template-columns: minmax(0, 1fr) auto;
-    }
-
-    .recurring-row__actions:not(:has(.recurring-row__skip)) .recurring-row__delete {
-        grid-column: 2;
+    .recurring-row--due .recurring-row__actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

@@ -68,10 +68,10 @@ export function buildChartConfiguration({
             animation: false,
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
+            interaction:
+                type === 'doughnut'
+                    ? { mode: 'nearest', axis: 'xy', intersect: true }
+                    : { mode: 'index', axis: horizontal ? 'y' : 'x', intersect: false },
             plugins: {
                 legend: {
                     display: type === 'line' || datasets.length > 1,

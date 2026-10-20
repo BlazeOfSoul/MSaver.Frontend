@@ -1,3 +1,41 @@
+.recurring-edit-heading {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-ms-border);
+}
+
+.recurring-edit-heading > div {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+    color: var(--color-ms-light);
+}
+
+.recurring-edit-heading span {
+    color: var(--color-ms-light-dark);
+    overflow-wrap: anywhere;
+    font-size: 0.8rem;
+}
+
+.planning-form--recurring {
+    scroll-margin-block: 1rem;
+}
+
+@media (max-width: 640px) {
+    .recurring-row__copy strong {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    .recurring-row__copy span {
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+}
+
 @media (max-width: 400px) {
     .recurring-row {
         padding: 0.72rem;
@@ -7,18 +45,16 @@
         gap: 0.3rem;
     }
 
-    .recurring-row__actions ms-button.ms-btn.ms-btn-sm.recurring-row__confirm,
-    .recurring-row__actions ms-button.ms-btn.ms-btn-sm.recurring-row__skip {
+    .recurring-row__actions ms-button.ms-btn.ms-btn-sm {
         padding-inline: 0.25rem;
-        font-size: 0.75rem;
+        font-size: 0.8125rem;
         letter-spacing: -0.01em;
         white-space: nowrap;
     }
 }
 
 @media (max-width: 350px) {
-    .recurring-row__actions ms-button.ms-btn.ms-btn-sm.recurring-row__confirm,
-    .recurring-row__actions ms-button.ms-btn.ms-btn-sm.recurring-row__skip {
+    .recurring-row__actions ms-button.ms-btn.ms-btn-sm {
         padding-inline: 0.125rem;
     }
 }

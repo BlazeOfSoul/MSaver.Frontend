@@ -19,4 +19,14 @@ describe('ChartCardComponent', () => {
             MS_CATEGORY_COLORS[1],
         );
     });
+
+    it('shows a zero account balance as valid data while keeping empty doughnuts in the empty state', () => {
+        fixture.componentRef.setInput('datasets', [
+            { label: 'Balance', data: [0], color: '#23c78b' },
+        ]);
+        fixture.componentRef.setInput('type', 'bar');
+        expect(fixture.componentInstance.hasData).toBe(true);
+        fixture.componentRef.setInput('type', 'doughnut');
+        expect(fixture.componentInstance.hasData).toBe(false);
+    });
 });

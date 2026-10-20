@@ -26,6 +26,13 @@
     color: var(--color-ms-light);
 }
 
+.chart-card--embedded {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
 .chart-card__header p {
     margin: 0.25rem 0 0;
     color: var(--color-ms-light-dark);

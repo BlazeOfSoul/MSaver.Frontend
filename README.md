@@ -48,6 +48,11 @@ The frontend deployment workflow verifies tests, layout, style budgets and the
 production build before replacing only the frontend container. Backend changes
 are released separately.
 
+## Release 0.3.0
+
+See [release notes](docs/release-0.3.0.md) for the account overview, recurring
+transaction editing, mobile layout fixes and the PWA update behavior.
+
 ## Release 0.1.0
 
 See [release notes and validation](docs/release-0.1.0.md) for frontend, backend and

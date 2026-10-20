@@ -81,6 +81,12 @@ import {
     mergeMonthBalanceCache,
 } from './home-balance-cache.utils';
 import { isPositiveFiniteAmount } from './home-amount.utils';
+import { calculateAccountMonthActivity } from './home-account-activity';
+import {
+    readDefaultTransactionType,
+    writeDefaultTransactionType,
+    TransactionType,
+} from './home-transaction-type-preference';
 import {
     TRANSACTION_PAGE_SIZE_OPTIONS,
     normalizeTransactionPageSize,
@@ -280,6 +286,9 @@ export class HomeDashboardStore {
     readonly newAccountInitialBalance = signal(0);
     readonly accountSortMode = signal<AccountSortMode>(readStoredAccountSortMode());
     readonly categorySortMode = signal<CategorySortMode>(readStoredCategorySortMode());
+    readonly defaultTransactionType = signal<TransactionType>(
+        readDefaultTransactionType(this.auth.userId()),
+    );
     readonly categoryPriorityIds = signal<ReadonlyArray<string>>([]);
     readonly newIncomeCategory = signal('');
     readonly newExpenseCategory = signal('');
@@ -446,6 +455,14 @@ export class HomeDashboardStore {
             (transaction) => this.transactionMonthKey(transaction.date) === key,
         );
     });
+    readonly accountMonthActivity = computed(() =>
+        this.historyReady() && this.hasSelectedMonthBalances()
+            ? calculateAccountMonthActivity(
+                  [...this.selectedMonthBalanceByAccountId().values()],
+                  this.selectedMonthTransactions(),
+              )
+            : null,
+    );
     readonly filteredTransactions = computed(() => this.transactions());
     readonly analyticsCurrencyCode = computed(() => {
         const selectedAccountId = this.analyticsSelectedAccountId();
@@ -878,14 +895,6 @@ export class HomeDashboardStore {
                 tone: 'negative',
                 icon: 'north_east',
             },
-            {
-                id: 'operations',
-                label: 'Операции',
-                value: `${this.filteredTransactions().length}`,
-                helper: 'За выбранный период',
-                tone: 'neutral',
-                icon: 'receipt_long',
-            },
         ];
     });
     readonly activeTabTitle = computed(() => {
@@ -1147,6 +1156,12 @@ export class HomeDashboardStore {
         this.transactionDraft.set(this.getDefaultTransactionDraft());
         this.isTransactionDialogOpen.set(true);
         this.ensureCategoriesLoaded();
+    }
+
+    setDefaultTransactionType(type: TransactionType): void {
+        if (type !== 'income' && type !== 'expense') return;
+        this.defaultTransactionType.set(type);
+        writeDefaultTransactionType(this.auth.userId(), type);
     }
 
     startEditingTransaction(transaction: TransactionItem | string): void {
@@ -3277,10 +3292,12 @@ export class HomeDashboardStore {
 
     private getDefaultTransactionDraft(): TransactionDraft {
         const accounts = this.accounts();
-        const categories = this.incomeCategoryOptions();
+        const type = this.defaultTransactionType();
+        const categories =
+            type === 'income' ? this.incomeCategoryOptions() : this.expenseCategoryOptions();
 
         return {
-            type: 'income',
+            type,
             accountId: accounts[0]?.id ?? '',
             categoryId: categories[0]?.value ?? '',
             amount: 0,
@@ -3291,7 +3308,7 @@ export class HomeDashboardStore {
 
     private getEmptyTransactionDraft(): TransactionDraft {
         return {
-            type: 'income',
+            type: this.defaultTransactionType(),
             accountId: '',
             categoryId: '',
             amount: 0,

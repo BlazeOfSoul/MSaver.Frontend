@@ -1,10 +1,12 @@
-<article class="chart-card">
-    <header class="chart-card__header">
-        <div>
-            <h3>{{ title() }}</h3>
-            <p>{{ subtitle() }}</p>
-        </div>
-    </header>
+<article class="chart-card" [class.chart-card--embedded]="embedded()">
+    @if (!embedded()) {
+        <header class="chart-card__header">
+            <div>
+                <h3>{{ title() }}</h3>
+                <p>{{ subtitle() }}</p>
+            </div>
+        </header>
+    }
 
     <div class="chart-card__body" [style.height.px]="height()">
         <canvas #canvas role="img" [attr.aria-label]="title() + '. ' + subtitle()"></canvas>

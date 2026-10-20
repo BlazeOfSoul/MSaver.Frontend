@@ -2,12 +2,14 @@ import { NgTemplateOutlet } from '@angular/common';
 import {
     ChangeDetectionStrategy,
     Component,
+    ElementRef,
     computed,
     effect,
     inject,
     input,
     output,
     signal,
+    viewChild,
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { finalize, timer } from 'rxjs';
@@ -20,6 +22,7 @@ import { InputComponent } from '../../../../../shared/ui/input/input';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import {
     BudgetItemResponse,
+    CreateRecurringTransactionRequest,
     RecurrenceFrequency,
     RecurringTransactionResponse,
 } from '../../../data-access/home-api.models';
@@ -85,6 +88,8 @@ export class PlanningTabComponent {
     readonly saving = signal(false);
     readonly message = signal('');
     readonly recurringDialogOpen = signal(false);
+    readonly editingRecurring = signal<RecurringTransactionResponse | null>(null);
+    private readonly recurringForm = viewChild<ElementRef<HTMLElement>>('recurringForm');
     readonly pendingConfirmation = signal<PendingConfirmation | null>(null);
     readonly currentTime = signal(Date.now());
     readonly Math = Math;
@@ -219,7 +224,42 @@ export class PlanningTabComponent {
     }
 
     closeRecurringPlanning(): void {
+        if (this.saving()) return;
         this.recurringDialogOpen.set(false);
+        this.cancelRecurringEdit();
+    }
+
+    editRecurringTransaction(item: RecurringTransactionResponse): void {
+        if (this.saving()) return;
+        this.editingRecurring.set(item);
+        this.recurringAccountId.set(item.accountId);
+        this.recurringKind.set(item.amount < 0 ? 'expense' : 'income');
+        this.recurringCategoryId.set(item.categoryId);
+        this.recurringAmount.setValue(String(Math.abs(item.amount)));
+        this.recurringDescription.setValue(item.description);
+        this.recurringFrequency.set(item.frequency);
+        this.recurringNotificationsEnabled.set(item.notificationsEnabled);
+        this.recurringDateTime.set(toLocalDateTimeInputValue(new Date(item.nextOccurrenceAt)));
+        this.recurringDateTimeValid.set(true);
+        this.message.set('');
+        const form = this.recurringForm()?.nativeElement;
+        form?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+        form?.focus({ preventScroll: true });
+    }
+
+    cancelRecurringEdit(): void {
+        if (this.saving()) return;
+        this.editingRecurring.set(null);
+        this.recurringAccountId.set('');
+        this.recurringCategoryId.set('');
+        this.recurringKind.set('expense');
+        this.recurringAmount.setValue('');
+        this.recurringDescription.setValue('');
+        this.recurringFrequency.set('Monthly');
+        this.recurringNotificationsEnabled.set(true);
+        this.recurringDateTime.set(toLocalDateTimeInputValue(new Date()));
+        this.recurringDateTimeValid.set(true);
+        this.message.set('');
     }
 
     closeConfirmation(): void {
@@ -286,6 +326,8 @@ export class PlanningTabComponent {
     }
 
     async saveRecurringTransaction(): Promise<void> {
+        if (this.saving()) return;
+        const editing = this.editingRecurring();
         const amount = parseMoneyInputAmount(this.recurringAmount.value);
         const nextOccurrenceAt = this.recurringDateTimeValid()
             ? localInputToUtc(this.recurringDateTime())
@@ -304,31 +346,52 @@ export class PlanningTabComponent {
             return;
         }
 
-        if (this.recurringNotificationsEnabled()) {
+        const scheduleChanged =
+            !editing ||
+            this.recurringDateTime() !==
+                toLocalDateTimeInputValue(new Date(editing.nextOccurrenceAt));
+        const payload: CreateRecurringTransactionRequest = {
+            accountId,
+            categoryId,
+            amount: this.recurringKind() === 'expense' ? -amount : amount,
+            description: this.recurringDescription.value,
+            frequency: this.recurringFrequency(),
+            nextOccurrenceAt: scheduleChanged ? nextOccurrenceAt : editing.nextOccurrenceAt,
+            timeZoneId: scheduleChanged ? deviceTimeZone() : editing.timeZoneId,
+            notificationsEnabled: this.recurringNotificationsEnabled(),
+        };
+
+        if (payload.notificationsEnabled && !editing?.notificationsEnabled) {
             this.saving.set(true);
-            const status = await this.pushNotifications.enable();
-            this.saving.set(false);
-            if (status !== 'enabled') {
-                this.message.set(this.notificationStatusMessage(status));
+            try {
+                const status = await this.pushNotifications.enable();
+                if (status !== 'enabled') {
+                    this.message.set(this.notificationStatusMessage(status));
+                    return;
+                }
+            } catch {
+                this.message.set(this.notificationStatusMessage('failed'));
                 return;
+            } finally {
+                this.saving.set(false);
             }
         }
 
         this.save(
-            this.api.createRecurringTransaction({
-                accountId,
-                categoryId,
-                amount: this.recurringKind() === 'expense' ? -amount : amount,
-                description: this.recurringDescription.value,
-                frequency: this.recurringFrequency(),
-                nextOccurrenceAt,
-                timeZoneId: deviceTimeZone(),
-                notificationsEnabled: this.recurringNotificationsEnabled(),
-            }),
+            editing
+                ? this.api.updateRecurringTransaction(editing.id, {
+                      ...payload,
+                      isActive: editing.isActive,
+                      ...(scheduleChanged ? {} : { dayOfMonth: editing.dayOfMonth }),
+                  })
+                : this.api.createRecurringTransaction(payload),
             () => {
+                this.editingRecurring.set(null);
                 this.recurringAmount.setValue('');
                 this.recurringDescription.setValue('');
-                this.message.set('Повторяющаяся операция добавлена.');
+                this.message.set(
+                    editing ? 'Расписание обновлено.' : 'Повторяющаяся операция добавлена.',
+                );
                 this.loadRecurringTransactions();
             },
         );

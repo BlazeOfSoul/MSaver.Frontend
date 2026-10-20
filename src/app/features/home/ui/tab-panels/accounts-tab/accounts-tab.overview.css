@@ -1,0 +1,126 @@
+.account-overview {
+    display: grid;
+    min-width: 0;
+    gap: 1.25rem;
+    padding: 1.25rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background: var(--color-ms-surface-raised);
+}
+
+.account-overview__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.account-overview h2 {
+    margin: 0;
+    color: var(--color-ms-light);
+    font-size: 1.05rem;
+}
+
+.account-overview__header p {
+    margin: 0.35rem 0 0;
+    color: var(--color-ms-light-dark);
+    font-size: 0.82rem;
+}
+
+.account-currencies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.5rem;
+    background: var(--color-ms-white-alpha-03);
+}
+
+.account-currency-select {
+    flex: 0 1 15rem;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.account-currencies button {
+    min-height: 2.5rem;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid transparent;
+    border-radius: 0.35rem;
+    background: transparent;
+    color: var(--color-ms-light-dark);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.account-currencies button[aria-pressed='true'] {
+    border-color: var(--color-ms-border);
+    background: var(--color-ms-white-alpha-08);
+    color: var(--color-ms-light);
+}
+
+.account-currencies button:focus-visible {
+    outline: 2px solid var(--color-ms-primary);
+    outline-offset: 2px;
+}
+
+.account-overview__totals {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 1rem;
+}
+
+.account-overview__totals > div {
+    display: grid;
+    min-width: 0;
+    gap: 0.3rem;
+}
+
+.account-overview__totals span {
+    color: var(--color-ms-light-dark);
+    font-size: 0.8rem;
+}
+
+.account-overview__totals strong {
+    color: var(--color-ms-light);
+    font-size: clamp(1.4rem, 3vw, 1.85rem);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+.account-overview__change {
+    text-align: right;
+}
+
+.account-overview__change strong {
+    font-size: 1rem;
+}
+
+.account-overview .positive {
+    color: var(--color-ms-success);
+}
+
+.account-overview .negative {
+    color: var(--color-ms-danger-soft);
+}
+
+@media (max-width: 640px) {
+    .account-currency-select {
+        flex-basis: 100%;
+    }
+    .account-overview {
+        padding: 1rem;
+    }
+    .account-overview__totals {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .account-overview__change {
+        text-align: left;
+    }
+}

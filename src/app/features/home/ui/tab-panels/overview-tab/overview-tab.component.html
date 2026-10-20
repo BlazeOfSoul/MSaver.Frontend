@@ -44,7 +44,12 @@
         >
             <div class="panel__header">
                 <div>
-                    <h2>Журнал операций</h2>
+                    <h2>
+                        Журнал операций
+                        <span class="transaction-count" aria-label="Количество операций">
+                            {{ pagination()?.totalCount ?? transactions().length }}
+                        </span>
+                    </h2>
                     <p>Доходы, расходы и переводы в выбранном месяце.</p>
                 </div>
             </div>

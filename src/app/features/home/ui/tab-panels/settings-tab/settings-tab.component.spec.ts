@@ -64,7 +64,7 @@ describe('SettingsTabComponent', () => {
         const host = fixture.nativeElement as HTMLElement;
         const panels = Array.from(host.querySelectorAll<HTMLElement>('.settings-panel'));
 
-        expect(panels).toHaveLength(6);
+        expect(panels).toHaveLength(7);
         expect(panels.shift()?.textContent).toContain('Оформление');
         expect(panels[0].textContent).toContain('Валюта приложения');
         expect(panels[0].textContent).not.toContain('Баланс на главной');
@@ -73,8 +73,12 @@ describe('SettingsTabComponent', () => {
         expect(panels[1].textContent).not.toContain('Порядок категорий');
         expect(panels[2].textContent).toContain('Порядок категорий');
         expect(panels[3].textContent).toContain('Порядок счетов');
-        expect(panels[4].textContent).toContain('Уведомления');
-        expect(panels[4].textContent).toContain('Текущее устройство · этот браузер');
+        expect(panels[4].textContent).toContain('Тип транзакции по умолчанию');
+        expect(panels[5].textContent).toContain('Уведомления');
+        expect(panels[5].textContent).toContain(
+            'Напоминания о плановых операциях в этом браузере.',
+        );
+        expect(panels[5].classList.contains('settings-hero')).toBe(true);
     });
 
     it('enables notifications for the current browser from settings', async () => {
@@ -107,9 +111,7 @@ describe('SettingsTabComponent', () => {
         expect(fixture.nativeElement.textContent).toContain(
             'Уведомления отключены на этом устройстве.',
         );
-        expect(fixture.nativeElement.textContent).toContain(
-            'Настройки расписаний при этом не изменяются.',
-        );
+        expect(fixture.nativeElement.textContent).toContain('Включить на этом устройстве');
     });
 
     it('explains when browser permission blocks notifications', async () => {

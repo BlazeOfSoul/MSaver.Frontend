@@ -17,6 +17,7 @@ import { Button } from '../../../../../shared/ui/button/button';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
 import { AccountSortMode } from '../../home-account-order.utils';
 import { CategorySortMode } from '../../home-category-order.utils';
+import { TransactionType } from '../../home-transaction-type-preference';
 import { ThemeService } from '../../../../../shared/theme/theme.service';
 import { SessionsPanelComponent } from './sessions-panel.component';
 
@@ -38,6 +39,19 @@ export class SettingsTabComponent implements OnInit {
     private readonly pushNotifications = inject(PwaPushNotificationService);
 
     applicationCurrencyCode = input.required<string>();
+    defaultTransactionType = input<TransactionType>('income');
+    defaultTransactionTypeChange = output<TransactionType>();
+    readonly transactionTypeOptions: ReadonlyArray<MsSelectOption> = [
+        { value: 'income', label: 'Доход' },
+        { value: 'expense', label: 'Расход' },
+    ];
+
+    updateDefaultTransactionType(value: string): void {
+        if (value === 'income' || value === 'expense') {
+            this.defaultTransactionTypeChange.emit(value);
+        }
+    }
+
     accountSortMode = input<AccountSortMode>('priority');
     accountSortModeChange = output<AccountSortMode>();
 
@@ -120,32 +134,6 @@ export class SettingsTabComponent implements OnInit {
             this.notificationMessage.set('Не удалось изменить настройку уведомлений.');
         } finally {
             this.notificationLoading.set(false);
-        }
-    }
-
-    notificationStatusLabel(): string {
-        switch (this.notificationStatus()) {
-            case 'enabled':
-                return 'Включены';
-            case 'denied':
-                return 'Заблокированы браузером';
-            case 'unsupported':
-                return 'Не поддерживаются';
-            default:
-                return 'Выключены';
-        }
-    }
-
-    notificationStatusIcon(): string {
-        switch (this.notificationStatus()) {
-            case 'enabled':
-                return 'notifications_active';
-            case 'denied':
-                return 'notifications_off';
-            case 'unsupported':
-                return 'mobile_off';
-            default:
-                return 'notifications_none';
         }
     }
 

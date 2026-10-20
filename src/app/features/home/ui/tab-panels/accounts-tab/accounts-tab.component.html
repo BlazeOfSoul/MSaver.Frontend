@@ -25,18 +25,131 @@
         (accountChange)="accountChange.emit($event)"
     ></ms-account-list-panel>
 
-    @for (chart of balanceCharts(); track chart.currency) {
-        <ms-chart-card
-            [title]="'Счета · ' + chart.currency"
-            subtitle="Баланс и изменение за выбранный месяц. Учитываются поиск и фильтр счетов; каждая валюта показана отдельно."
-            type="bar"
-            [horizontal]="true"
-            [showValues]="true"
-            [unit]="chart.currency"
-            [labels]="chart.labels"
-            [datasets]="chart.datasets"
-            [height]="chart.height"
-        />
+    @if (selectedBalanceChart(); as chart) {
+        <section class="account-overview" aria-label="Баланс по счетам">
+            <header class="account-overview__header">
+                <div>
+                    <h2>Баланс по счетам</h2>
+                    <p>{{ monthLabel() }} · С учётом поиска и фильтра счетов</p>
+                </div>
+                @if (balanceCharts().length > 4) {
+                    <ms-select
+                        class="account-currency-select"
+                        label="Валюта счетов"
+                        [options]="balanceCurrencyOptions()"
+                        [value]="chart.currency"
+                        [searchable]="true"
+                        searchPlaceholder="Код или название валюты"
+                        emptyText="Валюта не найдена"
+                        (valueChange)="selectedCurrency.set($event)"
+                    />
+                } @else if (balanceCharts().length > 1) {
+                    <div class="account-currencies" role="group" aria-label="Валюта счетов">
+                        @for (item of balanceCharts(); track item.currency) {
+                            <button
+                                type="button"
+                                [attr.aria-pressed]="chart.currency === item.currency"
+                                (click)="selectedCurrency.set(item.currency)"
+                            >
+                                {{ item.currency }}
+                            </button>
+                        }
+                    </div>
+                }
+            </header>
+            <div class="account-overview__totals">
+                <div>
+                    <span>Общий остаток · {{ chart.currency }}</span>
+                    <strong [class.negative]="chart.balance < 0">{{
+                        money(chart.balance, chart.currency)
+                    }}</strong>
+                </div>
+                <div class="account-overview__change">
+                    <span>Изменение за месяц</span>
+                    <strong [class.positive]="chart.change > 0" [class.negative]="chart.change < 0">
+                        {{ chart.change > 0 ? '+' : '' }}{{ money(chart.change, chart.currency) }}
+                    </strong>
+                </div>
+            </div>
+            <ms-chart-card
+                title="Баланс по счетам"
+                [subtitle]="chart.currency + ' · ' + monthLabel()"
+                [embedded]="true"
+                type="bar"
+                [horizontal]="true"
+                [unit]="chart.currency"
+                [labels]="chart.labels"
+                [datasets]="chart.datasets"
+                [height]="chart.height"
+            />
+            <details class="account-activity">
+                <summary>Движение по счетам</summary>
+                <p class="account-activity__hint">
+                    Поступления и списания включают переводы. Максимальный остаток учитывает все
+                    операции месяца, в том числе суммы до перевода на другой счёт.
+                </p>
+                @if (monthActivity()) {
+                    <div class="account-activity__list">
+                        @for (account of chart.accounts; track account.id) {
+                            @if (account.activity; as activity) {
+                                <article class="account-activity__item">
+                                    <h3>
+                                        <span [style.background]="account.color"></span
+                                        >{{ account.name }}
+                                    </h3>
+                                    <dl>
+                                        <div>
+                                            <dt>На начало месяца</dt>
+                                            <dd>{{ money(activity.opening, chart.currency) }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Поступления</dt>
+                                            <dd class="positive">
+                                                {{ activity.incoming ? '+' : ''
+                                                }}{{ money(activity.incoming, chart.currency) }}
+                                            </dd>
+                                            <small
+                                                >Из них переводы:
+                                                {{
+                                                    money(activity.transferIn, chart.currency)
+                                                }}</small
+                                            >
+                                        </div>
+                                        <div>
+                                            <dt>Списания</dt>
+                                            <dd class="negative">
+                                                {{ activity.outgoing ? '−' : ''
+                                                }}{{ money(activity.outgoing, chart.currency) }}
+                                            </dd>
+                                            <small
+                                                >Из них переводы:
+                                                {{
+                                                    money(activity.transferOut, chart.currency)
+                                                }}</small
+                                            >
+                                        </div>
+                                        <div>
+                                            <dt>На конец периода</dt>
+                                            <dd>{{ money(activity.closing, chart.currency) }}</dd>
+                                        </div>
+                                    </dl>
+                                    <p class="account-activity__peak">
+                                        Максимальный остаток за месяц
+                                        <strong>{{
+                                            money(activity.maximum, chart.currency)
+                                        }}</strong>
+                                    </p>
+                                </article>
+                            }
+                        }
+                    </div>
+                } @else {
+                    <p role="status">
+                        Расшифровка появится после загрузки полной истории операций.
+                    </p>
+                }
+            </details>
+        </section>
     }
 
     <article class="panel">

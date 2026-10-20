@@ -1,10 +1,19 @@
 <section aria-labelledby="sessions-title">
     <div class="heading">
-        <div>
-            <h2 id="sessions-title">Активные сеансы</h2>
-            <p>Завершение сеанса сразу закрывает доступ с него. Новый вход потребует пароль.</p>
+        <div class="heading-copy">
+            <span class="session-icon material-symbols-outlined" aria-hidden="true">devices</span>
+            <div>
+                <h2 id="sessions-title">Активные сеансы</h2>
+                <p>Управляйте доступом к своему профилю.</p>
+            </div>
         </div>
-        <ms-button variant="neutral" appearance="outline" [disabled]="busy()" (onClick)="reload()"
+        <ms-button
+            variant="neutral"
+            appearance="ghost"
+            size="sm"
+            [disabled]="busy()"
+            (onClick)="reload()"
+            ><span class="material-symbols-outlined" aria-hidden="true">refresh</span
             >Обновить</ms-button
         >
     </div>
@@ -14,27 +23,52 @@
     @if (busy() && !loaded()) {
         <p role="status">Загружаем сеансы…</p>
     }
-    @for (session of sessions(); track session.clientId) {
-        <div class="session">
-            <div>
-                <strong>{{ session.isCurrent ? 'Текущий сеанс' : 'Другой сеанс' }}</strong>
-                <small>Вход: {{ session.createdAt | date: 'dd.MM.yyyy HH:mm' }}</small>
-            </div>
-            <ms-button
-                variant="danger"
-                appearance="outline"
-                [disabled]="busy()"
-                (onClick)="revoke(session)"
-                >Завершить</ms-button
-            >
-        </div>
-    }
+    <div class="sessions-grid">
+        @for (session of sessions(); track session.clientId) {
+            <article class="session" [class.session--current]="session.isCurrent">
+                <div class="session-top">
+                    <span class="material-symbols-outlined" aria-hidden="true">{{
+                        session.isCurrent ? 'verified_user' : 'devices'
+                    }}</span>
+                    <span class="session-badge">{{
+                        session.isCurrent ? 'Вы здесь' : 'Активен'
+                    }}</span>
+                </div>
+                <div class="session-copy">
+                    <strong>{{ session.isCurrent ? 'Текущий сеанс' : 'Другой сеанс' }}</strong>
+                    <small>Вход: {{ session.createdAt | date: 'dd.MM.yyyy HH:mm' }}</small>
+                </div>
+                <ms-button
+                    [variant]="session.isCurrent ? 'neutral' : 'danger'"
+                    appearance="ghost"
+                    size="sm"
+                    [disabled]="busy()"
+                    [attr.aria-label]="
+                        (session.isCurrent ? 'Завершить текущий сеанс' : 'Завершить сеанс') +
+                        ' от ' +
+                        (session.createdAt | date: 'dd.MM.yyyy HH:mm')
+                    "
+                    (onClick)="revoke(session)"
+                    >{{ session.isCurrent ? 'Выйти здесь' : 'Завершить сеанс' }}</ms-button
+                >
+            </article>
+        }
+    </div>
     @if (loaded() && sessions().length === 0) {
         <p>Активных сеансов нет.</p>
     }
     @if (sessions().length) {
-        <ms-button variant="danger" appearance="outline" [disabled]="busy()" (onClick)="revoke()"
-            >Выйти на всех устройствах</ms-button
-        >
+        <footer>
+            <p>После выхода для доступа понадобится снова войти.</p>
+            <ms-button
+                variant="danger"
+                appearance="ghost"
+                size="sm"
+                [disabled]="busy()"
+                (onClick)="revoke()"
+                ><span class="material-symbols-outlined" aria-hidden="true">logout</span>Выйти на
+                всех устройствах</ms-button
+            >
+        </footer>
     }
 </section>

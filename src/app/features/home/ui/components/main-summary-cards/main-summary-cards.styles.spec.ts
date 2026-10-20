@@ -12,18 +12,25 @@ describe('Main summary cards styles', () => {
         'utf8',
     );
 
-    it('keeps desktop metric amounts on one line so debt cards do not break the grid rhythm', () => {
+    it('allows large amounts to wrap without forcing the card wider than its grid cell', () => {
         const valueRule = extractRule(styles, '.summary-card__value');
 
-        expect(valueRule).toContain('white-space: nowrap');
-        expect(valueRule).toContain('overflow-wrap: normal');
+        expect(valueRule).toContain('white-space: normal');
+        expect(valueRule).toContain('overflow-wrap: anywhere');
+        expect(extractRule(styles, '.summary-card')).toContain(
+            'grid-template-columns: auto minmax(0, 1fr)',
+        );
+        expect(extractRule(styles, '.summary-grid')).toContain(
+            'grid-template-columns: minmax(0, 1fr)',
+        );
     });
 
-    it('keeps stacked debt helper lines on one line on desktop', () => {
+    it('allows debt helper lines to wrap inside narrow cards', () => {
         const helperLineRule = extractRule(styles, '.summary-card__helper--stack > span');
 
-        expect(helperLineRule).toContain('white-space: nowrap');
-        expect(helperLineRule).toContain('overflow-wrap: normal');
+        expect(helperLineRule).toContain('white-space: normal');
+        expect(helperLineRule).toContain('overflow-wrap: anywhere');
+        expect(helperLineRule).toContain('min-width: 0');
     });
 
     function extractRule(stylesheet: string, selector: string): string {

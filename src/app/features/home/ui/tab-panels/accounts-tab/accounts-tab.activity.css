@@ -1,0 +1,84 @@
+.account-activity {
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-ms-border);
+}
+.account-activity summary {
+    color: var(--color-ms-light);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+.account-activity__hint,
+.account-activity p {
+    color: var(--color-ms-light-dark);
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+.account-activity__list {
+    display: grid;
+    gap: 0.85rem;
+}
+.account-activity__item {
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--color-ms-border);
+    min-width: 0;
+}
+.account-activity h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.8rem;
+    color: var(--color-ms-light);
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+.account-activity h3 span {
+    width: 0.65rem;
+    height: 0.65rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+.account-activity dl {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 0;
+}
+.account-activity__peak {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.75rem;
+    margin: 0.85rem 0 0;
+    padding-top: 0.65rem;
+    border-top: 1px dashed var(--color-ms-border);
+}
+.account-activity__peak strong {
+    color: var(--color-ms-light);
+    overflow-wrap: anywhere;
+}
+.account-activity dt,
+.account-activity small {
+    color: var(--color-ms-light-dark);
+    font-size: 0.75rem;
+}
+.account-activity dd {
+    margin: 0.3rem 0;
+    color: var(--color-ms-light);
+    font-size: 0.95rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+.account-activity .positive {
+    color: var(--color-ms-success);
+}
+.account-activity .negative {
+    color: var(--color-ms-danger-soft);
+}
+
+@media (max-width: 640px) {
+    .account-activity dl {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+}

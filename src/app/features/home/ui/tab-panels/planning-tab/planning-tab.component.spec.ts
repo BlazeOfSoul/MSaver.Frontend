@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError, Subject } from 'rxjs';
 import { PwaPushNotificationService } from '../../../../../core/push/pwa-push-notification.service';
 import {
     BudgetItemResponse,
@@ -72,6 +72,7 @@ describe('PlanningTabComponent', () => {
         upsertBudget: ReturnType<typeof vi.fn>;
         deleteBudget: ReturnType<typeof vi.fn>;
         createRecurringTransaction: ReturnType<typeof vi.fn>;
+        updateRecurringTransaction: ReturnType<typeof vi.fn>;
         completeRecurringTransaction: ReturnType<typeof vi.fn>;
         skipRecurringTransaction: ReturnType<typeof vi.fn>;
         deleteRecurringTransaction: ReturnType<typeof vi.fn>;
@@ -93,6 +94,7 @@ describe('PlanningTabComponent', () => {
             upsertBudget: vi.fn(() => of(undefined)),
             deleteBudget: vi.fn(() => of(undefined)),
             createRecurringTransaction: vi.fn(() => of(recurring())),
+            updateRecurringTransaction: vi.fn(() => of(recurring())),
             completeRecurringTransaction: vi.fn(() => of('transaction-id')),
             skipRecurringTransaction: vi.fn(() => of(undefined)),
             deleteRecurringTransaction: vi.fn(() => of(undefined)),
@@ -154,15 +156,18 @@ describe('PlanningTabComponent', () => {
         ).toContain(due.description);
         expect(dueActions?.querySelectorAll('.recurring-row__delete')).toHaveLength(1);
         expect(rows[1].classList.contains('recurring-row--due')).toBe(false);
-        expect(futureActions?.querySelector('.recurring-row__status')?.textContent).toContain(
-            'Ожидается',
-        );
+        expect(
+            rows[1].querySelector('.recurring-row__copy .recurring-row__status')?.textContent,
+        ).toContain('Ожидается');
         expect(futureActions?.querySelector('.recurring-row__confirm')).toBeNull();
         expect(futureActions?.querySelector('.recurring-row__skip')).toBeNull();
         expect(
             futureActions?.querySelector('.recurring-row__delete')?.getAttribute('aria-label'),
         ).toContain(future.description);
         expect(futureActions?.querySelectorAll('.recurring-row__delete')).toHaveLength(1);
+        expect(futureActions?.querySelector('.recurring-row__delete')?.textContent).toContain(
+            'Удалить',
+        );
     });
 
     it('makes an occurrence actionable on the clock tick and stops the clock after destroy', async () => {
@@ -306,6 +311,76 @@ describe('PlanningTabComponent', () => {
         expect(host.querySelector('.planning-recurring-dialog__close')).toBeNull();
         expect(host.querySelectorAll('.planning-notification-toggle__input')).toHaveLength(1);
         expect(host.querySelectorAll('.planning-notice')).toHaveLength(1);
+    });
+
+    it('edits an existing schedule without resetting its time zone, anchor day or notifications', async () => {
+        const item = recurring({
+            dayOfMonth: 31,
+            nextOccurrenceAt: '2026-02-28T08:30:42.000Z',
+            timeZoneId: 'Europe/Berlin',
+        });
+        component.editRecurringTransaction(item);
+        expect(component.recurringAmount.value).toBe(String(Math.abs(item.amount)));
+        expect(component.recurringCategoryId()).toBe(item.categoryId);
+        component.recurringAmount.setValue('59,90');
+        component.recurringDescription.setValue('Updated subscription');
+        await component.saveRecurringTransaction();
+        expect(api.updateRecurringTransaction).toHaveBeenCalledWith(
+            item.id,
+            expect.objectContaining({
+                amount: -59.9,
+                description: 'Updated subscription',
+                nextOccurrenceAt: item.nextOccurrenceAt,
+                timeZoneId: 'Europe/Berlin',
+                dayOfMonth: 31,
+                isActive: true,
+                notificationsEnabled: true,
+            }),
+        );
+        expect(api.createRecurringTransaction).not.toHaveBeenCalled();
+        expect(pushNotifications.enable).not.toHaveBeenCalled();
+        expect(component.editingRecurring()).toBeNull();
+        expect(component.message()).toBe('Расписание обновлено.');
+    });
+
+    it('updates the date and recurrence and preserves an unsuccessful edit for retry', async () => {
+        const item = recurring();
+        component.editRecurringTransaction(item);
+        component.setRecurringDateTime('2026-10-25T10:45');
+        component.setRecurringFrequency('Weekly');
+        api.updateRecurringTransaction.mockReturnValue(throwError(() => new Error('offline')));
+        await component.saveRecurringTransaction();
+        const payload = api.updateRecurringTransaction.mock.calls[0][1];
+        expect(payload.nextOccurrenceAt).toBe(new Date(2026, 9, 25, 10, 45).toISOString());
+        expect(payload.frequency).toBe('Weekly');
+        expect(payload.dayOfMonth).toBeUndefined();
+        expect(component.editingRecurring()?.id).toBe(item.id);
+        expect(component.recurringAmount.value).toBe(String(Math.abs(item.amount)));
+        expect(component.saving()).toBe(false);
+    });
+
+    it('cancels editing without saving or leaving the previous schedule in the form', () => {
+        component.editRecurringTransaction(recurring({ amount: 500, description: 'Salary' }));
+        expect(component.recurringKind()).toBe('income');
+        component.cancelRecurringEdit();
+        expect(component.editingRecurring()).toBeNull();
+        expect(component.recurringAmount.value).toBe('');
+        expect(component.recurringCategoryId()).toBe('');
+        expect(api.updateRecurringTransaction).not.toHaveBeenCalled();
+    });
+
+    it('does not submit the same schedule twice while saving', async () => {
+        const response = new Subject<RecurringTransactionResponse>();
+        api.updateRecurringTransaction.mockReturnValue(response);
+        component.editRecurringTransaction(recurring());
+        await component.saveRecurringTransaction();
+        await component.saveRecurringTransaction();
+        component.cancelRecurringEdit();
+        expect(api.updateRecurringTransaction).toHaveBeenCalledTimes(1);
+        expect(component.editingRecurring()).not.toBeNull();
+        response.next(recurring());
+        response.complete();
+        expect(component.saving()).toBe(false);
     });
 
     it('uses the shared local date-time picker and converts its value to UTC when saving', async () => {

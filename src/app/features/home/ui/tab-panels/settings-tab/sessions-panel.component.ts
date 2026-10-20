@@ -41,7 +41,9 @@ export class SessionsPanelComponent {
             )
             .subscribe({
                 next: (items) => {
-                    this.sessions.set(items);
+                    this.sessions.set(
+                        [...items].sort((a, b) => Number(b.isCurrent) - Number(a.isCurrent)),
+                    );
                     this.loaded.set(true);
                 },
                 error: () => this.error.set('Не удалось загрузить сеансы. Попробуйте ещё раз.'),

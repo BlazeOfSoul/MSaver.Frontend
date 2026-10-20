@@ -116,6 +116,22 @@ describe('OverviewTabComponent', () => {
         expect(document.activeElement).toBe(plannedTab);
     });
 
+    it('shows the full filtered operation count rather than the current page length', () => {
+        fixture.componentRef.setInput('transactions', [transaction({})]);
+        fixture.componentRef.setInput('pagination', {
+            page: 1,
+            size: 25,
+            totalCount: 47,
+            totalPages: 2,
+            hasPreviousPage: false,
+            hasNextPage: true,
+        });
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('.transaction-count').textContent.trim()).toBe(
+            '47',
+        );
+    });
+
     it('renders transactions as a date-sorted table and applies category colors', () => {
         fixture.componentRef.setInput('transactions', [
             transaction({

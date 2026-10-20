@@ -214,7 +214,31 @@
                     <p class="planning-notice" role="status">{{ message() }}</p>
                 }
 
-                <div class="planning-form planning-form--recurring">
+                <div
+                    #recurringForm
+                    class="planning-form planning-form--recurring"
+                    tabindex="-1"
+                    role="group"
+                    [attr.aria-label]="
+                        editingRecurring() ? 'Редактирование расписания' : 'Новое расписание'
+                    "
+                >
+                    @if (editingRecurring(); as editing) {
+                        <div class="recurring-edit-heading">
+                            <div>
+                                <strong>Редактирование расписания</strong>
+                                <span>{{ editing.description || editing.categoryName }}</span>
+                            </div>
+                            <ms-button
+                                appearance="ghost"
+                                variant="neutral"
+                                size="sm"
+                                [disabled]="saving()"
+                                (onClick)="cancelRecurringEdit()"
+                                >Отмена</ms-button
+                            >
+                        </div>
+                    }
                     <ms-select
                         [contained]="true"
                         label="Счёт"
@@ -309,7 +333,7 @@
                         <span class="material-symbols-outlined" aria-hidden="true"
                             >event_repeat</span
                         >
-                        Добавить расписание
+                        {{ editingRecurring() ? 'Сохранить изменения' : 'Добавить расписание' }}
                     </ms-button>
                 </div>
 
@@ -346,6 +370,9 @@
                                         >Следующее подтверждение:
                                         {{ formatOccurrence(item.nextOccurrenceAt) }}</span
                                     >
+                                    @if (!isDue(item)) {
+                                        <span class="recurring-row__status">Ожидается</span>
+                                    }
                                 </div>
                                 <div
                                     class="recurring-row__amount"
@@ -382,14 +409,30 @@
                                         >
                                             Пропустить
                                         </ms-button>
-                                    } @else {
-                                        <span class="recurring-row__status">Ожидается</span>
                                     }
                                     <ms-button
+                                        class="recurring-row__edit"
+                                        appearance="outline"
+                                        variant="neutral"
+                                        size="sm"
+                                        [disabled]="saving()"
+                                        [attr.aria-label]="
+                                            'Редактировать расписание ' +
+                                            (item.description || item.categoryName)
+                                        "
+                                        (onClick)="editRecurringTransaction(item)"
+                                    >
+                                        <span class="material-symbols-outlined" aria-hidden="true"
+                                            >edit</span
+                                        >
+                                        Изменить
+                                    </ms-button>
+                                    <ms-button
                                         class="recurring-row__delete"
-                                        appearance="icon"
+                                        appearance="outline"
                                         variant="danger"
                                         size="sm"
+                                        [disabled]="saving()"
                                         (onClick)="deleteRecurringTransaction(item)"
                                         [attr.aria-label]="
                                             'Удалить расписание ' +
@@ -399,6 +442,7 @@
                                         <span class="material-symbols-outlined" aria-hidden="true"
                                             >delete</span
                                         >
+                                        Удалить
                                     </ms-button>
                                 </div>
                             </article>

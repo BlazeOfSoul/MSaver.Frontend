@@ -9,6 +9,7 @@ import {
     CategoryResponse,
     CreateAccountRequest,
     CreateRecurringTransactionRequest,
+    UpdateRecurringTransactionRequest,
     CreateCategoryRequest,
     CreateTagRequest,
     CreateTransactionRequest,
@@ -282,6 +283,16 @@ export class HomeApiService {
 
     completeRecurringTransaction(id: string): Observable<string> {
         return this.http.post<string>(`${this.baseUrl}/recurring-transactions/${id}/complete`, {});
+    }
+
+    updateRecurringTransaction(
+        id: string,
+        payload: UpdateRecurringTransactionRequest,
+    ): Observable<RecurringTransactionResponse> {
+        return this.http.put<RecurringTransactionResponse>(
+            `${this.baseUrl}/recurring-transactions/${id}`,
+            payload,
+        );
     }
 
     skipRecurringTransaction(id: string): Observable<void> {

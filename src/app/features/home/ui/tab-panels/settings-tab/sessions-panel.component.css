@@ -7,7 +7,7 @@ section {
     gap: 1rem;
     padding: 1.2rem;
     border: 1px solid var(--color-ms-border);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-ms-xl);
     background: var(--color-ms-surface-raised);
 }
 h2 {
@@ -21,7 +21,9 @@ p {
     line-height: 1.5;
 }
 .heading,
-.session {
+.heading-copy,
+.session-top,
+footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -29,8 +31,13 @@ p {
     min-width: 0;
 }
 .session {
-    padding-block: 0.75rem;
-    border-bottom: 1px solid var(--color-ms-border);
+    display: grid;
+    gap: 0.85rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: var(--radius-ms-lg);
+    background: var(--color-ms-white-alpha-025);
 }
 .session > div {
     min-width: 0;
@@ -51,7 +58,64 @@ ms-button {
     .heading {
         flex-wrap: wrap;
     }
-    .session {
-        gap: 0.5rem;
+    footer {
+        align-items: start;
+        flex-direction: column;
     }
+}
+
+.heading-copy {
+    justify-content: start;
+    gap: 0.75rem;
+}
+.session-icon {
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 0.75rem;
+    color: var(--color-ms-primary);
+    background: var(--color-ms-primary-alpha-08);
+}
+.sessions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: 0.75rem;
+}
+.session--current {
+    border-color: var(--color-ms-primary-alpha-24);
+    background: var(--color-ms-primary-alpha-04);
+}
+.session-top {
+    color: var(--color-ms-light-dark);
+}
+.session--current .session-top {
+    color: var(--color-ms-primary);
+}
+.session-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    background: var(--color-ms-white-alpha-04);
+    font-size: 0.7rem;
+    font-weight: 650;
+}
+.session--current .session-badge {
+    background: var(--color-ms-primary-alpha-08);
+}
+.session-copy {
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+.session > ms-button {
+    justify-self: start;
+    margin-left: -0.5rem;
+}
+footer {
+    border-top: 1px solid var(--color-ms-border);
+    padding-top: 1rem;
+}
+footer p,
+.heading p {
+    font-size: 0.8rem;
 }
