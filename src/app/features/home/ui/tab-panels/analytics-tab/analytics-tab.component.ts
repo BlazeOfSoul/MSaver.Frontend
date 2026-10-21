@@ -14,7 +14,6 @@ import {
 import {
     MS_ANALYTICS_CHART_COLORS,
     MS_CATEGORY_COLORS,
-    MS_CATEGORY_OTHER_COLOR,
 } from '../../../../../shared/theme/theme-colors';
 import { AnalyticsMonthTableComponent } from '../../components/analytics-month-table/analytics-month-table.component';
 import {
@@ -43,7 +42,6 @@ import {
     buildValueDataset,
     chartLabels,
     isTagChartLimit,
-    limitBreakdownItems,
     selectLimitedBreakdownItems,
 } from './analytics-tab.helpers';
 import { createTransactionsCsvExport } from './analytics-csv-export.utils';
@@ -168,10 +166,7 @@ export class AnalyticsTabComponent {
     );
 
     readonly visibleExpenseCategories = computed(() =>
-        limitBreakdownItems(this.expenseCategories(), {
-            otherLabel: 'Прочее',
-            otherColor: MS_CATEGORY_OTHER_COLOR,
-        }),
+        [...this.expenseCategories()].sort((a, b) => b.amountValue - a.amountValue),
     );
     readonly expenseCategoryLabels = computed(() =>
         breakdownLabels(this.visibleExpenseCategories()),
@@ -186,10 +181,7 @@ export class AnalyticsTabComponent {
     );
 
     readonly visibleIncomeCategories = computed(() =>
-        limitBreakdownItems(this.incomeCategories(), {
-            otherLabel: 'Прочее',
-            otherColor: MS_CATEGORY_OTHER_COLOR,
-        }),
+        [...this.incomeCategories()].sort((a, b) => b.amountValue - a.amountValue),
     );
     readonly incomeCategoryLabels = computed(() => breakdownLabels(this.visibleIncomeCategories()));
     readonly incomeCategoryDatasets = computed<ReadonlyArray<HomeChartDataset>>(() =>
@@ -270,7 +262,7 @@ export class AnalyticsTabComponent {
         selectLimitedBreakdownItems(
             this.tagExpenses(),
             this.selectedTagExpenseId(),
-            this.tagChartLimit(),
+            this.tagChartType() === 'doughnut' ? 'all' : this.tagChartLimit(),
         ),
     );
     readonly tagExpenseLabels = computed(() => breakdownLabels(this.visibleTagExpenses()));

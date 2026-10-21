@@ -1,0 +1,61 @@
+<div class="breakdown-chips" aria-label="Легенда графика">
+    @for (item of slices(); track item.key) {
+        <div class="breakdown-chip" [style.--slice-color]="item.color">
+            <span class="breakdown-dot" aria-hidden="true"></span>
+            @if (item.memberCount > 1) {
+                <button
+                    type="button"
+                    class="breakdown-name breakdown-group"
+                    (click)="openList()"
+                    [attr.aria-expanded]="expanded()"
+                >
+                    {{ item.label }} ↓
+                </button>
+            } @else {
+                <span class="breakdown-name">{{ item.label }}</span>
+            }
+            <span class="breakdown-value">{{ value(item) }}</span>
+            <span class="breakdown-percent">{{ percent(item) }}</span>
+        </div>
+    }
+</div>
+@if (items().length > 6) {
+    <button
+        type="button"
+        class="breakdown-toggle"
+        [attr.aria-expanded]="expanded()"
+        (click)="expanded() ? expanded.set(false) : openList()"
+    >
+        {{ expanded() ? 'Свернуть список' : 'Все ' + itemLabel() + ' · ' + items().length }}
+        <span aria-hidden="true">{{ expanded() ? '↑' : '↓' }}</span>
+    </button>
+    @if (expanded()) {
+        <section class="breakdown-all" [attr.aria-label]="'Все ' + itemLabel()">
+            <label class="breakdown-search">
+                <span>Поиск по названию</span>
+                <input
+                    #search
+                    type="search"
+                    placeholder="Начните вводить название"
+                    [value]="query()"
+                    (input)="query.set($any($event.target).value)"
+                />
+            </label>
+            <p class="breakdown-count" role="status">
+                Показано {{ filteredItems().length }} из {{ items().length }} · по убыванию суммы
+            </p>
+            <ul class="breakdown-list" tabindex="0" [attr.aria-label]="'Список: ' + itemLabel()">
+                @for (item of filteredItems(); track item.key) {
+                    <li [style.--slice-color]="item.color">
+                        <span class="breakdown-dot" aria-hidden="true"></span>
+                        <span class="breakdown-name">{{ item.label }}</span>
+                        <span class="breakdown-value">{{ value(item) }}</span>
+                        <span class="breakdown-percent">{{ percent(item) }}</span>
+                    </li>
+                } @empty {
+                    <li class="breakdown-empty">Ничего не найдено. Попробуйте другое название.</li>
+                }
+            </ul>
+        </section>
+    }
+}

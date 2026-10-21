@@ -1,9 +1,11 @@
-import { MS_ANALYTICS_CHART_COLORS, MS_CATEGORY_COLORS } from '../../../../../shared/theme/theme-colors';
+import {
+    MS_ANALYTICS_CHART_COLORS,
+    MS_CATEGORY_COLORS,
+} from '../../../../../shared/theme/theme-colors';
 import { CategoryBreakdownItem } from '../../home-page.models';
 import {
     buildBreakdownDataset,
     buildNetCashFlowDataset,
-    limitBreakdownItems,
     selectLimitedBreakdownItems,
 } from './analytics-tab.helpers';
 
@@ -28,27 +30,6 @@ function category(
 }
 
 describe('analytics tab helpers', () => {
-    it('sorts category chart items and groups the tail into one other item', () => {
-        const items = Array.from({ length: 12 }, (_, index) =>
-            category(`category-${index}`, `Category ${index}`, 120 - index),
-        );
-
-        const limited = limitBreakdownItems(items, {
-            otherLabel: 'Other',
-            otherColor: '#999999',
-        });
-
-        expect(limited).toHaveLength(10);
-        expect(limited.slice(0, 3).map((item) => item.amountValue)).toEqual([120, 119, 118]);
-        expect(limited.at(-1)).toMatchObject({
-            id: 'other',
-            name: 'Other',
-            amountValue: 330,
-            color: '#999999',
-            type: 'expense',
-        });
-    });
-
     it('builds one breakdown dataset with fallback colors for missing item colors', () => {
         const dataset = buildBreakdownDataset(
             'Expenses',
@@ -85,9 +66,9 @@ describe('analytics tab helpers', () => {
             'tag-3',
             'tag-4',
         ]);
-        expect(selectLimitedBreakdownItems(tags, 'transport-tag', '5').map((item) => item.id)).toEqual([
-            'transport-tag',
-        ]);
+        expect(
+            selectLimitedBreakdownItems(tags, 'transport-tag', '5').map((item) => item.id),
+        ).toEqual(['transport-tag']);
         expect(selectLimitedBreakdownItems(tags, 'all', 'all')).toHaveLength(7);
     });
 

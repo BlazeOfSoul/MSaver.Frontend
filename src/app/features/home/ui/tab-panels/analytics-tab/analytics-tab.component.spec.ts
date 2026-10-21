@@ -1,8 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import {
-    MS_CATEGORY_COLORS,
-    MS_CATEGORY_OTHER_COLOR,
-} from '../../../../../shared/theme/theme-colors';
+import { MS_CATEGORY_COLORS } from '../../../../../shared/theme/theme-colors';
 import { AnalyticsTabComponent } from './analytics-tab.component';
 
 describe('AnalyticsTabComponent', () => {
@@ -260,7 +257,7 @@ describe('AnalyticsTabComponent', () => {
         expect(getComputedStyle(layout!).minWidth).toBe('0px');
     });
 
-    it('limits long category charts and groups the rest as other', () => {
+    it('passes all category data through so the chart can expose every grouped item', () => {
         fixture.componentRef.setInput(
             'expenseCategories',
             Array.from({ length: 12 }, (_, index) =>
@@ -268,9 +265,9 @@ describe('AnalyticsTabComponent', () => {
             ),
         );
 
-        expect(component.expenseCategoryLabels()).toHaveLength(10);
-        expect(component.expenseCategoryLabels()).toContain('Прочее');
-        expect(component.expenseCategoryDatasets()[0].data.at(-1)).toBe(330);
+        expect(component.expenseCategoryLabels()).toHaveLength(12);
+        expect(component.expenseCategoryLabels().at(-1)).toBe('Category 11');
+        expect(component.expenseCategoryDatasets()[0].data.at(-1)).toBe(109);
     });
 
     it('uses the shared fallback palette for generated analytics category colors', () => {
@@ -284,7 +281,19 @@ describe('AnalyticsTabComponent', () => {
         const colors = component.expenseCategoryDatasets()[0].colors ?? [];
 
         expect(colors.slice(0, 3)).toEqual(MS_CATEGORY_COLORS.slice(0, 3));
-        expect(colors.at(-1)).toBe(MS_CATEGORY_OTHER_COLOR);
+        expect(colors.at(-1)).toBe(MS_CATEGORY_COLORS[11 % MS_CATEGORY_COLORS.length]);
+    });
+
+    it('includes all tags in a ring but keeps the selected limit for bars', () => {
+        fixture.componentRef.setInput(
+            'tagExpenses',
+            Array.from({ length: 30 }, (_, i) =>
+                category(`tag-${i}`, `Tag ${i}`, 30 - i, '#23c78b'),
+            ),
+        );
+        expect(component.tagExpenseLabels()).toHaveLength(30);
+        component.setTagChartType('bar');
+        expect(component.tagExpenseLabels()).toHaveLength(10);
     });
 
     it('renders month-by-category tables in the tables view', () => {
@@ -356,7 +365,7 @@ describe('AnalyticsTabComponent', () => {
         ).toHaveLength(3);
     });
 
-    it('applies tag chart limit settings', () => {
+    it('applies tag chart limit settings to bars', () => {
         fixture.componentRef.setInput(
             'tagExpenses',
             Array.from({ length: 8 }, (_, index) =>
@@ -364,6 +373,7 @@ describe('AnalyticsTabComponent', () => {
             ),
         );
 
+        component.setTagChartType('bar');
         component.setTagChartLimit('5');
 
         expect(component.tagExpenseLabels()).toHaveLength(5);

@@ -1,0 +1,58 @@
+<details class="diary">
+    <summary class="diary-heading">
+        <span class="diary-icon material-symbols-outlined" aria-hidden="true">auto_stories</span>
+        <span class="diary-copy">
+            <h2>Дневник разработчика</h2>
+            <span>Версии, улучшения и исправления</span>
+        </span>
+        <span class="material-symbols-outlined diary-chevron" aria-hidden="true">expand_more</span>
+    </summary>
+    <div class="diary-content">
+        <div class="diary-intro">
+            <p>Как меняется MSaver</p>
+            <span>{{ published.length }} версий в истории</span>
+        </div>
+        <div class="release-list">
+            @for (release of releases; track release.version) {
+                <details
+                    class="release"
+                    [class.release-featured]="release === releases[0]"
+                    [open]="release === releases[0]"
+                >
+                    <summary>
+                        <span class="release-meta">
+                            <span class="release-version">{{
+                                release.preview ? 'Следующее обновление' : 'v' + release.version
+                            }}</span>
+                            @if (release.preview) {
+                                <span class="release-badge">Готовится</span>
+                            } @else if (release === published[0]) {
+                                <span class="release-badge published-badge">Последний выпуск</span>
+                            }
+                        </span>
+                        <span class="release-title">{{ release.title }}</span>
+                        <span class="material-symbols-outlined release-chevron" aria-hidden="true"
+                            >expand_more</span
+                        >
+                    </summary>
+                    <ul class="changes">
+                        @for (change of release.changes; track change.title) {
+                            <li>
+                                <span class="change-kind" [attr.data-kind]="change.kind">{{
+                                    changeLabels[change.kind]
+                                }}</span>
+                                <h3>{{ change.title }}</h3>
+                                <p>{{ change.text }}</p>
+                            </li>
+                        }
+                    </ul>
+                    @if (release.preview) {
+                        <p class="preview-note">
+                            Ещё не опубликовано. Показываем, что готовим к выпуску.
+                        </p>
+                    }
+                </details>
+            }
+        </div>
+    </div>
+</details>

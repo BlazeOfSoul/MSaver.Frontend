@@ -2,6 +2,7 @@ import {
     AfterViewInit,
     ChangeDetectionStrategy,
     Component,
+    computed,
     ElementRef,
     OnDestroy,
     ViewChild,
@@ -32,6 +33,8 @@ import {
 } from './chart-card.config';
 import { HomeChartDataset, HomeChartType } from '../../home-page.models';
 import { ThemeService } from '../../../../../shared/theme/theme.service';
+import { buildDoughnutBreakdown } from './doughnut-breakdown';
+import { ChartBreakdownComponent } from './chart-breakdown.component';
 
 Chart.register(
     BarController,
@@ -51,6 +54,7 @@ Chart.register(
 @Component({
     selector: 'ms-chart-card',
     standalone: true,
+    imports: [ChartBreakdownComponent],
     templateUrl: './chart-card.component.html',
     styleUrl: './chart-card.component.css',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -69,6 +73,24 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
     unit = input('');
     showValues = input(false);
     embedded = input(false);
+    itemLabel = input('категории');
+    readonly breakdown = computed(() => buildDoughnutBreakdown(this.labels(), this.datasets()));
+    readonly chartData = computed(() => {
+        if (this.type() !== 'doughnut' || this.datasets().length !== 1) {
+            return { labels: this.labels(), datasets: this.datasets() };
+        }
+        const slices = this.breakdown().slices;
+        return {
+            labels: slices.map((item) => item.label),
+            datasets: [
+                {
+                    ...this.datasets()[0],
+                    data: slices.map((item) => item.value),
+                    colors: slices.map((item) => item.color),
+                },
+            ],
+        };
+    });
     formatValue(value: number): string {
         return formatChartValue(value, this.unit());
     }
@@ -122,8 +144,8 @@ export class ChartCardComponent implements AfterViewInit, OnDestroy {
             canvas,
             buildChartConfiguration({
                 type: this.type(),
-                labels: this.labels(),
-                datasets: this.datasets(),
+                labels: this.chartData().labels,
+                datasets: this.chartData().datasets,
                 themeColors: readChartThemeColors(),
                 horizontal: this.horizontal(),
                 unit: this.unit(),

@@ -30,6 +30,7 @@
                         type="doughnut"
                         [labels]="expenseCategoryLabels()"
                         [datasets]="expenseCategoryDatasets()"
+                        [unit]="currencyCode()"
                     ></ms-chart-card>
 
                     <ms-chart-card
@@ -38,6 +39,7 @@
                         type="doughnut"
                         [labels]="incomeCategoryLabels()"
                         [datasets]="incomeCategoryDatasets()"
+                        [unit]="currencyCode()"
                     ></ms-chart-card>
 
                     <ms-chart-card
@@ -69,20 +71,24 @@
                                 (valueChange)="setTagChartType($event)"
                             ></ms-select>
 
-                            <ms-select
-                                label="Лимит"
-                                [options]="tagChartLimitOptions"
-                                [value]="tagChartLimit()"
-                                (valueChange)="setTagChartLimit($event)"
-                            ></ms-select>
+                            @if (tagChartType() === 'bar') {
+                                <ms-select
+                                    label="Лимит"
+                                    [options]="tagChartLimitOptions"
+                                    [value]="tagChartLimit()"
+                                    (valueChange)="setTagChartLimit($event)"
+                                ></ms-select>
+                            }
                         </div>
 
                         <ms-chart-card
                             title="Расходы по тегам"
+                            itemLabel="теги"
                             subtitle="Теги, которые собирают основные траты выбранного месяца."
                             [type]="tagChartType()"
                             [labels]="tagExpenseLabels()"
                             [datasets]="tagExpenseDatasets()"
+                            [unit]="currencyCode()"
                             [height]="280"
                         ></ms-chart-card>
                     </div>

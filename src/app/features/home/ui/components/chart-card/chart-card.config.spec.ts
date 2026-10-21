@@ -8,6 +8,7 @@ import {
 } from 'chart.js';
 import { MS_CATEGORY_COLORS } from '../../../../../shared/theme/theme-colors';
 import { HomeChartType } from '../../home-page.models';
+import { formatChartPercent } from './doughnut-percent-labels';
 import {
     buildChartConfiguration,
     resolveChartLegendColor,
@@ -27,6 +28,87 @@ const themeColors = {
 
 describe('chart-card config', () => {
     Chart.register(...registerables);
+
+    it.each(['mousemove', 'click', 'touchstart'] as const)(
+        'selects the top rounded cap rather than the sector underneath on %s',
+        (type) => {
+            const config = buildChartConfiguration({
+                type: 'doughnut',
+                labels: ['A', 'B', 'C', 'D'],
+                datasets: [{ label: 'Expenses', data: [25, 25, 25, 25], color: '#23c78b' }],
+                themeColors,
+            });
+            const canvas = document.createElement('canvas');
+            canvas.width = 320;
+            canvas.height = 240;
+            const chart = new Chart<HomeChartType, number[], string>(canvas, {
+                ...config,
+                platform: BasicPlatform,
+                options: { ...config.options, responsive: false },
+            });
+            try {
+                const arc = chart.getDatasetMeta(0).data[1] as ArcElement;
+                const radius = (arc.innerRadius + arc.outerRadius) / 2;
+                const angle = arc.startAngle - 0.05;
+                const point = {
+                    x: arc.x + Math.cos(angle) * radius,
+                    y: arc.y + Math.sin(angle) * radius,
+                };
+                expect(arc.inRange(point.x, point.y, false)).toBe(false);
+                const event = Object.assign(new Event(type), { ...point, native: new Event(type) });
+                const options = chart.options.interaction!;
+                expect(
+                    chart
+                        .getElementsAtEventForMode(event, options.mode!, options, false)
+                        .map((hit) => hit.index),
+                ).toEqual([1]);
+            } finally {
+                chart.destroy();
+            }
+        },
+    );
+
+    it('keeps small shares visible without rounding them to zero', () => {
+        expect(formatChartPercent(0.1, 100)).toBe('<1%');
+        expect(formatChartPercent(25, 100)).toBe('25%');
+        expect(formatChartPercent(-25, 100)).toBe('25%');
+        expect(formatChartPercent(0, 0)).toBe('0%');
+    });
+
+    it('keeps rounded slices selectable, including a tiny slice next to a zero value', () => {
+        const config = buildChartConfiguration({
+            type: 'doughnut',
+            labels: ['Main', 'Small', 'Empty', 'Other'],
+            datasets: [{ label: 'Expenses', data: [90, 0.5, 0, 9.5], color: '#23c78b' }],
+            themeColors,
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 240;
+        const chart = new Chart<HomeChartType, number[], string>(canvas, {
+            ...config,
+            platform: BasicPlatform,
+            options: { ...config.options, responsive: false },
+        });
+        try {
+            const options = chart.options.interaction!;
+            for (const index of [0, 1, 3]) {
+                const arc = chart.getDatasetMeta(0).data[index] as ArcElement;
+                const point = arc.getCenterPoint(false);
+                const event = Object.assign(new Event('click'), {
+                    ...point,
+                    native: new Event('click'),
+                });
+                expect(
+                    chart
+                        .getElementsAtEventForMode(event, options.mode!, options, false)
+                        .map((hit) => hit.index),
+                ).toEqual([index]);
+            }
+        } finally {
+            chart.destroy();
+        }
+    });
 
     it.each(['mousemove', 'click', 'touchstart'] as const)(
         'selects the actual doughnut slice on %s',

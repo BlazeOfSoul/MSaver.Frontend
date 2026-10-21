@@ -20,11 +20,12 @@ import { CategorySortMode } from '../../home-category-order.utils';
 import { TransactionType } from '../../home-transaction-type-preference';
 import { ThemeService } from '../../../../../shared/theme/theme.service';
 import { SessionsPanelComponent } from './sessions-panel.component';
+import { DeveloperDiaryComponent } from './developer-diary.component';
 
 @Component({
     selector: 'ms-settings-tab',
     standalone: true,
-    imports: [Button, SelectComponent, SessionsPanelComponent],
+    imports: [Button, SelectComponent, SessionsPanelComponent, DeveloperDiaryComponent],
     templateUrl: './settings-tab.component.html',
     styleUrl: './settings-tab.component.css',
     changeDetection: ChangeDetectionStrategy.OnPush,

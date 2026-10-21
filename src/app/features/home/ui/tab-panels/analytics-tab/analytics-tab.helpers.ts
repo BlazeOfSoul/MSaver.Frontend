@@ -7,49 +7,12 @@ import {
 
 export type AnalyticsTagChartLimit = `${number}` | 'all';
 
-interface LimitBreakdownOptions {
-    otherLabel: string;
-    otherColor: string;
-    maxItems?: number;
-}
-
 export function chartLabels<T extends { label: string }>(items: ReadonlyArray<T>): string[] {
     return items.map((item) => item.label);
 }
 
 export function breakdownLabels(items: ReadonlyArray<CategoryBreakdownItem>): string[] {
     return items.map((item) => item.name);
-}
-
-export function limitBreakdownItems(
-    items: ReadonlyArray<CategoryBreakdownItem>,
-    { otherLabel, otherColor, maxItems = 10 }: LimitBreakdownOptions,
-): CategoryBreakdownItem[] {
-    const sorted = [...items].sort((left, right) => right.amountValue - left.amountValue);
-
-    if (sorted.length <= maxItems) {
-        return sorted;
-    }
-
-    const visibleCount = Math.max(1, maxItems - 1);
-    const visible = sorted.slice(0, visibleCount);
-    const rest = sorted.slice(visibleCount);
-    const amountValue = rest.reduce((sum, item) => sum + item.amountValue, 0);
-
-    return [
-        ...visible,
-        {
-            id: 'other',
-            name: otherLabel,
-            amount: '',
-            amountValue,
-            progress: 0,
-            color: otherColor,
-            type: visible[0]?.type ?? 'expense',
-            tone: 'warning',
-            isSystem: false,
-        },
-    ];
 }
 
 export function buildBreakdownDataset(

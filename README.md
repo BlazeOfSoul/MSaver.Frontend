@@ -48,6 +48,15 @@ The frontend deployment workflow verifies tests, layout, style budgets and the
 production build before replacing only the frontend container. Backend changes
 are released separately.
 
+## Release 0.4.0
+
+See [release notes](docs/release-0.4.0.md) for install icons, continuous rounded
+doughnut charts, searchable category lists and the developer diary in Settings.
+The diary's user-facing entries live in
+`src/app/features/home/ui/tab-panels/settings-tab/release-notes.ts`; update them
+alongside the version in `package.json`, `package-lock.json` and `ngsw-config.json`
+for each release. Technical release notes remain in `docs/release-*.md`.
+
 ## Release 0.3.0
 
 See [release notes](docs/release-0.3.0.md) for the account overview, recurring

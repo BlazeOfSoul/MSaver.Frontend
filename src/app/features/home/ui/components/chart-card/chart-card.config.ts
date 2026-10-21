@@ -6,6 +6,8 @@ import {
     readThemeColor,
 } from '../../../../../shared/theme/theme-colors';
 import { HomeChartDataset, HomeChartType } from '../../home-page.models';
+import { doughnutPercentLabels } from './doughnut-percent-labels';
+import { overlappingDoughnut } from './overlapping-doughnut';
 
 export interface ChartThemeColors {
     tooltipBackground: string;
@@ -35,30 +37,37 @@ export function buildChartConfiguration({
     horizontal = false,
     unit = '',
 }: BuildChartConfigurationParams): ChartConfiguration<HomeChartType, number[], string> {
-    const chartDatasets = datasets.map((dataset) => ({
-        label: dataset.label,
-        data: dataset.data,
-        borderColor: dataset.color,
-        backgroundColor:
-            type === 'line'
-                ? `${dataset.color}33`
-                : type === 'doughnut'
-                  ? (dataset.colors ??
-                    dataset.data.map((_, index) => resolveChartLegendColor(index, datasets)))
-                  : type === 'bar'
-                    ? (dataset.colors ?? dataset.color)
-                    : dataset.color,
-        pointBackgroundColor: dataset.color,
-        pointBorderColor: dataset.color,
-        tension: 0.34,
-        fill: dataset.fill ?? type === 'line',
-        borderWidth: type === 'line' ? 2 : 0,
-        hoverOffset: type === 'doughnut' ? 4 : 0,
-        maxBarThickness: type === 'bar' ? 22 : undefined,
-    }));
+    const chartDatasets = datasets.map((dataset) => {
+        return {
+            label: dataset.label,
+            data: dataset.data,
+            borderColor: dataset.color,
+            backgroundColor:
+                type === 'line'
+                    ? `${dataset.color}33`
+                    : type === 'doughnut'
+                      ? (dataset.colors ??
+                        dataset.data.map((_, index) => resolveChartLegendColor(index, datasets)))
+                      : type === 'bar'
+                        ? (dataset.colors ?? dataset.color)
+                        : dataset.color,
+            pointBackgroundColor: dataset.color,
+            pointBorderColor: dataset.color,
+            tension: 0.34,
+            fill: dataset.fill ?? type === 'line',
+            borderWidth: type === 'line' ? 2 : 0,
+            hoverOffset: 0,
+            ...(type === 'doughnut' ? { borderRadius: 0, spacing: 0 } : {}),
+            maxBarThickness: type === 'bar' ? 22 : undefined,
+        };
+    });
 
     return {
         type,
+        plugins:
+            type === 'doughnut'
+                ? [overlappingDoughnut, doughnutPercentLabels(themeColors.legendText)]
+                : [],
         data: {
             labels: [...labels],
             datasets: chartDatasets,
@@ -68,9 +77,15 @@ export function buildChartConfiguration({
             animation: false,
             responsive: true,
             maintainAspectRatio: false,
+            ...(type === 'doughnut'
+                ? {
+                      cutout: '68%',
+                      layout: { padding: { top: 20, bottom: 20, left: 40, right: 40 } },
+                  }
+                : {}),
             interaction:
                 type === 'doughnut'
-                    ? { mode: 'nearest', axis: 'xy', intersect: true }
+                    ? { mode: 'overlappingDoughnut', axis: 'xy', intersect: true }
                     : { mode: 'index', axis: horizontal ? 'y' : 'x', intersect: false },
             plugins: {
                 legend: {
