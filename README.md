@@ -48,6 +48,9 @@ The frontend deployment workflow verifies tests, layout, style budgets and the
 production build before replacing only the frontend container. Backend changes
 are released separately.
 
+If a push does not create a workflow run, `Deploy Frontend` can also be started
+manually from GitHub Actions. Verification and deployment only run for `master`.
+
 ## Release 0.4.0
 
 See [release notes](docs/release-0.4.0.md) for install icons, continuous rounded
