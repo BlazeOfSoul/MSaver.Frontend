@@ -208,7 +208,7 @@ export function resolveCurrencySymbol(currencyCode: string | null | undefined): 
     }
 }
 
-function resolveCurrencyPrecision(currencyCode: string | null | undefined): number {
+export function resolveCurrencyPrecision(currencyCode: string | null | undefined): number {
     switch (currencyCode) {
         case 'JPY':
         case 'KRW':

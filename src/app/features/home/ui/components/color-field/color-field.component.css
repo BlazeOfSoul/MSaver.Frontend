@@ -1,0 +1,39 @@
+label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.25rem 0.45rem 0.25rem 0.75rem;
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.65rem;
+    color: var(--color-ms-light);
+    background: var(--color-ms-white-alpha-025);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+input {
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.2rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: transparent;
+    cursor: pointer;
+}
+
+input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+input::-webkit-color-swatch {
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.4rem;
+}
+input::-moz-color-swatch {
+    border: 1px solid var(--color-ms-border);
+    border-radius: 0.4rem;
+}
+input:focus-visible {
+    outline: 2px solid var(--color-ms-primary);
+}

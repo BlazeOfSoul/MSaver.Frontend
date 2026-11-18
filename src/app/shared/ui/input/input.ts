@@ -40,6 +40,7 @@ export class InputComponent implements ControlValueAccessor {
     readonly = input<boolean>(false);
     hidden = input<boolean>(false);
     invalid = input<boolean>(false);
+    describedBy = input<string>('');
     tabIndex = input<number>(0);
 
     icon = input<string | null>(null);

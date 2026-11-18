@@ -1,16 +1,16 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MS_CATEGORY_COLORS } from '../../../../../shared/theme/theme-colors';
 import { Button } from '../../../../../shared/ui/button/button';
 import { DialogShellComponent } from '../../../../../shared/ui/dialog-shell/dialog-shell';
 import { InputComponent } from '../../../../../shared/ui/input/input';
+import { ColorFieldComponent } from '../color-field/color-field.component';
 
 export type NameColorDialogPreviewKind = 'category' | 'tag' | 'account';
 
 @Component({
     selector: 'ms-name-color-dialog',
     standalone: true,
-    imports: [FormsModule, Button, DialogShellComponent, InputComponent],
+    imports: [FormsModule, Button, DialogShellComponent, InputComponent, ColorFieldComponent],
     templateUrl: './name-color-dialog.component.html',
     styleUrls: [
         './name-color-dialog.component.css',
@@ -31,6 +31,7 @@ export class NameColorDialogComponent {
     submitTestId = input.required<string>();
     submitLabel = input('Создать');
     saving = input(false);
+    error = input('');
 
     closed = output<void>();
     submit = output<void>();
@@ -45,9 +46,7 @@ export class NameColorDialogComponent {
         this.submit.emit();
     }
 
-    readColor(event: Event): string {
-        return event.target instanceof HTMLInputElement
-            ? event.target.value || MS_CATEGORY_COLORS[0]
-            : MS_CATEGORY_COLORS[0];
+    requestClose(): void {
+        if (!this.saving()) this.closed.emit();
     }
 }

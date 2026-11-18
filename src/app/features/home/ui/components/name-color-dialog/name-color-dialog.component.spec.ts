@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MS_CATEGORY_COLORS } from '../../../../../shared/theme/theme-colors';
 import { NameColorDialogComponent } from './name-color-dialog.component';
 
 describe('NameColorDialogComponent', () => {
@@ -85,15 +84,6 @@ describe('NameColorDialogComponent', () => {
         submitButton?.click();
 
         expect(submitSpy).not.toHaveBeenCalled();
-    });
-
-    it('ignores color values from events that do not originate from color inputs', () => {
-        const event = new Event('input', { bubbles: true });
-        const target = document.createElement('div');
-        Object.defineProperty(target, 'value', { value: '#000000' });
-        Object.defineProperty(event, 'target', { value: target });
-
-        expect(component.readColor(event)).toBe(MS_CATEGORY_COLORS[0]);
     });
 
     it('emits closed only for backdrop clicks that start on the backdrop', () => {

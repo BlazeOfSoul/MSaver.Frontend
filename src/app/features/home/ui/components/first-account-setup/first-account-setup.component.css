@@ -147,7 +147,7 @@
     gap: 0.4rem;
 }
 
-.first-account-setup__field > span {
+.first-account-setup__field > label {
     color: var(--color-ms-light-dark);
     font-size: 0.82rem;
     font-weight: 700;

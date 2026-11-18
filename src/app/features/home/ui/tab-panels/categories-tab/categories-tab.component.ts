@@ -4,6 +4,7 @@ import {
     Component,
     OnDestroy,
     computed,
+    effect,
     input,
     output,
     signal,
@@ -71,6 +72,10 @@ export class CategoriesTabComponent implements OnDestroy {
     categoryOptions = input.required<ReadonlyArray<MsSelectOption>>();
     searchControl = input.required<FormControl<string>>();
     saving = input(false);
+    categoryCreateError = input('');
+    categoryCreateRevision = input(0);
+    tagCreateError = input('');
+    tagCreateRevision = input(0);
     budgetMonth = input(new Date());
     budgetAccountOptions = input<ReadonlyArray<MsSelectOption>>([]);
 
@@ -94,6 +99,8 @@ export class CategoriesTabComponent implements OnDestroy {
     readonly activeSubtab = signal<CategorySubtab>('items');
     readonly isCategoryDialogOpen = signal(false);
     readonly isTagDialogOpen = signal(false);
+    readonly categoryAttempted = signal(false);
+    readonly tagAttempted = signal(false);
     readonly recentlyMovedCategory = signal<RecentlyMovedCategory | null>(null);
     readonly categoryDialogType = signal<CategoryDialogType>('income');
     readonly categoryDialogTitle = computed(() =>
@@ -133,6 +140,15 @@ export class CategoriesTabComponent implements OnDestroy {
         },
     ]);
     private movedTimeoutId: number | null = null;
+
+    constructor() {
+        effect(() => {
+            if (this.categoryCreateRevision()) this.closeCategoryDialog();
+        });
+        effect(() => {
+            if (this.tagCreateRevision()) this.closeTagDialog();
+        });
+    }
 
     ngOnDestroy(): void {
         this.clearMovedTimeout();
@@ -177,6 +193,7 @@ export class CategoriesTabComponent implements OnDestroy {
     }
 
     openCategoryDialog(type: CategoryDialogType): void {
+        this.categoryAttempted.set(false);
         this.categoryDialogType.set(type);
         this.isCategoryDialogOpen.set(true);
     }
@@ -186,6 +203,7 @@ export class CategoriesTabComponent implements OnDestroy {
     }
 
     openTagDialog(): void {
+        this.tagAttempted.set(false);
         this.isTagDialogOpen.set(true);
     }
 
@@ -222,13 +240,12 @@ export class CategoriesTabComponent implements OnDestroy {
             return;
         }
 
+        this.categoryAttempted.set(true);
         if (this.categoryDialogType() === 'income') {
             this.addIncomeCategory.emit();
         } else {
             this.addExpenseCategory.emit();
         }
-
-        this.closeCategoryDialog();
     }
 
     submitTagDialog(): void {
@@ -236,8 +253,8 @@ export class CategoriesTabComponent implements OnDestroy {
             return;
         }
 
+        this.tagAttempted.set(true);
         this.addTagGroup.emit();
-        this.closeTagDialog();
     }
 
     categoryOptionsForTag(group: TagGroupItem): ReadonlyArray<MsSelectOption> {

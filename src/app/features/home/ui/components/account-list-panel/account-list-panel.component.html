@@ -212,13 +212,13 @@
             <header class="account-dialog__header">
                 <div>
                     <h2 id="account-dialog-title">Новый счёт</h2>
-                    <p>Задайте название, валюту и стартовый баланс.</p>
                 </div>
 
                 <ms-button
                     appearance="icon"
                     variant="neutral"
                     size="md"
+                    [disabled]="saving()"
                     (onClick)="closeAccountDialog()"
                     aria-label="Закрыть диалог"
                 >
@@ -228,15 +228,21 @@
 
             <div class="account-dialog__fields">
                 <div class="account-dialog__field-stack">
+                    <label for="new-account-name">Название счёта</label>
                     <ms-input
+                        [id]="'new-account-name'"
                         [ngModel]="accountDialogName()"
                         (ngModelChange)="setAccountDialogName($event)"
                         placeholder="Название счёта..."
                         [invalid]="!!newAccountNameError()"
+                        [describedBy]="newAccountNameError() ? 'new-account-name-error' : ''"
+                        [disabled]="saving()"
                     ></ms-input>
 
                     @if (newAccountNameError()) {
-                        <p class="field-error">{{ newAccountNameError() }}</p>
+                        <p class="field-error" id="new-account-name-error" role="alert">
+                            {{ newAccountNameError() }}
+                        </p>
                     }
                 </div>
 
@@ -244,15 +250,36 @@
                     label="Валюта"
                     [options]="currencyOptions()"
                     [value]="newAccountCurrency()"
+                    [disabled]="saving()"
                     (valueChange)="newAccountCurrencyChange.emit($event)"
                 ></ms-select>
 
-                <ms-input
-                    [ngModel]="initialBalanceText()"
-                    (ngModelChange)="onInitialBalanceInput($event)"
-                    inputMode="decimal"
-                    placeholder="0.00"
-                ></ms-input>
+                <div class="account-dialog__field-stack">
+                    <label for="new-account-balance">Начальный баланс</label>
+                    <ms-input
+                        [id]="'new-account-balance'"
+                        [ngModel]="initialBalanceText()"
+                        (ngModelChange)="onInitialBalanceInput($event)"
+                        inputMode="decimal"
+                        placeholder="0.00"
+                        [invalid]="!!initialBalanceDraft().error"
+                        [describedBy]="
+                            initialBalanceDraft().error ? 'new-account-balance-error' : ''
+                        "
+                        [disabled]="saving()"
+                    ></ms-input>
+                    @if (initialBalanceDraft().error) {
+                        <p class="field-error" id="new-account-balance-error" aria-live="polite">
+                            {{ initialBalanceDraft().error }}
+                        </p>
+                    }
+                </div>
+
+                <ms-color-field
+                    [color]="accountDialogColor()"
+                    [disabled]="saving()"
+                    (colorChange)="accountDialogColor.set($event)"
+                />
             </div>
 
             <footer class="account-dialog__footer">
@@ -260,6 +287,7 @@
                     variant="neutral"
                     appearance="outline"
                     [fullWidth]="true"
+                    [disabled]="saving()"
                     (onClick)="closeAccountDialog()"
                 >
                     Отмена
@@ -270,7 +298,7 @@
                     [fullWidth]="true"
                     data-testid="submit-account-dialog"
                     [loading]="saving()"
-                    [disabled]="!accountDialogName().trim()"
+                    [disabled]="!accountDialogName().trim() || !!initialBalanceDraft().error"
                     (onClick)="submitAccountDialog()"
                 >
                     Создать счёт
@@ -293,6 +321,7 @@
         [name]="renameAccountName()"
         [color]="renameAccountColor()"
         [saving]="saving()"
+        [error]="renameAttempted() ? accountEditError() : ''"
         (nameChange)="setRenameAccountName($event)"
         (colorChange)="renameAccountColor.set($event)"
         (closed)="closeRenameDialog()"

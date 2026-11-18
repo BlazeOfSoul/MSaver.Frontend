@@ -25,17 +25,6 @@
         font-size: 0.92rem;
     }
 
-    .color-field {
-        grid-template-columns: 3rem minmax(0, 1fr);
-        min-height: 5rem;
-        padding: 0.9rem;
-    }
-
-    .color-field input {
-        width: 3rem;
-        height: 3rem;
-    }
-
     .category-dialog__footer {
         bottom: -1rem;
         margin: 0 -1rem -1rem;

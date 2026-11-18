@@ -539,6 +539,34 @@ describe('HomePageComponent', () => {
         });
     });
 
+    it('keeps the first account form and chosen color after a rejected save', () => {
+        homeApi.createAccount.mockReturnValue(
+            throwError(
+                () =>
+                    new HttpErrorResponse({
+                        status: 503,
+                        error: { message: 'Повторите попытку.' },
+                    }),
+            ),
+        );
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        const host = fixture.nativeElement as HTMLElement;
+        const color = host.querySelector<HTMLInputElement>('input[type="color"]')!;
+        color.value = '#cc5500';
+        color.dispatchEvent(new Event('input', { bubbles: true }));
+        host.querySelector<HTMLElement>('ms-first-account-setup ms-button')!.click();
+        fixture.detectChanges();
+
+        expect(homeApi.createAccount).toHaveBeenCalledWith(
+            expect.objectContaining({ color: '#cc5500' }),
+        );
+        expect(host.querySelector('ms-first-account-setup [role="alert"]')?.textContent).toContain(
+            'Повторите попытку.',
+        );
+        expect(host.querySelector<HTMLInputElement>('input[type="color"]')?.value).toBe('#cc5500');
+    });
+
     it('does not load transaction data before the first account exists', () => {
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
@@ -1328,53 +1356,32 @@ describe('HomePageComponent', () => {
         expect(homeApi.getTagById).toHaveBeenCalledTimes(1);
     });
 
-    it('loads tag details sequentially instead of starting every tag detail request at once', () => {
-        const firstTagDetails$ = new Subject<TagDetailsResponse>();
-        homeApi.getTags.mockReturnValue(
-            of(
-                page<TagResponse>([
-                    { id: 'first-tag', name: 'Essentials', color: '#23c78b' },
-                    { id: 'second-tag', name: 'Subscriptions', color: '#e8b45d' },
-                ]),
-            ),
-        );
-        homeApi.getTagById.mockImplementation((tagId: string) => {
-            if (tagId === 'first-tag') {
-                return firstTagDetails$.asObservable();
-            }
-
-            return of<TagDetailsResponse>({
-                id: 'second-tag',
-                name: 'Subscriptions',
-                color: '#e8b45d',
-                isDeleted: false,
-                categories: [],
-            });
-        });
+    it('loads up to four tag details in parallel and preserves list order', () => {
+        const tags = Array.from({ length: 6 }, (_, i) => ({
+            id: `tag-${i}`,
+            name: `Tag ${i}`,
+            color: '#23c78b',
+        }));
+        const requests = new Map(tags.map((tag) => [tag.id, new Subject<TagDetailsResponse>()]));
+        homeApi.getTags.mockReturnValue(of(page<TagResponse>(tags)));
+        homeApi.getTagById.mockImplementation((tagId: string) => requests.get(tagId)!);
 
         fixture = TestBed.createComponent(HomePageComponent);
         fixture.detectChanges();
 
         fixture.componentInstance.setActiveTab('categories');
 
-        expect(homeApi.getTagById).toHaveBeenCalledTimes(1);
-        expect(homeApi.getTagById).toHaveBeenCalledWith('first-tag');
-
-        firstTagDetails$.next({
-            id: 'first-tag',
-            name: 'Essentials',
-            color: '#23c78b',
-            isDeleted: false,
-            categories: [],
-        });
-        firstTagDetails$.complete();
-
-        expect(homeApi.getTagById).toHaveBeenCalledTimes(2);
-        expect(homeApi.getTagById).toHaveBeenCalledWith('second-tag');
-        expect(fixture.componentInstance.tagGroups().map((tag) => tag.id)).toEqual([
-            'first-tag',
-            'second-tag',
-        ]);
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(4);
+        for (const index of [3, 2, 5, 4, 1, 0]) {
+            const tag = tags[index];
+            const request = requests.get(tag.id)!;
+            request.next({ ...tag, isDeleted: false, categories: [] });
+            request.complete();
+        }
+        expect(homeApi.getTagById).toHaveBeenCalledTimes(6);
+        expect(fixture.componentInstance.tagGroups().map((tag) => tag.id)).toEqual(
+            tags.map((tag) => tag.id),
+        );
     });
 
     it('refreshes tag details after an in-flight tag load finishes when tags changed meanwhile', () => {
@@ -1521,7 +1528,7 @@ describe('HomePageComponent', () => {
         );
     });
 
-    it('loads missing year balances when analytics is opened', () => {
+    it('loads missing year balances only when the yearly analytics view is opened', () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-06-11T12:00:00'));
         homeApi.getAccounts.mockReturnValue(
@@ -1554,6 +1561,8 @@ describe('HomePageComponent', () => {
         homeApi.getMonthBalance.mockClear();
 
         fixture.componentInstance.setActiveTab('analytics');
+        expect(homeApi.getMonthBalance).not.toHaveBeenCalled();
+        fixture.componentInstance.dashboard.setAnalyticsView('yearly');
 
         expect(homeApi.getMonthBalance).toHaveBeenCalledTimes(22);
         expect(homeApi.getMonthBalance).not.toHaveBeenCalledWith('main-account', 2026, 6);
@@ -1563,6 +1572,115 @@ describe('HomePageComponent', () => {
 
         vi.useRealTimers();
     });
+
+    it('shares a pending month balance with the yearly view and loads the journal on return', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-10-21T12:00:00'));
+        const pendingNovember = new Subject<MonthBalanceResponse>();
+        const main = account();
+        homeApi.getAccounts.mockReturnValue(of(page([main])));
+        homeApi.getMonthBalance.mockImplementation((id: string, year: number, month: number) =>
+            month === 11
+                ? pendingNovember
+                : of({
+                      accountId: id,
+                      accountName: main.name,
+                      currencyCode: 'BYN',
+                      year,
+                      month,
+                      openingBalance: 0,
+                      monthChange: 0,
+                      closingBalance: 0,
+                  }),
+        );
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        const component = fixture.componentInstance;
+        component.setActiveTab('analytics');
+        component.dashboard.setAnalyticsView('yearly');
+        homeApi.getTransactions.mockClear();
+        component.goToNextMonth();
+
+        expect(
+            homeApi.getMonthBalance.mock.calls.filter(
+                ([, year, month]) => year === 2026 && month === 11,
+            ),
+        ).toHaveLength(1);
+        expect(homeApi.getTransactions).not.toHaveBeenCalled();
+        expect(component.dashboard.yearBalancesReady()).toBe(false);
+
+        pendingNovember.next({
+            accountId: main.id,
+            accountName: main.name,
+            currencyCode: 'BYN',
+            year: 2026,
+            month: 11,
+            openingBalance: 0,
+            monthChange: 25,
+            closingBalance: 25,
+        });
+        pendingNovember.complete();
+        expect(component.dashboard.yearBalancesReady()).toBe(true);
+        expect(component.balanceDynamicsChart()[10]?.value).toBe(25);
+
+        component.setActiveTab('overview');
+        expect(homeApi.getTransactions).toHaveBeenCalledExactlyOnceWith(
+            expect.objectContaining({ fromDate: new Date(2026, 10, 1).toISOString() }),
+        );
+        vi.useRealTimers();
+    });
+
+    it.each([false, true])(
+        'updates description without refreshing balances or history (search %s)',
+        (search) => {
+            vi.useFakeTimers();
+            vi.setSystemTime(new Date('2026-10-21T12:00:00'));
+            const main = account();
+            const category: CategoryResponse = {
+                id: 'food',
+                name: 'Продукты',
+                type: 'Debit',
+                color: '#5896ed',
+            };
+            const date = '2026-10-05T09:00:37.456Z';
+            const operation = {
+                ...transaction('first', main, category, -50),
+                date,
+                description: 'Покупка',
+            };
+            homeApi.getAccounts.mockReturnValue(of(page([main])));
+            homeApi.getCategories.mockReturnValue(of(page([category])));
+            homeApi.getTransactions.mockReturnValue(of(page([operation])));
+            fixture = TestBed.createComponent(HomePageComponent);
+            fixture.detectChanges();
+            const component = fixture.componentInstance;
+            if (search) component.dashboard.setSearchQuery('Покупка');
+            component.startEditingTransaction(component.filteredTransactions()[0]);
+            component.updateTransactionDraft({
+                ...component.transactionDraft(),
+                description: 'Новая заметка',
+            });
+            homeApi.getMonthBalance.mockClear();
+            homeApi.getTransactions.mockClear();
+            if (search) homeApi.getTransactions.mockReturnValue(of(page<TransactionResponse>([])));
+            component.saveTransaction();
+
+            expect(homeApi.updateTransaction).toHaveBeenCalledExactlyOnceWith('first', {
+                categoryId: category.id,
+                amount: -50,
+                date,
+                description: 'Новая заметка',
+            });
+            expect(homeApi.getMonthBalance).not.toHaveBeenCalled();
+            expect(homeApi.getTransactions).toHaveBeenCalledTimes(search ? 1 : 0);
+            expect(component.filteredTransactions().map((item) => item.description)).toEqual(
+                search ? [] : ['Новая заметка'],
+            );
+            expect(component.analyticsMonthTransactions()[0]?.description).toBe('Новая заметка');
+            vi.useRealTimers();
+        },
+    );
 
     it('falls back from unsafe analytics category row colors returned by the backend', () => {
         vi.useFakeTimers();
@@ -1636,6 +1754,7 @@ describe('HomePageComponent', () => {
         homeApi.getMonthBalance.mockClear();
 
         fixture.componentInstance.setActiveTab('analytics');
+        fixture.componentInstance.dashboard.setAnalyticsView('yearly');
 
         expect(homeApi.getMonthBalance).toHaveBeenCalledWith('main-account', 2026, 1);
 
@@ -2889,6 +3008,94 @@ describe('HomePageComponent', () => {
             name: 'Семейный счёт',
             color: '#23c78b',
         });
+    });
+
+    it('retains rejected edits and applies confirmed account details without reloading financial data', async () => {
+        const main = account();
+        const category: CategoryResponse = {
+            id: 'food',
+            name: 'Продукты',
+            color: '#ff8899',
+            type: 'Debit',
+        };
+        const failed = new Subject<string>();
+        const saved = new Subject<string>();
+        homeApi.getAccounts.mockReturnValue(of(page([main])));
+        homeApi.getTransactions.mockReturnValue(of(page([transaction('tx', main, category, -20)])));
+        homeApi.updateAccount.mockReturnValueOnce(failed).mockReturnValueOnce(saved);
+
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        const component = fixture.componentInstance;
+        component.setActiveTab('accounts');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        const host = fixture.nativeElement as HTMLElement;
+        const trackedReads = [
+            homeApi.getAccounts,
+            homeApi.getTransactions,
+            homeApi.getMonthBalance,
+            homeApi.getTransferRate,
+            homeApi.getTags,
+        ];
+        const before = trackedReads.map((read) => read.mock.calls.length);
+        host.querySelector<HTMLElement>('[data-testid="rename-account"]')!.click();
+        fixture.detectChanges();
+        const dialog = host.querySelector<HTMLElement>('ms-name-color-dialog')!;
+        const name = dialog.querySelector<HTMLInputElement>('input[type="text"]')!;
+        const color = dialog.querySelector<HTMLInputElement>('input[type="color"]')!;
+        const submit = dialog.querySelector<HTMLElement>('[data-testid="submit-account-rename"]')!;
+        name.value = 'Общий счёт';
+        name.dispatchEvent(new Event('input', { bubbles: true }));
+        color.value = '#cc5500';
+        color.dispatchEvent(new Event('input', { bubbles: true }));
+        fixture.detectChanges();
+        submit.click();
+        fixture.detectChanges();
+        expect(host.contains(dialog)).toBe(true);
+
+        failed.error(
+            new HttpErrorResponse({ status: 409, error: { message: 'Счёт уже существует.' } }),
+        );
+        fixture.detectChanges();
+        expect(dialog.querySelector('[role="alert"]')?.textContent).toContain(
+            'Счёт уже существует.',
+        );
+        expect(name.value).toBe('Общий счёт');
+        expect(color.value).toBe('#cc5500');
+        expect(component.accountNameError()).toBe('');
+        expect(component.accounts()[0].name).toBe(main.name);
+
+        submit.click();
+        saved.next(main.id);
+        saved.complete();
+        fixture.detectChanges();
+        expect(host.contains(dialog)).toBe(false);
+        expect(component.accounts()[0]).toMatchObject({ name: 'Общий счёт', color: '#cc5500' });
+        expect(component.filteredTransactions()[0].accountName).toBe('Общий счёт');
+        expect(component.analyticsMonthTransactions()[0].account).toMatchObject({
+            name: 'Общий счёт',
+            color: '#cc5500',
+        });
+        expect(trackedReads.map((read) => read.mock.calls.length)).toEqual(before);
+    });
+
+    it('preserves confirmed account details when an earlier dashboard fetch finishes late', () => {
+        const main = account();
+        const delayed = new Subject<PagedResponse<AccountResponse>>();
+        homeApi.getAccounts.mockReturnValueOnce(of(page([main]))).mockReturnValueOnce(delayed);
+        fixture = TestBed.createComponent(HomePageComponent);
+        fixture.detectChanges();
+        const component = fixture.componentInstance;
+        component.reloadDashboard();
+        component.renameAccount({ accountId: main.id, name: 'Общий счёт', color: '#cc5500' });
+
+        delayed.next(page([{ ...main, currentBalance: 50 }]));
+        delayed.complete();
+
+        expect(component.accounts()[0]).toMatchObject({ name: 'Общий счёт', color: '#cc5500' });
     });
 
     it('keeps the newest accounts when account refresh responses resolve out of order', () => {
@@ -4627,10 +4834,32 @@ describe('HomePageComponent', () => {
             const nameInput = host.querySelector<HTMLInputElement>('.account-dialog input')!;
             nameInput.value = 'Беларусбанк';
             nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+            const colorInput = host.querySelector<HTMLInputElement>(
+                '.account-dialog input[type="color"]',
+            )!;
+            colorInput.value = '#cc5500';
+            colorInput.dispatchEvent(new Event('input', { bubbles: true }));
+            const balance = host.querySelector<HTMLInputElement>('#new-account-balance')!;
+            const submit = host.querySelector<HTMLElement>(
+                '[data-testid="submit-account-dialog"]',
+            )!;
+            for (const invalid of ['-50,25', '20abc', '0.001']) {
+                balance.value = invalid;
+                balance.dispatchEvent(new Event('input', { bubbles: true }));
+                fixture.detectChanges();
+                expect(balance.getAttribute('aria-invalid')).toBe('true');
+                submit.click();
+                expect(homeApi.createAccount).not.toHaveBeenCalled();
+            }
+            balance.value = '1 250,50';
+            balance.dispatchEvent(new Event('input', { bubbles: true }));
             fixture.detectChanges();
-            host.querySelector<HTMLElement>('[data-testid="submit-account-dialog"]')!.click();
+            submit.click();
             fixture.detectChanges();
             expect(homeApi.createAccount).toHaveBeenCalledTimes(1);
+            expect(homeApi.createAccount).toHaveBeenCalledWith(
+                expect.objectContaining({ color: '#cc5500', initialBalance: 1250.5 }),
+            );
             expect(host.querySelector('.account-dialog')).not.toBeNull();
 
             if (outcome === 'success') {
@@ -4659,6 +4888,8 @@ describe('HomePageComponent', () => {
                     'Беларусбанк',
                 );
                 expect(host.querySelector('.account-dialog .field-error')).not.toBeNull();
+                expect(colorInput.value).toBe('#cc5500');
+                expect(balance.value).toBe('1 250,50');
             }
         },
     );
@@ -4705,8 +4936,7 @@ describe('HomePageComponent', () => {
         fixture.componentInstance.createNewAccount();
         fixture.detectChanges();
 
-        const host = fixture.nativeElement as HTMLElement;
-        expect(host.textContent ?? '').toContain(conflictMessage);
+        expect(fixture.componentInstance.accountNameError()).toBe(conflictMessage);
     });
 
     it('sends a backend-ready payload when saving an expense transaction', () => {
@@ -5982,7 +6212,7 @@ describe('HomePageComponent', () => {
             color: '#e8b45d',
         });
         expect(homeApi.getCategories).toHaveBeenCalledTimes(1);
-        expect(homeApi.getTags.mock.calls.length).toBe(initialTagCalls + 1);
+        expect(homeApi.getTags.mock.calls.length).toBe(initialTagCalls);
         expect(homeApi.getAccounts.mock.calls.length).toBe(initialAccountCalls);
         expect(homeApi.getTransactions.mock.calls.length).toBe(initialTransactionCalls);
         expect(homeApi.getMonthBalance.mock.calls.length).toBe(initialBalanceCalls);

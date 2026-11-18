@@ -38,25 +38,46 @@
             [options]="currencyOptions()"
             [value]="selectedCurrency()"
             [valueWrap]="true"
+            [disabled]="saving()"
             dropdownPlacement="top"
             (valueChange)="currencyChange.emit($event)"
         ></ms-select>
 
-        <label class="first-account-setup__field">
-            <span>Начальный баланс</span>
+        <div class="first-account-setup__field">
+            <label for="primary-account-balance">Начальный баланс</label>
             <ms-input
+                [id]="'primary-account-balance'"
                 [ngModel]="initialBalanceText()"
                 (ngModelChange)="onInitialBalanceInput($event)"
                 inputMode="decimal"
                 placeholder="0.00"
+                [invalid]="!!balanceDraft().error"
+                [describedBy]="balanceDraft().error ? 'primary-account-balance-error' : ''"
+                [disabled]="saving()"
             ></ms-input>
-        </label>
+            @if (balanceDraft().error) {
+                <p
+                    class="first-account-setup__error"
+                    id="primary-account-balance-error"
+                    aria-live="polite"
+                >
+                    {{ balanceDraft().error }}
+                </p>
+            }
+        </div>
+
+        <ms-color-field [color]="color()" [disabled]="saving()" (colorChange)="color.set($event)" />
+
+        @if (error()) {
+            <p class="first-account-setup__error" role="alert">{{ error() }}</p>
+        }
 
         <ms-button
             variant="primary"
             [fullWidth]="true"
             [loading]="saving()"
-            (onClick)="createAccount.emit()"
+            [disabled]="!!balanceDraft().error"
+            (onClick)="submit()"
         >
             Создать основной счёт
         </ms-button>

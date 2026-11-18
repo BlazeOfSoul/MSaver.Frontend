@@ -281,12 +281,12 @@ export class HomePageComponent {
         this.dashboard.setCategorySortMode(value);
     }
 
-    createNewAccount(): void {
-        this.dashboard.createNewAccount();
+    createNewAccount(color?: string): void {
+        this.dashboard.createNewAccount(color);
     }
 
-    createPrimaryAccount(): void {
-        this.dashboard.createPrimaryAccount();
+    createPrimaryAccount(color?: string): void {
+        this.dashboard.createPrimaryAccount(color);
     }
 
     deleteAccount(accountId: string): void {

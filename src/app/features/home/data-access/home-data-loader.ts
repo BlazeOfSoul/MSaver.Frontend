@@ -45,13 +45,18 @@ export function loadAllPages<T>(
 export class HomeDataLoader {
     private readonly api = inject(HomeApiService);
 
-    monthBalances(accounts: AccountResponse[], months: Date[]): Observable<MonthBalanceResponse[]> {
+    monthBalances(
+        accounts: AccountResponse[],
+        months: Date[],
+        loadBalance = (id: string, year: number, month: number) =>
+            this.api.getMonthBalance(id, year, month),
+    ): Observable<MonthBalanceResponse[]> {
         return from(
             accounts.flatMap((account) => months.map((month) => ({ account, month }))),
         ).pipe(
             mergeMap(
                 ({ account, month }) =>
-                    this.api.getMonthBalance(account.id, month.getFullYear(), month.getMonth() + 1),
+                    loadBalance(account.id, month.getFullYear(), month.getMonth() + 1),
                 4,
             ),
             toArray(),

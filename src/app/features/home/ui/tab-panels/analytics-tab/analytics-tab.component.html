@@ -125,13 +125,17 @@
                         [datasets]="monthlyExpenseDatasets()"
                     ></ms-chart-card>
 
-                    <ms-chart-card
-                        title="Динамика баланса"
-                        subtitle="Закрывающий баланс по месяцам выбранного года."
-                        type="line"
-                        [labels]="balanceDynamicsLabels()"
-                        [datasets]="balanceDynamicsDatasets()"
-                    ></ms-chart-card>
+                    @if (yearBalancesReady()) {
+                        <ms-chart-card
+                            title="Динамика баланса"
+                            subtitle="Закрывающий баланс по месяцам выбранного года."
+                            type="line"
+                            [labels]="balanceDynamicsLabels()"
+                            [datasets]="balanceDynamicsDatasets()"
+                        ></ms-chart-card>
+                    } @else {
+                        <p role="status">Годовой график появится после загрузки балансов.</p>
+                    }
 
                     @if (selectedAccountId() === 'all') {
                         <ms-transfer-summary

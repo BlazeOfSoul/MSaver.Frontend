@@ -81,6 +81,7 @@ export class AnalyticsTabComponent {
     incomeCategories = input.required<ReadonlyArray<CategoryBreakdownItem>>();
     monthlyExpenses = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     balanceDynamics = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
+    yearBalancesReady = input(true);
     transferIncome = input.required<ReadonlyArray<AnalyticsSeriesPoint>>();
     transferExpense = input<ReadonlyArray<AnalyticsSeriesPoint>>([]);
     currencyCode = input('');
@@ -96,6 +97,7 @@ export class AnalyticsTabComponent {
     readonly selectedDebtDetail = signal<DebtDetailSelection | null>(null);
 
     accountChange = output<string>();
+    viewChange = output<AnalyticsViewId>();
     readonly activeView = signal<AnalyticsViewId>('monthly');
     readonly selectedTagExpenseId = signal('all');
     readonly tagChartType = signal<HomeChartType>('doughnut');
@@ -299,6 +301,7 @@ export class AnalyticsTabComponent {
 
     setActiveView(value: AnalyticsViewId): void {
         this.activeView.set(value);
+        this.viewChange.emit(value);
     }
 }
 

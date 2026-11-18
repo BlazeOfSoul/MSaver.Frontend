@@ -61,3 +61,8 @@
         animation: none;
     }
 }
+.first-account-setup__error {
+    margin: 0;
+    color: var(--color-ms-danger);
+    font-size: 0.82rem;
+}

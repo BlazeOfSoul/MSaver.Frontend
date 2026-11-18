@@ -2,16 +2,21 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     Observable,
+    Subject,
     catchError,
     concatMap,
     finalize,
     forkJoin,
     from,
     map,
+    mergeMap,
     of,
     reduce,
     shareReplay,
     switchMap,
+    takeUntil,
+    tap,
+    toArray,
 } from 'rxjs';
 import {
     AccountResponse,
@@ -34,6 +39,7 @@ import {
     writeStoredAccountSortMode,
 } from './home-account-order.utils';
 import { DebtDetailItem } from './components/debt-details/debt-details.component';
+import type { AnalyticsViewId } from './components/analytics-overview-panel/analytics-overview-panel.component';
 import { AuthStore } from '../../auth/data-access/auth.store';
 import { PrivateDataCache, privateCacheGeneration } from '../../../core/cache/private-data-cache';
 import { indexTransactionsByMonth, indexCategoryMonthTotals } from './home-analytics-index';
@@ -77,7 +83,7 @@ import { formatMoney, safeText } from './home-formatters';
 import { resolveHexColor, safeHexColor } from './home-color.utils';
 import {
     findMissingBalanceMonths,
-    keepSelectedMonthBalanceForYear,
+    getMonthBalanceCacheKey,
     mergeMonthBalanceCache,
 } from './home-balance-cache.utils';
 import { isPositiveFiniteAmount } from './home-amount.utils';
@@ -253,6 +259,7 @@ export class HomeDashboardStore {
     private readonly initialTransactionPageSize = readStoredTransactionPageSize();
 
     readonly activeTab = signal<HomeTabId>('overview');
+    private analyticsView: AnalyticsViewId = 'monthly';
     readonly selectedMonth = signal(startOfMonth(new Date()));
     readonly selectedAccountId = signal('all');
     readonly accountsSelectedAccountId = signal('all');
@@ -267,6 +274,13 @@ export class HomeDashboardStore {
     readonly hasLoaded = signal(false);
     readonly errorMessage = signal('');
     readonly accountNameError = signal('');
+    readonly primaryAccountError = signal('');
+    readonly accountEditError = signal('');
+    readonly accountEditRevision = signal(0);
+    readonly categoryCreateError = signal('');
+    readonly categoryCreateRevision = signal(0);
+    readonly tagCreateError = signal('');
+    readonly tagCreateRevision = signal(0);
     readonly transferRateError = signal('');
     readonly isTransactionDialogOpen = signal(false);
     readonly editingTransactionId = signal<string | null>(null);
@@ -306,9 +320,21 @@ export class HomeDashboardStore {
     readonly transactionDraft = signal<TransactionDraft>(this.getEmptyTransactionDraft());
 
     private readonly accountResponses = signal<AccountResponse[]>([]);
+    private readonly accountsById = computed(
+        () => new Map(this.accountResponses().map((account) => [account.id, account])),
+    );
+    private readonly accountEdits = new Map<
+        string,
+        { name: string; color: string | null; revision: number }
+    >();
     private readonly categoryResponses = signal<CategoryResponse[]>([]);
     private readonly tagDetailsResponses = signal<TagDetailsResponse[]>([]);
     private readonly transactionResponses = signal<TransactionResponse[]>([]);
+    private descriptionRevision = 0;
+    private readonly descriptionEdits = new Map<
+        string,
+        { description: string; revision: number }
+    >();
     private readonly yearTransactionResponses = signal<TransactionResponse[]>([]);
     private readonly priorDebtTransactionResponses = signal<TransactionResponse[]>([]);
     private readonly debtTransactionResponses = computed(() => [
@@ -329,8 +355,10 @@ export class HomeDashboardStore {
     private areYearTransactionsStale = false;
     private readonly optimisticTagCategoryIds = new Map<string, ReadonlyArray<string>>();
     private isDestroyed = false;
-    private loadedFullBalanceYear: number | null = null;
     private loadingYearBalanceYear: number | null = null;
+    private readonly balanceRequests = new Map<string, Observable<MonthBalanceResponse>>();
+    private readonly resetBalanceRequests = new Subject<void>();
+    private journalNeedsRefresh = false;
     private dashboardLoadRequestId = 0;
     private yearBalanceRequestId = 0;
     private selectedMonthBalanceRequestId = 0;
@@ -420,7 +448,7 @@ export class HomeDashboardStore {
             .filter(
                 (transaction) => this.transactionMonthKey(transaction.date) === selectedMonthKey,
             )
-            .map((transaction) => mapTransaction(transaction));
+            .map((transaction) => mapTransaction(this.withCurrentAccountDetails(transaction)));
     });
     readonly selectedYearTransactions = computed(() => {
         const selectedAccountId = this.analyticsSelectedAccountId();
@@ -451,9 +479,9 @@ export class HomeDashboardStore {
     readonly analyticsMonthTransactions = computed(() => {
         const key = monthKey(this.selectedMonth());
 
-        return this.selectedYearTransactions().filter(
-            (transaction) => this.transactionMonthKey(transaction.date) === key,
-        );
+        return this.selectedYearTransactions()
+            .filter((transaction) => this.transactionMonthKey(transaction.date) === key)
+            .map((transaction) => this.withCurrentAccountDetails(transaction));
     });
     readonly accountMonthActivity = computed(() =>
         this.historyReady() && this.hasSelectedMonthBalances()
@@ -731,7 +759,9 @@ export class HomeDashboardStore {
                         kind,
                         amount,
                         amountLabel: formatMoney(amount, this.analyticsCurrencyCode()),
-                        account: transaction.account.name,
+                        account:
+                            this.accountsById().get(transaction.account.id)?.name ??
+                            transaction.account.name,
                         category: transaction.category.name,
                         description: transaction.description ?? '',
                     },
@@ -766,6 +796,9 @@ export class HomeDashboardStore {
                 value,
             };
         }),
+    );
+    readonly yearBalancesReady = computed(
+        () => !this.monthsMissingBalances(this.monthsForSelectedYear()).length,
     );
     readonly tagExpensesChart = computed<ReadonlyArray<CategoryBreakdownItem>>(() => {
         const totals = categoryTotals(
@@ -945,6 +978,8 @@ export class HomeDashboardStore {
         this.errorMessage.set('');
         this.loadCategoriesForTab(this.activeTab());
         const requestId = ++this.dashboardLoadRequestId;
+        const accountEditRevision = this.accountEditRevision();
+        const descriptionRevision = this.descriptionRevision;
 
         const cacheQuery = JSON.stringify([
             this.selectedMonth().getFullYear(),
@@ -975,7 +1010,7 @@ export class HomeDashboardStore {
                         return;
                     }
 
-                    this.setPayload(payload, false);
+                    this.setPayload(payload, false, accountEditRevision, descriptionRevision);
                     this.cachedDataAt.set(null);
                     this.historyReady.set(false);
                     this.areYearTransactionsStale = true;
@@ -994,6 +1029,7 @@ export class HomeDashboardStore {
                         ) {
                             this.cache.write(cacheUserId, cacheQuery, {
                                 ...payload,
+                                accounts: this.accountResponses(),
                                 yearTransactions: this.yearTransactionResponses(),
                                 priorDebtTransactions: this.priorDebtTransactionResponses(),
                                 yearBalances: this.yearBalanceResponses(),
@@ -1024,12 +1060,19 @@ export class HomeDashboardStore {
     }
 
     setActiveTab(tab: HomeTabId): void {
+        if (tab !== 'analytics') this.analyticsView = 'monthly';
         this.activeTab.set(tab);
+        if (tab === 'overview' && this.journalNeedsRefresh) this.reloadCurrentTransactionPage();
         this.loadCategoriesForTab(tab);
         this.loadTagDetailsForTab(tab);
         this.loadYearTransactionsForTab(tab);
-        this.loadYearBalancesForTab(tab);
+        this.loadYearBalancesForView();
         this.prefillTransferRateForTab(tab);
+    }
+
+    setAnalyticsView(view: AnalyticsViewId): void {
+        this.analyticsView = view;
+        this.loadYearBalancesForView();
     }
 
     setSearchQuery(value: string): void {
@@ -1151,7 +1194,7 @@ export class HomeDashboardStore {
     }
 
     startAddingTransaction(): void {
-        this.activeTab.set('overview');
+        this.setActiveTab('overview');
         this.editingTransactionId.set(null);
         this.transactionDraft.set(this.getDefaultTransactionDraft());
         this.isTransactionDialogOpen.set(true);
@@ -1175,7 +1218,7 @@ export class HomeDashboardStore {
             return;
         }
 
-        this.activeTab.set('overview');
+        this.setActiveTab('overview');
         this.editingTransactionId.set(transactionId);
         this.transactionDraft.set(draft);
         this.isTransactionDialogOpen.set(true);
@@ -1212,14 +1255,23 @@ export class HomeDashboardStore {
             return;
         }
 
+        const original = editingTransactionId
+            ? this.transactionResponses().find((item) => item.id === editingTransactionId)
+            : undefined;
+        const dateUnchanged = original && draft.date === this.toDraftDate(original.date);
         const payload = {
             categoryId: draft.categoryId,
             amount: draft.type === 'income' ? Math.abs(draft.amount) : -Math.abs(draft.amount),
-            date: toApiDate(draft.date),
+            date: dateUnchanged ? original.date : toApiDate(draft.date),
             description: draft.description.trim(),
         };
 
         if (editingTransactionId) {
+            const descriptionOnly =
+                original &&
+                dateUnchanged &&
+                original.amount === payload.amount &&
+                original.category.id === payload.categoryId;
             this.runMutation(
                 this.homeApi.updateTransaction(editingTransactionId, payload),
                 'Не удалось обновить транзакцию.',
@@ -1227,7 +1279,18 @@ export class HomeDashboardStore {
                     this.isTransactionDialogOpen.set(false);
                     this.editingTransactionId.set(null);
                     this.transactionDraft.set(this.getDefaultTransactionDraft());
-                    this.refreshTransactionData();
+                    const revision = ++this.descriptionRevision;
+                    this.descriptionEdits.set(editingTransactionId, {
+                        description: payload.description,
+                        revision,
+                    });
+                    if (descriptionOnly) {
+                        this.applyDescriptionEdit(revision - 1);
+                        if (this.searchQuery())
+                            this.reloadCurrentTransactionPage(this.transactionPagination().page);
+                    } else {
+                        this.refreshTransactionData();
+                    }
                 },
             );
             return;
@@ -1246,6 +1309,32 @@ export class HomeDashboardStore {
                 this.refreshTransactionData();
             },
         );
+    }
+
+    private applyDescriptionEdit(previousRevision: number): void {
+        this.transactionResponses.update((items) =>
+            this.applyDescriptionEdits(items, previousRevision),
+        );
+        this.yearTransactionResponses.update((items) =>
+            this.applyDescriptionEdits(items, previousRevision),
+        );
+        this.priorDebtTransactionResponses.update((items) =>
+            this.applyDescriptionEdits(items, previousRevision),
+        );
+    }
+
+    private applyDescriptionEdits(
+        items: TransactionResponse[],
+        readRevision: number,
+    ): TransactionResponse[] {
+        if (readRevision === this.descriptionRevision) return items;
+
+        return items.map((item) => {
+            const edit = this.descriptionEdits.get(item.id);
+            return edit && edit.revision > readRevision
+                ? { ...item, description: edit.description }
+                : item;
+        });
     }
 
     deleteTransaction(transactionId: string): void {
@@ -1475,21 +1564,24 @@ export class HomeDashboardStore {
         );
     }
 
-    createPrimaryAccount(): void {
+    createPrimaryAccount(color?: string): void {
         if (this.isSaving()) {
             return;
         }
 
         const currencyCode = this.newAccountCurrency();
+        const message =
+            'Не получилось создать основной счёт. Проверьте валюту и попробуйте ещё раз.';
+        this.primaryAccountError.set('');
 
         this.runMutation(
             this.homeApi.createAccount({
                 name: PRIMARY_ACCOUNT_NAME,
                 currencyCode,
-                color: ACCOUNT_COLORS[0],
+                color: resolveHexColor(color) ?? ACCOUNT_COLORS[0],
                 initialBalance: this.newAccountInitialBalance(),
             }),
-            'Не получилось создать основной счёт. Проверьте валюту и попробуйте ещё раз.',
+            message,
             () => {
                 this.newAccountName.set('');
                 this.newAccountInitialBalance.set(0);
@@ -1500,21 +1592,27 @@ export class HomeDashboardStore {
                     defaultApplicationCurrencyCode: currencyCode,
                 });
             },
+            (error) => this.primaryAccountError.set(toFriendlyApiError(error, message)),
+            { reportGlobally: false },
         );
     }
 
-    createNewAccount(): void {
+    createNewAccount(color?: string): void {
         const name = this.newAccountName().trim();
 
         if (!name || this.isSaving()) {
             return;
         }
 
+        this.accountNameError.set('');
+
         this.runMutation(
             this.homeApi.createAccount({
                 name,
                 currencyCode: this.newAccountCurrency(),
-                color: nextAccountColor(this.accounts().map((account) => account.color)),
+                color:
+                    resolveHexColor(color) ??
+                    nextAccountColor(this.accounts().map((account) => account.color)),
                 initialBalance: this.newAccountInitialBalance(),
             }),
             'Не удалось создать счёт.',
@@ -1531,33 +1629,71 @@ export class HomeDashboardStore {
                         toFriendlyApiError(error, 'Не удалось создать счёт.'),
                 );
             },
+            { reportGlobally: false },
         );
     }
 
     renameAccount(event: { accountId: string; name: string; color?: string | null }): void {
         const name = event.name.trim();
-        const account = this.accountResponses().find((item) => item.id === event.accountId);
+        const account = this.accountsById().get(event.accountId);
 
         if (!name || !account || this.isSaving()) {
             return;
         }
 
+        const color = resolveHexColor(event.color) ?? account.color;
+        const message = 'Не удалось сохранить изменения счёта.';
+        this.accountEditError.set('');
+
         this.runMutation(
             this.homeApi.updateAccount(account.id, {
                 name,
-                color: event.color ?? account.color,
+                color,
             }),
-            'Не удалось переименовать счёт.',
+            message,
             () => {
-                this.accountNameError.set('');
-                this.refreshAccountData({ reloadYearTransactions: false });
+                const revision = this.accountEditRevision() + 1;
+                this.accountEdits.set(account.id, { name, color, revision });
+                this.accountResponses.update((accounts) =>
+                    accounts.map((item) =>
+                        item.id === account.id ? { ...item, name, color } : item,
+                    ),
+                );
+                this.accountEditRevision.set(revision);
             },
             (error) => {
-                this.accountNameError.set(
-                    getApiFieldError(error, 'name') ||
-                        toFriendlyApiError(error, 'Не удалось переименовать счёт.'),
+                this.accountEditError.set(
+                    getApiFieldError(error, 'name') || toFriendlyApiError(error, message),
                 );
             },
+            { reportGlobally: false },
+        );
+    }
+
+    private withCurrentAccountDetails(transaction: TransactionResponse): TransactionResponse {
+        const account = this.accountsById().get(transaction.account.id);
+        if (
+            !account ||
+            (account.name === transaction.account.name &&
+                account.color === transaction.account.color)
+        ) {
+            return transaction;
+        }
+        return {
+            ...transaction,
+            account: { ...transaction.account, name: account.name, color: account.color },
+        };
+    }
+
+    private setAccountResponses(accounts: AccountResponse[], readRevision: number): void {
+        // A fetch that began before a successful edit can still contain the old name or color.
+        this.accountResponses.set(
+            accounts.map((account) => {
+                const edit = this.accountEdits.get(account.id);
+                return edit && edit.revision > readRevision
+                    ? { ...account, name: edit.name, color: edit.color }
+                    : account;
+            }),
         );
     }
 
@@ -1647,16 +1783,24 @@ export class HomeDashboardStore {
             return;
         }
 
+        const message = 'Не удалось создать тег.';
+        this.tagCreateError.set('');
         this.runMutation(
             this.homeApi.createTag({
                 name,
                 color: this.newTagGroupColor(),
             }),
-            'Не удалось создать тег.',
+            message,
             () => {
                 this.newTagGroup.set('');
+                this.tagCreateRevision.update((revision) => revision + 1);
                 this.reloadTags();
             },
+            (error) =>
+                this.tagCreateError.set(
+                    getApiFieldError(error, 'name') || toFriendlyApiError(error, message),
+                ),
+            { reportGlobally: false },
         );
     }
 
@@ -1804,10 +1948,14 @@ export class HomeDashboardStore {
                 }
 
                 return from(tags).pipe(
-                    concatMap((tag) => this.toTagDetails(tag)),
-                    reduce(
-                        (details, tagDetails) => [...details, tagDetails],
-                        [] as TagDetailsResponse[],
+                    mergeMap(
+                        (tag, index) =>
+                            this.toTagDetails(tag).pipe(map((details) => ({ index, details }))),
+                        4,
+                    ),
+                    toArray(),
+                    map((results) =>
+                        results.sort((a, b) => a.index - b.index).map(({ details }) => details),
                     ),
                 );
             }),
@@ -1898,25 +2046,34 @@ export class HomeDashboardStore {
         return this.dataLoader.monthBalances(accounts, months);
     }
 
-    private setPayload(payload: DashboardPayload, ready = true): void {
+    private setPayload(
+        payload: DashboardPayload,
+        ready = true,
+        accountEditRevision = this.accountEditRevision(),
+        descriptionRevision = this.descriptionRevision,
+    ): void {
         this.balancesReady.set(ready);
         this.ratesReady.set(ready);
         if (payload.categories?.length && !this.hasLoadedCategories)
             this.categoryResponses.set(payload.categories);
-        this.accountResponses.set(payload.accounts);
+        this.setAccountResponses(payload.accounts, accountEditRevision);
         this.balanceDisplayAccountId.set(payload.currentUser.balanceDisplayAccountId ?? null);
         this.setApplicationCurrency(payload.currentUser.applicationCurrencyCode);
         this.exchangeRatesByAccountId.set(payload.exchangeRatesByAccountId);
-        this.setTransactionPage(payload.transactionPage);
-        this.yearTransactionResponses.set(payload.yearTransactions);
-        this.priorDebtTransactionResponses.set(payload.priorDebtTransactions);
+        this.setTransactionPage(payload.transactionPage, undefined, descriptionRevision);
+        this.yearTransactionResponses.set(
+            this.applyDescriptionEdits(payload.yearTransactions, descriptionRevision),
+        );
+        this.priorDebtTransactionResponses.set(
+            this.applyDescriptionEdits(payload.priorDebtTransactions, descriptionRevision),
+        );
         this.areYearTransactionsStale = false;
+        this.invalidateBalanceRequests();
         this.yearBalanceResponses.set(payload.yearBalances);
-        this.loadedFullBalanceYear = null;
         this.hasLoaded.set(true);
         this.ensureSelectedAccountExists();
         this.ensureDraftDefaults();
-        this.loadYearBalancesForTab(this.activeTab());
+        this.loadYearBalancesForView();
     }
 
     private clearPayload(): void {
@@ -1935,16 +2092,17 @@ export class HomeDashboardStore {
         this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()), null);
         this.yearTransactionResponses.set([]);
         this.priorDebtTransactionResponses.set([]);
+        this.invalidateBalanceRequests();
         this.yearBalanceResponses.set([]);
         this.exchangeRatesByAccountId.set(new Map<string, number>());
-        this.loadedFullBalanceYear = null;
     }
 
     private setTransactionPage(
         page: PagedResponse<TransactionResponse>,
         pageMonthKey: string | null = monthKey(this.selectedMonth()),
+        descriptionRevision = this.descriptionRevision,
     ): void {
-        this.transactionResponses.set(page.items);
+        this.transactionResponses.set(this.applyDescriptionEdits(page.items, descriptionRevision));
         this.transactionPagination.set(mapTransactionPagination(page));
         this.transactionPageMonthKey.set(pageMonthKey);
     }
@@ -1975,13 +2133,15 @@ export class HomeDashboardStore {
             return;
         }
 
+        const message = 'Не удалось создать категорию.';
+        this.categoryCreateError.set('');
         this.runMutation(
             this.homeApi.createCategory({
                 name,
                 type,
                 color,
             }),
-            'Не удалось создать категорию.',
+            message,
             () => {
                 if (type === 'Credit') {
                     this.newIncomeCategory.set('');
@@ -1989,9 +2149,14 @@ export class HomeDashboardStore {
                     this.newExpenseCategory.set('');
                 }
 
+                this.categoryCreateRevision.update((revision) => revision + 1);
                 this.reloadCategories();
-                this.refreshLoadedTagDetails();
             },
+            (error) =>
+                this.categoryCreateError.set(
+                    getApiFieldError(error, 'name') || toFriendlyApiError(error, message),
+                ),
+            { reportGlobally: false },
         );
     }
 
@@ -2007,7 +2172,7 @@ export class HomeDashboardStore {
         }
 
         if (currentYear === nextYear) {
-            this.reloadCurrentTransactionPage();
+            this.refreshJournalWhenVisible();
             this.loadSelectedMonthBalances();
             return;
         }
@@ -2015,10 +2180,21 @@ export class HomeDashboardStore {
         this.refreshPeriodData();
     }
 
+    private refreshJournalWhenVisible(): void {
+        if (this.activeTab() === 'overview') {
+            this.reloadCurrentTransactionPage();
+            return;
+        }
+        this.journalNeedsRefresh = true;
+        this.currentTransactionPageRequestId++;
+    }
+
     private reloadCurrentTransactionPage(page = 1): void {
+        this.journalNeedsRefresh = false;
         this.errorMessage.set('');
         const requestId = ++this.currentTransactionPageRequestId;
         const pageMonthKey = monthKey(this.selectedMonth());
+        const descriptionRevision = this.descriptionRevision;
 
         if (!this.accountResponses().length) {
             this.setTransactionPage(
@@ -2036,13 +2212,19 @@ export class HomeDashboardStore {
                         return;
                     }
 
-                    this.setTransactionPage(transactionPage, pageMonthKey);
+                    const pagination = mapTransactionPagination(transactionPage);
+                    if (this.searchQuery() && page > pagination.totalPages) {
+                        this.reloadCurrentTransactionPage(pagination.totalPages);
+                        return;
+                    }
+                    this.setTransactionPage(transactionPage, pageMonthKey, descriptionRevision);
                 },
                 error: (error) => {
                     if (requestId !== this.currentTransactionPageRequestId) {
                         return;
                     }
 
+                    this.journalNeedsRefresh = true;
                     this.errorMessage.set(
                         toFriendlyApiError(
                             error,
@@ -2058,6 +2240,7 @@ export class HomeDashboardStore {
     ): void {
         this.errorMessage.set('');
         const requestId = ++this.selectedYearTransactionsRequestId;
+        const descriptionRevision = this.descriptionRevision;
 
         if (!this.accountResponses().length) {
             this.yearTransactionResponses.set([]);
@@ -2086,8 +2269,12 @@ export class HomeDashboardStore {
                         return;
                     }
 
-                    this.yearTransactionResponses.set(yearTransactions);
-                    this.priorDebtTransactionResponses.set(priorDebtTransactions);
+                    this.yearTransactionResponses.set(
+                        this.applyDescriptionEdits(yearTransactions, descriptionRevision),
+                    );
+                    this.priorDebtTransactionResponses.set(
+                        this.applyDescriptionEdits(priorDebtTransactions, descriptionRevision),
+                    );
                     this.areYearTransactionsStale = false;
                     this.historyReady.set(true);
                     onLoaded?.({ yearTransactions, priorDebtTransactions });
@@ -2157,62 +2344,26 @@ export class HomeDashboardStore {
         this.reloadCategories();
     }
 
-    private refreshSelectedMonthBalances(): void {
-        const requestId = ++this.selectedMonthBalanceRequestId;
-
-        this.loadMonthBalances(this.accountResponses(), [this.selectedMonth()])
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-                next: (balances) => {
-                    if (requestId !== this.selectedMonthBalanceRequestId) {
-                        return;
-                    }
-
-                    this.mergeMonthBalances(balances);
-                },
-                error: (error) => {
-                    if (requestId !== this.selectedMonthBalanceRequestId) {
-                        return;
-                    }
-
-                    this.errorMessage.set(toFriendlyApiError(error, FRIENDLY_LOAD_ERROR_MESSAGE));
-                },
-            });
-    }
-
     private refreshTransactionData(): void {
         this.reloadCurrentTransactionPage();
         this.reloadSelectedYearTransactions();
-
-        if (this.activeTab() === 'analytics') {
-            this.reloadSelectedYearBalances();
-            return;
-        }
-
-        this.keepOnlySelectedMonthBalancesForSelectedYear();
-        this.refreshSelectedMonthBalances();
+        this.invalidateBalanceRequests();
+        this.yearBalanceResponses.set([]);
+        this.loadSelectedMonthBalances();
     }
 
     private refreshPeriodData(): void {
+        this.invalidateBalanceRequests();
+        this.yearBalanceResponses.set([]);
         if (!this.accountResponses().length) {
             this.setTransactionPage(createEmptyTransactionPage(this.transactionPageSize()));
             this.yearTransactionResponses.set([]);
             this.priorDebtTransactionResponses.set([]);
-            this.yearBalanceResponses.set([]);
-            this.loadedFullBalanceYear = null;
             return;
         }
 
-        this.reloadCurrentTransactionPage();
+        this.refreshJournalWhenVisible();
         this.reloadSelectedYearTransactions();
-        this.yearBalanceResponses.set([]);
-        this.loadedFullBalanceYear = null;
-
-        if (this.activeTab() === 'analytics') {
-            this.loadYearBalancesForSelectedYear();
-            return;
-        }
-
         this.loadSelectedMonthBalances();
     }
 
@@ -2267,6 +2418,8 @@ export class HomeDashboardStore {
     ): void {
         this.errorMessage.set('');
         const requestId = ++this.accountDataRequestId;
+        const accountEditRevision = this.accountEditRevision();
+        const descriptionRevision = this.descriptionRevision;
         const reloadYearTransactions = options.reloadYearTransactions ?? true;
         const defaultApplicationCurrencyCode = options.defaultApplicationCurrencyCode
             ? toSupportedCurrencyCode(options.defaultApplicationCurrencyCode)
@@ -2306,10 +2459,7 @@ export class HomeDashboardStore {
                         });
                     }
 
-                    const balanceMonths =
-                        this.activeTab() === 'analytics'
-                            ? this.monthsForSelectedYear()
-                            : [this.selectedMonth()];
+                    const balanceMonths = [this.selectedMonth()];
 
                     return forkJoin({
                         exchangeRatesByAccountId: this.loadApplicationExchangeRates(
@@ -2367,26 +2517,28 @@ export class HomeDashboardStore {
                         return;
                     }
 
-                    this.accountResponses.set(accounts);
+                    this.setAccountResponses(accounts, accountEditRevision);
                     this.selectedAccountId.set(selectedAccountId);
                     this.accountsSelectedAccountId.set(accountsSelectedAccountId);
                     this.analyticsSelectedAccountId.set(analyticsSelectedAccountId);
                     this.setApplicationCurrency(applicationCurrencyCode);
                     this.exchangeRatesByAccountId.set(exchangeRatesByAccountId);
-                    this.setTransactionPage(transactionPage);
-                    this.yearTransactionResponses.set(yearTransactions);
-                    this.priorDebtTransactionResponses.set(priorDebtTransactions);
+                    this.setTransactionPage(transactionPage, undefined, descriptionRevision);
+                    this.yearTransactionResponses.set(
+                        this.applyDescriptionEdits(yearTransactions, descriptionRevision),
+                    );
+                    this.priorDebtTransactionResponses.set(
+                        this.applyDescriptionEdits(priorDebtTransactions, descriptionRevision),
+                    );
                     this.areYearTransactionsStale = accounts.length > 0 && !reloadYearTransactions;
+                    this.invalidateBalanceRequests();
                     this.yearBalanceResponses.set(yearBalances);
                     this.balancesReady.set(true);
                     this.ratesReady.set(true);
                     if (reloadYearTransactions) this.historyReady.set(true);
                     this.hasLoaded.set(true);
-                    this.loadedFullBalanceYear =
-                        accounts.length > 0 && this.activeTab() === 'analytics'
-                            ? this.selectedMonth().getFullYear()
-                            : null;
                     this.ensureDraftDefaults();
+                    this.loadSelectedMonthBalances();
                 },
                 error: (error) => {
                     if (requestId !== this.accountDataRequestId) {
@@ -2405,40 +2557,42 @@ export class HomeDashboardStore {
         if (!missingMonths.length) {
             this.balancesReady.set(true);
             onLoaded?.();
+            this.loadYearBalancesForView();
             return;
         }
 
         this.balancesReady.set(false);
-        this.loadMonthBalances(this.accountResponses(), missingMonths)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-                next: (balances) => {
-                    if (requestId !== this.selectedMonthBalanceRequestId) {
-                        return;
-                    }
+        this.loadMissingBalances(missingMonths).subscribe({
+            next: () => {
+                if (requestId !== this.selectedMonthBalanceRequestId) {
+                    return;
+                }
 
-                    this.mergeMonthBalances(balances);
-                    this.balancesReady.set(true);
-                    onLoaded?.();
-                    this.loadYearBalancesForTab(this.activeTab());
-                },
-                error: (error) => {
-                    if (requestId !== this.selectedMonthBalanceRequestId) {
-                        return;
-                    }
+                this.balancesReady.set(true);
+                onLoaded?.();
+                this.loadYearBalancesForView();
+            },
+            error: (error) => {
+                if (requestId !== this.selectedMonthBalanceRequestId) {
+                    return;
+                }
 
-                    this.errorMessage.set(
-                        toFriendlyApiError(
-                            error,
-                            'Не удалось обновить балансы счетов. Проверьте подключение и попробуйте ещё раз.',
-                        ),
-                    );
-                },
-            });
+                this.errorMessage.set(
+                    toFriendlyApiError(
+                        error,
+                        'Не удалось обновить балансы счетов. Проверьте подключение и попробуйте ещё раз.',
+                    ),
+                );
+            },
+        });
     }
 
-    private loadYearBalancesForTab(tab: HomeTabId): void {
-        if (tab !== 'analytics' || !this.balancesReady()) {
+    private loadYearBalancesForView(): void {
+        if (
+            this.activeTab() !== 'analytics' ||
+            this.analyticsView !== 'yearly' ||
+            !this.balancesReady()
+        ) {
             return;
         }
 
@@ -2462,41 +2616,28 @@ export class HomeDashboardStore {
     private loadYearBalancesForSelectedYear(): void {
         const selectedYear = this.selectedMonth().getFullYear();
 
-        if (
-            this.loadedFullBalanceYear === selectedYear ||
-            this.loadingYearBalanceYear === selectedYear
-        ) {
+        if (this.loadingYearBalanceYear === selectedYear) {
             return;
         }
 
         const missingMonths = this.monthsMissingBalances(this.monthsForSelectedYear());
 
         if (!missingMonths.length) {
-            this.loadedFullBalanceYear = selectedYear;
             return;
         }
 
         const requestId = ++this.yearBalanceRequestId;
         this.loadingYearBalanceYear = selectedYear;
 
-        this.loadMonthBalances(this.accountResponses(), missingMonths)
+        this.loadMissingBalances(missingMonths)
             .pipe(
                 finalize(() => {
                     if (requestId === this.yearBalanceRequestId) {
                         this.loadingYearBalanceYear = null;
                     }
                 }),
-                takeUntilDestroyed(this.destroyRef),
             )
             .subscribe({
-                next: (balances) => {
-                    if (requestId !== this.yearBalanceRequestId) {
-                        return;
-                    }
-
-                    this.mergeMonthBalances(balances);
-                    this.loadedFullBalanceYear = selectedYear;
-                },
                 error: (error) => {
                     if (requestId !== this.yearBalanceRequestId) {
                         return;
@@ -2512,42 +2653,45 @@ export class HomeDashboardStore {
             });
     }
 
-    private reloadSelectedYearBalances(): void {
-        const selectedYear = this.selectedMonth().getFullYear();
-
-        if (this.loadingYearBalanceYear === selectedYear) {
-            return;
-        }
-
-        const requestId = ++this.yearBalanceRequestId;
-        this.loadingYearBalanceYear = selectedYear;
-
-        this.loadMonthBalances(this.accountResponses(), this.monthsForSelectedYear())
-            .pipe(
-                finalize(() => {
-                    if (requestId === this.yearBalanceRequestId) {
-                        this.loadingYearBalanceYear = null;
-                    }
-                }),
-                takeUntilDestroyed(this.destroyRef),
+    private loadMissingBalances(months: Date[]) {
+        return this.dataLoader
+            .monthBalances(this.accountResponses(), months, (id, year, month) =>
+                this.loadSharedMonthBalance(id, year, month),
             )
-            .subscribe({
-                next: (balances) => {
-                    if (requestId !== this.yearBalanceRequestId) {
-                        return;
-                    }
+            .pipe(takeUntil(this.resetBalanceRequests), takeUntilDestroyed(this.destroyRef));
+    }
 
-                    this.mergeMonthBalances(balances);
-                    this.loadedFullBalanceYear = selectedYear;
-                },
-                error: (error) => {
-                    if (requestId !== this.yearBalanceRequestId) {
-                        return;
-                    }
+    private loadSharedMonthBalance(
+        id: string,
+        year: number,
+        month: number,
+    ): Observable<MonthBalanceResponse> {
+        const existing = this.yearBalanceResponses().find(
+            (item) => item.accountId === id && item.year === year && item.month === month,
+        );
+        if (existing) return of(existing);
 
-                    this.errorMessage.set(toFriendlyApiError(error, FRIENDLY_LOAD_ERROR_MESSAGE));
-                },
-            });
+        const key = getMonthBalanceCacheKey(id, year, month);
+        const pending = this.balanceRequests.get(key);
+        if (pending) return pending;
+
+        const request = this.homeApi.getMonthBalance(id, year, month).pipe(
+            tap((balance) => this.mergeMonthBalances([balance])),
+            finalize(() => {
+                if (this.balanceRequests.get(key) === request) this.balanceRequests.delete(key);
+            }),
+            shareReplay({ bufferSize: 1, refCount: true }),
+        );
+        this.balanceRequests.set(key, request);
+        return request;
+    }
+
+    private invalidateBalanceRequests(): void {
+        this.selectedMonthBalanceRequestId++;
+        this.yearBalanceRequestId++;
+        this.loadingYearBalanceYear = null;
+        this.balanceRequests.clear();
+        this.resetBalanceRequests.next();
     }
 
     private monthsMissingBalances(months: ReadonlyArray<Date>): Date[] {
@@ -2566,13 +2710,6 @@ export class HomeDashboardStore {
         this.yearBalanceResponses.set(
             mergeMonthBalanceCache(this.yearBalanceResponses(), balances),
         );
-    }
-
-    private keepOnlySelectedMonthBalancesForSelectedYear(): void {
-        this.yearBalanceResponses.set(
-            keepSelectedMonthBalanceForYear(this.yearBalanceResponses(), this.selectedMonth()),
-        );
-        this.loadedFullBalanceYear = null;
     }
 
     private assignTagCategories(tagId: string, categoryIds: string[]): void {
@@ -2662,6 +2799,7 @@ export class HomeDashboardStore {
         errorMessage: string,
         onSuccess: (response: T) => void,
         onError?: (error: unknown) => void,
+        { reportGlobally = true } = {},
     ): void {
         if (this.isSaving()) {
             return;
@@ -2679,7 +2817,7 @@ export class HomeDashboardStore {
                 next: onSuccess,
                 error: (error) => {
                     const friendlyMessage = toFriendlyApiError(error, errorMessage);
-                    this.errorMessage.set(friendlyMessage);
+                    if (reportGlobally) this.errorMessage.set(friendlyMessage);
                     onError?.(error);
                 },
             });

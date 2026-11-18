@@ -51,6 +51,11 @@ are released separately.
 If a push does not create a workflow run, `Deploy Frontend` can also be started
 manually from GitHub Actions. Verification and deployment only run for `master`.
 
+## Release 0.4.1
+
+See [release notes](docs/release-0.4.1.md) for account form fixes and fewer
+requests when opening analytics, editing operations, and working with tags.
+
 ## Release 0.4.0
 
 See [release notes](docs/release-0.4.0.md) for install icons, continuous rounded

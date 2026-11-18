@@ -1,17 +1,23 @@
-import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    effect,
+    input,
+    output,
+    signal,
+} from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Button } from '../../../../../shared/ui/button/button';
 import { DialogShellComponent } from '../../../../../shared/ui/dialog-shell/dialog-shell';
 import { InputComponent } from '../../../../../shared/ui/input/input';
 import { MsSelectOption, SelectComponent } from '../../../../../shared/ui/select/select';
-import {
-    formatMoneyInputAmount,
-    normalizeMoneyInputText,
-    parseMoneyInputAmount,
-} from '../../../../../shared/utils/money-input.utils';
+import { nextAccountColor } from '../../home-account-colors';
+import { parseInitialAccountBalance } from '../../home-amount.utils';
 import { AccountBalanceItem } from '../../home-page.models';
 import { AccountOrderPanelComponent } from '../account-order-panel/account-order-panel.component';
 import { NameColorDialogComponent } from '../name-color-dialog/name-color-dialog.component';
+import { ColorFieldComponent } from '../color-field/color-field.component';
 
 @Component({
     selector: 'ms-account-list-panel',
@@ -24,6 +30,7 @@ import { NameColorDialogComponent } from '../name-color-dialog/name-color-dialog
         InputComponent,
         SelectComponent,
         NameColorDialogComponent,
+        ColorFieldComponent,
         AccountOrderPanelComponent,
     ],
     templateUrl: './account-list-panel.component.html',
@@ -50,12 +57,14 @@ export class AccountListPanelComponent {
     newAccountInitialBalance = input.required<number>();
     newAccountNameError = input<string>('');
     createdAccountId = input<string | null>(null);
+    accountEditRevision = input(0);
+    accountEditError = input('');
     saving = input(false);
 
     newAccountNameChange = output<string>();
     newAccountCurrencyChange = output<string>();
     newAccountInitialBalanceChange = output<number>();
-    createAccount = output<void>();
+    createAccount = output<string>();
     deleteAccount = output<string>();
     renameAccount = output<{ accountId: string; name: string; color: string }>();
     accountChange = output<string>();
@@ -63,17 +72,27 @@ export class AccountListPanelComponent {
     readonly isOrderDialogOpen = signal(false);
     readonly isAccountDialogOpen = signal(false);
     readonly accountDialogName = signal('');
-    readonly initialBalanceText = signal('0.00');
+    readonly accountDialogColor = signal('');
+    readonly initialBalanceText = signal('');
+    readonly initialBalanceDraft = computed(() =>
+        parseInitialAccountBalance(this.initialBalanceText(), this.newAccountCurrency()),
+    );
     readonly isRenameDialogOpen = signal(false);
     readonly renameAccountId = signal('');
     readonly renameAccountName = signal('');
     readonly renameAccountColor = signal('#23c78b');
+    readonly renameAttempted = signal(false);
     readonly accountPendingDeletion = signal<AccountBalanceItem | null>(null);
 
     constructor() {
         effect(() => {
             if (this.createdAccountId()) {
-                this.closeAccountDialog();
+                this.isAccountDialogOpen.set(false);
+            }
+        });
+        effect(() => {
+            if (this.accountEditRevision()) {
+                this.isRenameDialogOpen.set(false);
             }
         });
     }
@@ -103,23 +122,22 @@ export class AccountListPanelComponent {
 
     openAccountDialog(): void {
         this.accountDialogName.set(this.newAccountName());
-        this.initialBalanceText.set(formatMoneyInputAmount(this.newAccountInitialBalance()));
+        this.accountDialogColor.set(
+            nextAccountColor(this.allAccounts().map((account) => account.color)),
+        );
+        const balance = this.newAccountInitialBalance();
+        this.initialBalanceText.set(balance ? String(balance) : '');
         this.isAccountDialogOpen.set(true);
     }
 
     closeAccountDialog(): void {
-        this.isAccountDialogOpen.set(false);
+        if (!this.saving()) this.isAccountDialogOpen.set(false);
     }
 
     onInitialBalanceInput(value: string | number): void {
-        const nextText = normalizeMoneyInputText(
-            `${value ?? ''}`,
-            true,
-            this.newAccountInitialBalance(),
-        );
-
-        this.initialBalanceText.set(nextText);
-        this.newAccountInitialBalanceChange.emit(parseMoneyInputAmount(nextText));
+        this.initialBalanceText.set(String(value));
+        const { amount, error } = this.initialBalanceDraft();
+        if (!error) this.newAccountInitialBalanceChange.emit(amount);
     }
 
     setAccountDialogName(value: string): void {
@@ -128,17 +146,20 @@ export class AccountListPanelComponent {
     }
 
     submitAccountDialog(): void {
-        if (!this.accountDialogName().trim() || this.saving()) {
+        const { amount, error } = this.initialBalanceDraft();
+        if (!this.accountDialogName().trim() || this.saving() || error) {
             return;
         }
 
-        this.createAccount.emit();
+        this.newAccountInitialBalanceChange.emit(amount);
+        this.createAccount.emit(this.accountDialogColor());
     }
 
     openRenameDialog(account: AccountBalanceItem): void {
         this.renameAccountId.set(account.id);
         this.renameAccountName.set(account.name);
         this.renameAccountColor.set(account.color);
+        this.renameAttempted.set(false);
         this.isRenameDialogOpen.set(true);
     }
 
@@ -158,11 +179,11 @@ export class AccountListPanelComponent {
             return;
         }
 
+        this.renameAttempted.set(true);
         this.renameAccount.emit({
             accountId,
             name,
             color: this.renameAccountColor(),
         });
-        this.closeRenameDialog();
     }
 }

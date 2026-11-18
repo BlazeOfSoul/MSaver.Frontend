@@ -5,10 +5,11 @@
                 [currencyOptions]="currencyOptions"
                 [selectedCurrency]="newAccountCurrency()"
                 [initialBalance]="newAccountInitialBalance()"
+                [error]="dashboard.primaryAccountError()"
                 [saving]="isSaving()"
                 (currencyChange)="setNewAccountCurrency($event)"
                 (initialBalanceChange)="setNewAccountInitialBalance($event)"
-                (createAccount)="createPrimaryAccount()"
+                (createAccount)="createPrimaryAccount($event)"
             ></ms-first-account-setup>
         </div>
     } @else {
@@ -136,6 +137,8 @@
                                         [newAccountInitialBalance]="newAccountInitialBalance()"
                                         [newAccountNameError]="accountNameError()"
                                         [createdAccountId]="dashboard.lastCreatedAccountId()"
+                                        [accountEditRevision]="dashboard.accountEditRevision()"
+                                        [accountEditError]="dashboard.accountEditError()"
                                         [transferRateError]="transferRateError()"
                                         [rateLoading]="isTransferRateLoading()"
                                         [saving]="isSaving()"
@@ -146,7 +149,7 @@
                                         (newAccountInitialBalanceChange)="
                                             setNewAccountInitialBalance($event)
                                         "
-                                        (createAccount)="createNewAccount()"
+                                        (createAccount)="createNewAccount($event)"
                                         (deleteAccount)="deleteAccount($event)"
                                         (renameAccount)="renameAccount($event)"
                                         (submitTransfer)="transferBetweenAccounts()"
@@ -167,6 +170,7 @@
                                         [incomeCategories]="analyticsIncomeCategories()"
                                         [monthlyExpenses]="monthlyExpensesChart()"
                                         [balanceDynamics]="balanceDynamicsChart()"
+                                        [yearBalancesReady]="dashboard.yearBalancesReady()"
                                         [transferIncome]="transferIncomeChart()"
                                         [transferExpense]="dashboard.transferExpenseChart()"
                                         [currencyCode]="dashboard.analyticsCurrencyCode()"
@@ -176,6 +180,7 @@
                                         [accountOptions]="toolbarAccountOptions()"
                                         [selectedAccountId]="analyticsSelectedAccountId()"
                                         [selectedMonth]="selectedMonth()"
+                                        (viewChange)="dashboard.setAnalyticsView($event)"
                                         [transactions]="analyticsMonthTransactions()"
                                         [transactionsLoading]="
                                             analyticsTransactionsLoading() ||
@@ -203,6 +208,12 @@
                                         [newIncomeCategoryColor]="newIncomeCategoryColor()"
                                         [newExpenseCategoryColor]="newExpenseCategoryColor()"
                                         [newTagGroup]="newTagGroup()"
+                                        [categoryCreateError]="dashboard.categoryCreateError()"
+                                        [categoryCreateRevision]="
+                                            dashboard.categoryCreateRevision()
+                                        "
+                                        [tagCreateError]="dashboard.tagCreateError()"
+                                        [tagCreateRevision]="dashboard.tagCreateRevision()"
                                         [newTagGroupColor]="newTagGroupColor()"
                                         [saving]="isSaving()"
                                         [budgetMonth]="selectedMonth()"

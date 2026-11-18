@@ -24,6 +24,7 @@
         [hidden]="hidden()"
         [class.invalid]="invalid()"
         [attr.aria-invalid]="invalid()"
+        [attr.aria-describedby]="describedBy() || null"
         [value]="value()"
         [class.has-left-icon]="!!icon() || !!prefixIcon()"
         [class.has-right-action]="!!actionIcon() || !!afterInputTemplate() || canClear()"
